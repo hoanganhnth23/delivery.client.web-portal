@@ -1,34 +1,55 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './modules/auth/hooks/useAuth'
+import LoginPage from './modules/auth/pages/LoginPageV2'
+import RegisterPage from './modules/auth/pages/RegisterPageV2'
+import HomePage from './modules/home/pages/HomePage'
+import RestaurantDashboard from './modules/restaurant/pages/RestaurantDashboard'
+import MenuManagement from './modules/restaurant/pages/MenuManagement'
+import AdminDashboard from './modules/admin/pages/AdminDashboard'
+import PrivateRoute from './routes/PrivateRoute'
+import { ROUTES } from './utils/constants'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
-
+// Temporary Dashboard Component
+const Dashboard = () => {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div style={{ padding: '2rem' }}>
+      <h1>Dashboard</h1>
+      <p>Welcome to DeliveryVN Admin Panel</p>
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+        
+        {/* Restaurant Routes */}
+        <Route path="/restaurant/dashboard" element={<RestaurantDashboard />} />
+        <Route path="/restaurant/menu" element={<MenuManagement />} />
+
+        {/* Admin Routes */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+
+        {/* Protected Routes */}
+        <Route
+          path={ROUTES.DASHBOARD}
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 404 Route */}
+        <Route path="*" element={<div>404 - Page Not Found</div>} />
+      </Routes>
+    </AuthProvider>
   )
 }
 
