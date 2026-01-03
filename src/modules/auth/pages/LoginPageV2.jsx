@@ -47,7 +47,12 @@ const LoginPageV2 = () => {
             };
             
             console.log("Shop Owner login credentials:", credentials);
-            await login(credentials);
+            const result = await login(credentials);
+            
+            // useAuth hook sẽ tự động redirect đến /restaurant/dashboard
+            if (!result.success && result.error) {
+                setErrors({ general: result.error });
+            }
         } catch (err) {
             setErrors({ general: err.message || 'Login failed' });
         }

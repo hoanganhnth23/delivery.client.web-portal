@@ -64,9 +64,11 @@ export const AuthProvider = ({ children }) => {
         if (options.redirectTo) {
           navigate(options.redirectTo);
         } else if (result.user.role === USER_ROLES.ADMIN) {
+          // Admin → Admin Dashboard
           navigate(ROUTES.ADMIN_DASHBOARD);
         } else if (result.user.role === USER_ROLES.SHOP_OWNER) {
-          navigate(ROUTES.DASHBOARD);
+          // Shop Owner → Restaurant Management Dashboard
+          navigate('/restaurant/dashboard');
         } else {
           navigate(ROUTES.RESTAURANTS);
         }

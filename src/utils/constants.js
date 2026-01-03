@@ -56,6 +56,7 @@ export const ROUTES = {
   // Protected routes
   DASHBOARD: '/dashboard',
   ADMIN_DASHBOARD: '/admin/dashboard',
+  RESTAURANT_DASHBOARD: '/restaurant/dashboard', // Shop Owner dashboard
   
   // Restaurant routes
   RESTAURANTS: '/restaurants',

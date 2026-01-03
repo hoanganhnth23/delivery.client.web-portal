@@ -57,13 +57,17 @@ apiClient.interceptors.response.use(
     }
 
     // Kiểm tra BaseResponse format từ backend
-    const { code, data, message } = response.data;
+    // Backend trả về: { status: 1, message: "...", data: {...} }
+    const { status, code, data, message } = response.data;
 
-    if (code === RESPONSE_CODES.SUCCESS) {
-      // Trả về data nếu success
+    // Backend dùng "status" thay vì "code"
+    const successCode = status || code;
+
+    if (successCode === RESPONSE_CODES.SUCCESS) {
+      // Trả về response nếu success
       return response;
     } else {
-      // Throw error nếu code !== 1
+      // Throw error nếu status !== 1
       const error = new Error(message || 'API Error');
       error.response = response;
       return Promise.reject(error);
@@ -134,9 +138,15 @@ apiClient.interceptors.response.use(
 /**
  * Helper function để xử lý response data
  * Extract data từ BaseResponse format
+ * Backend format: { status: 1, message: "Success", data: {...} }
  */
 export const handleResponse = (response) => {
-  return response.data.data;
+  // Backend trả về format: { status: 1, data: {...}, message: "Success" }
+  if (response.data && response.data.data !== undefined) {
+    return response.data.data;
+  }
+  // Fallback: trả về toàn bộ response.data nếu không có nested data
+  return response.data;
 };
 
 /**
@@ -144,29 +154,35 @@ export const handleResponse = (response) => {
  * Extract error message từ response
  */
 export const handleError = (error) => {
+  let errorMessage = 'Có lỗi xảy ra';
+  let errorStatus = 0;
+  
   if (error.response) {
     // Server responded with error
-    const message = error.response.data?.message || error.message;
-    return {
-      status: error.response.status,
-      message,
+    errorStatus = error.response.status;
+    errorMessage = error.response.data?.message || error.message;
+    
+    // Log chi tiết error để debug
+    console.error('API Error Details:', {
+      status: errorStatus,
+      message: errorMessage,
       data: error.response.data,
-    };
+    });
   } else if (error.request) {
     // Request was made but no response
-    return {
-      status: 0,
-      message: 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối.',
-      data: null,
-    };
+    errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối.';
+    console.error('Network Error:', error.message);
   } else {
     // Something else happened
-    return {
-      status: 0,
-      message: error.message || 'Có lỗi xảy ra',
-      data: null,
-    };
+    errorMessage = error.message || errorMessage;
+    console.error('Error:', error.message);
   }
+
+  // Throw Error object thay vì return
+  const err = new Error(errorMessage);
+  err.status = errorStatus;
+  err.originalError = error;
+  throw err;
 };
 
 export default apiClient;

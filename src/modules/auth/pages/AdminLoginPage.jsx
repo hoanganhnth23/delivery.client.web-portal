@@ -49,9 +49,9 @@ const AdminLoginPage = () => {
             console.log("Admin login credentials:", credentials);
             const result = await login(credentials);
 
-            if (result.success) {
-                // Navigate to admin dashboard
-                navigate('/admin/dashboard');
+            // useAuth hook sẽ tự động redirect đến /admin/dashboard
+            if (!result.success && result.error) {
+                setErrors({ general: result.error });
             }
         } catch (err) {
             setErrors({ general: err.message || 'Admin login failed' });

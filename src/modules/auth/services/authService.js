@@ -49,20 +49,29 @@ export const authService = {
         deviceId: deviceId,
       });
 
-      const { accessToken, refreshToken, expiresIn } = handleResponse(response);
+      // Backend trả về: { status: 1, data: { accessToken, refreshToken, authId, email, role } }
+      const responseData = handleResponse(response);
+      
+      // Destructure từ response data
+      const { accessToken, refreshToken, authId, email, role } = responseData;
 
       // Lưu tokens vào localStorage
       TokenStorage.setAccessToken(accessToken);
       TokenStorage.setRefreshToken(refreshToken);
 
-      // Decode JWT để lấy user info
-      const userInfo = this.decodeToken(accessToken);
+      // Decode JWT để lấy user info (hoặc dùng info từ response)
+      const userInfo = {
+        authId: authId,
+        email: email,
+        role: role,
+        userId: authId, // authId = userId
+      };
+      
       TokenStorage.setUserInfo(userInfo);
 
       return {
         accessToken,
         refreshToken,
-        expiresIn,
         user: userInfo,
       };
     } catch (error) {
