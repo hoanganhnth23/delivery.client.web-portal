@@ -42,19 +42,28 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Đăng nhập
-   * @param {Object} credentials - { email, password }
+   * @param {Object} credentials - { email, password, role }
+   * @param {Object} options - { redirectTo } - Custom redirect path
    */
   const login = useCallback(
-    async (credentials) => {
+    async (credentials, options = {}) => {
       try {
         setLoading(true);
         setError(null);
+        
+        // Credentials phải có role (SHOP_OWNER hoặc ADMIN)
+        if (!credentials.role) {
+          throw new Error('Role is required for login');
+        }
 
+        console.log("Login credentials:", credentials);
         const result = await authService.login(credentials);
         setUser(result.user);
 
-        // Redirect dựa vào role
-        if (result.user.role === USER_ROLES.ADMIN) {
+        // Custom redirect hoặc redirect dựa vào role
+        if (options.redirectTo) {
+          navigate(options.redirectTo);
+        } else if (result.user.role === USER_ROLES.ADMIN) {
           navigate(ROUTES.ADMIN_DASHBOARD);
         } else if (result.user.role === USER_ROLES.SHOP_OWNER) {
           navigate(ROUTES.DASHBOARD);

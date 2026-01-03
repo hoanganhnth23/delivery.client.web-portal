@@ -50,11 +50,12 @@ export const ROUTES = {
   // Public routes
   HOME: '/',
   LOGIN: '/login',
+  ADMIN_LOGIN: '/admin/login',
   REGISTER: '/register',
   
   // Protected routes
   DASHBOARD: '/dashboard',
-  ADMIN_DASHBOARD: '/admin',
+  ADMIN_DASHBOARD: '/admin/dashboard',
   
   // Restaurant routes
   RESTAURANTS: '/restaurants',

@@ -30,18 +30,23 @@ export const authService = {
 
   /**
    * Đăng nhập
-   * Backend request: { email, password, deviceType }
+   * Backend request: { email, password, role, deviceType, deviceId }
    * Backend response: { accessToken, refreshToken, expiresIn }
    * 
-   * @param {Object} credentials - { email, password, deviceType }
+   * @param {Object} credentials - { email, password, role, deviceType, deviceId }
    * @returns {Promise<Object>}
    */
   async login(credentials) {
     try {
+      // Generate unique device ID if not provided
+      const deviceId = credentials.deviceId || this.getOrCreateDeviceId();
+
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, {
         email: credentials.email,
         password: credentials.password,
+        role: credentials.role || 'SHOP_OWNER', // Role phải được truyền từ login page
         deviceType: credentials.deviceType || DEVICE_TYPES.WEB,
+        deviceId: deviceId,
       });
 
       const { accessToken, refreshToken, expiresIn } = handleResponse(response);
@@ -215,6 +220,48 @@ export const authService = {
     }
 
     return user.role === allowedRoles;
+  },
+
+  /**
+   * Lấy hoặc tạo Device ID
+   * Sử dụng fingerprint của browser để tạo unique device ID
+   */
+  getOrCreateDeviceId() {
+    const DEVICE_ID_KEY = 'deviceId';
+    
+    // Kiểm tra đã có deviceId trong localStorage chưa
+    let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+    
+    if (!deviceId) {
+      // Tạo deviceId mới từ browser fingerprint
+      const userAgent = navigator.userAgent;
+      const screenResolution = `${window.screen.width}x${window.screen.height}`;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const language = navigator.language;
+      const platform = navigator.platform;
+      
+      // Tạo hash từ các thông tin trên
+      const fingerprint = `${userAgent}-${screenResolution}-${timezone}-${language}-${platform}`;
+      deviceId = this.hashCode(fingerprint).toString();
+      
+      // Lưu vào localStorage
+      localStorage.setItem(DEVICE_ID_KEY, deviceId);
+    }
+    
+    return deviceId;
+  },
+
+  /**
+   * Hash function đơn giản để tạo device ID
+   */
+  hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
   },
 };
 

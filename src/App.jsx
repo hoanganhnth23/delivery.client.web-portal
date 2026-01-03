@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './modules/auth/hooks/useAuth'
 import LoginPage from './modules/auth/pages/LoginPageV2'
+import AdminLoginPage from './modules/auth/pages/AdminLoginPage'
 import RegisterPage from './modules/auth/pages/RegisterPageV2'
 import HomePage from './modules/home/pages/HomePage'
 import RestaurantDashboard from './modules/restaurant/pages/RestaurantDashboard'
@@ -27,6 +28,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
         <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
         
         {/* Restaurant Routes */}
