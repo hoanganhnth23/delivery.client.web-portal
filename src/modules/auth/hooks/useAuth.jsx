@@ -1,12 +1,12 @@
 /**
  * useAuth Hook
  * Custom hook để quản lý authentication state và actions
+ * Navigation logic được xử lý bởi UI components, không phải hook
  */
 
-import { useState, useEffect, useCallback, createContext, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo, createContext, useContext } from 'react';
 import { authService } from '../services/authService';
-import { USER_ROLES, ROUTES } from '@/utils/constants';
+import { USER_ROLES } from '@/utils/constants';
 
 // Create Auth Context
 const AuthContext = createContext(null);
@@ -19,7 +19,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
   // Khởi tạo: Check user đã login chưa
   useEffect(() => {
@@ -42,47 +41,44 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Đăng nhập
+   * Hook CHỈ xử lý authentication logic, KHÔNG điều hướng
+   * UI component sẽ nhận result và tự quyết định navigation
+   * 
    * @param {Object} credentials - { email, password, role }
-   * @param {Object} options - { redirectTo } - Custom redirect path
+   * @returns {Promise<Object>} - { success, data: { user, accessToken, refreshToken }, error }
    */
-  const login = useCallback(
-    async (credentials, options = {}) => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Credentials phải có role (SHOP_OWNER hoặc ADMIN)
-        if (!credentials.role) {
-          throw new Error('Role is required for login');
-        }
-
-        console.log("Login credentials:", credentials);
-        const result = await authService.login(credentials);
-        setUser(result.user);
-
-        // Custom redirect hoặc redirect dựa vào role
-        if (options.redirectTo) {
-          navigate(options.redirectTo);
-        } else if (result.user.role === USER_ROLES.ADMIN) {
-          // Admin → Admin Dashboard
-          navigate(ROUTES.ADMIN_DASHBOARD);
-        } else if (result.user.role === USER_ROLES.SHOP_OWNER) {
-          // Shop Owner → Restaurant Management Dashboard
-          navigate('/restaurant/dashboard');
-        } else {
-          navigate(ROUTES.RESTAURANTS);
-        }
-
-        return { success: true, data: result };
-      } catch (err) {
-        setError(err.message);
-        return { success: false, error: err.message };
-      } finally {
-        setLoading(false);
+  const login = useCallback(async (credentials) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Credentials phải có role (SHOP_OWNER hoặc ADMIN)
+      if (!credentials.role) {
+        throw new Error('Role is required for login');
       }
-    },
-    [navigate]
-  );
+
+      console.log("Login credentials:", credentials);
+      const result = await authService.login(credentials);
+      setUser(result.user);
+
+      // ✅ Chỉ trả về kết quả, KHÔNG navigate
+      return { 
+        success: true, 
+        data: {
+          user: result.user,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        }
+      };
+    } catch (err) {
+      const errorMessage = err.message || 'Login failed';
+      setError(errorMessage);
+      console.error('Login error:', err);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   /**
    * Đăng ký
@@ -106,20 +102,23 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Đăng xuất
+   * Hook CHỈ xử lý logout logic, UI component tự navigate
    */
   const logout = useCallback(async () => {
     try {
       setLoading(true);
       await authService.logout();
       setUser(null);
-      navigate(ROUTES.LOGIN);
+      // ✅ KHÔNG navigate, component tự xử lý
+      return { success: true };
     } catch (err) {
       console.error('Logout error:', err);
       setError(err.message);
+      return { success: false, error: err.message };
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, []);
 
   /**
    * Refresh user info
@@ -139,17 +138,22 @@ export const AuthProvider = ({ children }) => {
     [user]
   );
 
-  const value = {
-    user,
-    loading,
-    error,
-    isAuthenticated: !!user,
-    login,
-    register,
-    logout,
-    refreshUser,
-    hasRole,
-  };
+  // ✅ PERFORMANCE OPTIMIZATION: Memoize context value
+  // Tránh re-render không cần thiết cho các components con
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      error,
+      isAuthenticated: !!user,
+      login,
+      register,
+      logout,
+      refreshUser,
+      hasRole,
+    }),
+    [user, loading, error, login, register, logout, refreshUser, hasRole]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

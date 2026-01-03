@@ -49,8 +49,15 @@ const LoginPageV2 = () => {
             console.log("Shop Owner login credentials:", credentials);
             const result = await login(credentials);
             
-            // useAuth hook sẽ tự động redirect đến /restaurant/dashboard
-            if (!result.success && result.error) {
+            // ✅ UI component tự xử lý navigation
+            if (result.success) {
+                // Redirect based on role
+                if (result.data.user.role === 'SHOP_OWNER') {
+                    navigate('/restaurant/dashboard');
+                } else {
+                    navigate('/dashboard');
+                }
+            } else {
                 setErrors({ general: result.error });
             }
         } catch (err) {

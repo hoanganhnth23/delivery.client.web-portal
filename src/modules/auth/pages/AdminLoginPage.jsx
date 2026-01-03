@@ -49,8 +49,10 @@ const AdminLoginPage = () => {
             console.log("Admin login credentials:", credentials);
             const result = await login(credentials);
 
-            // useAuth hook sẽ tự động redirect đến /admin/dashboard
-            if (!result.success && result.error) {
+            // ✅ UI component tự xử lý navigation
+            if (result.success) {
+                navigate('/admin/dashboard');
+            } else {
                 setErrors({ general: result.error });
             }
         } catch (err) {
