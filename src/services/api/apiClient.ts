@@ -3,13 +3,18 @@
  * Cấu hình axios với interceptors để xử lý authentication và error handling
  */
 
-import axios from 'axios';
+import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { API_BASE_URL, RESPONSE_CODES, HTTP_STATUS } from '@/utils/constants';
 import { TokenStorage } from '@/services/storage/localStorage';
 import { API_ENDPOINTS } from './endpoints';
 
+// Extended config type for retry logic
+interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
 // Tạo axios instance
-const apiClient = axios.create({
+const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -19,7 +24,7 @@ const apiClient = axios.create({
 
 // Request Interceptor - Tự động thêm access token vào header
 apiClient.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
     const token = TokenStorage.getAccessToken();
     
     // Thêm Bearer token nếu có
@@ -38,7 +43,7 @@ apiClient.interceptors.request.use(
 
     return config;
   },
-  (error) => {
+  (error: AxiosError) => {
     console.error('❌ Request Error:', error);
     return Promise.reject(error);
   }
@@ -46,7 +51,7 @@ apiClient.interceptors.request.use(
 
 // Response Interceptor - Xử lý response và auto-refresh token
 apiClient.interceptors.response.use(
-  (response) => {
+  (response: AxiosResponse) => {
     // Log response (chỉ trong development)
     if (import.meta.env.DEV) {
       console.log('✅ API Response:', {
@@ -68,13 +73,13 @@ apiClient.interceptors.response.use(
       return response;
     } else {
       // Throw error nếu status !== 1
-      const error = new Error(message || 'API Error');
+      const error = new Error(message || 'API Error') as Error & { response: AxiosResponse };
       error.response = response;
       return Promise.reject(error);
     }
   },
-  async (error) => {
-    const originalRequest = error.config;
+  async (error: AxiosError) => {
+    const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
     // Log error (chỉ trong development)
     if (import.meta.env.DEV) {
@@ -89,6 +94,7 @@ apiClient.interceptors.response.use(
     // Xử lý 401 Unauthorized - Auto refresh token
     if (
       error.response?.status === HTTP_STATUS.UNAUTHORIZED &&
+      originalRequest &&
       !originalRequest._retry &&
       !originalRequest.url?.includes('/api/auth/login') &&
       !originalRequest.url?.includes('/api/auth/refresh-token')
@@ -140,7 +146,7 @@ apiClient.interceptors.response.use(
  * Extract data từ BaseResponse format
  * Backend format: { status: 1, message: "Success", data: {...} }
  */
-export const handleResponse = (response) => {
+export const handleResponse = <T = unknown>(response: AxiosResponse): T => {
   // Backend trả về format: { status: 1, data: {...}, message: "Success" }
   if (response.data && response.data.data !== undefined) {
     return response.data.data;
@@ -153,33 +159,37 @@ export const handleResponse = (response) => {
  * Helper function để xử lý error
  * Extract error message từ response
  */
-export const handleError = (error) => {
+export const handleError = (error: unknown): never => {
   let errorMessage = 'Có lỗi xảy ra';
   let errorStatus = 0;
   
-  if (error.response) {
-    // Server responded with error
-    errorStatus = error.response.status;
-    errorMessage = error.response.data?.message || error.message;
-    
-    // Log chi tiết error để debug
-    console.error('API Error Details:', {
-      status: errorStatus,
-      message: errorMessage,
-      data: error.response.data,
-    });
-  } else if (error.request) {
-    // Request was made but no response
-    errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối.';
-    console.error('Network Error:', error.message);
-  } else {
-    // Something else happened
-    errorMessage = error.message || errorMessage;
-    console.error('Error:', error.message);
+  if (axios.isAxiosError(error)) {
+    if (error.response) {
+      // Server responded with error
+      errorStatus = error.response.status;
+      errorMessage = (error.response.data as { message?: string })?.message || error.message;
+      
+      // Log chi tiết error để debug
+      console.error('API Error Details:', {
+        status: errorStatus,
+        message: errorMessage,
+        data: error.response.data,
+      });
+    } else if (error.request) {
+      // Request was made but no response
+      errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối.';
+      console.error('Network Error:', error.message);
+    } else {
+      // Something else happened
+      errorMessage = error.message || errorMessage;
+      console.error('Error:', error.message);
+    }
+  } else if (error instanceof Error) {
+    errorMessage = error.message;
   }
 
   // Throw Error object thay vì return
-  const err = new Error(errorMessage);
+  const err = new Error(errorMessage) as Error & { status: number; originalError: unknown };
   err.status = errorStatus;
   err.originalError = error;
   throw err;

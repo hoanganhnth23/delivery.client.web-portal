@@ -1,0 +1,137 @@
+/**
+ * API Types
+ * Centralized type definitions cho toàn bộ application
+ */
+
+// ============================================
+// GENERIC TYPES
+// ============================================
+
+/**
+ * Generic API Response Structure
+ * Backend bắt buộc trả về format này
+ */
+export interface BaseResponse<T = unknown> {
+  status: 1 | 0; // 1 = success, 0 = error
+  data: T;
+  message: string;
+}
+
+/**
+ * Generic Action Result (cho hooks)
+ * Trả về từ các action functions trong custom hooks
+ */
+export interface ActionResult<T = unknown> {
+  success: boolean;
+  data?: T;
+  message?: string;
+}
+
+// ============================================
+// RESTAURANT TYPES
+// ============================================
+
+export interface Restaurant {
+  id: number;
+  name: string;
+  address: string;
+  phone: string;
+  openingHour: string;
+  closingHour: string;
+  image: string;
+  addressLat: number;
+  addressLng: number;
+  description: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateRestaurantRequest {
+  name: string;
+  address: string;
+  phone: string;
+  openingHour: string;
+  closingHour: string;
+  image: string;
+  addressLat: number;
+  addressLng: number;
+  description: string;
+}
+
+// Specific Response Types
+export type RestaurantResponse = BaseResponse<Restaurant>;
+export type RestaurantListResponse = BaseResponse<Restaurant[]>;
+
+// Specific Action Result Types
+export type RestaurantActionResult = ActionResult<Restaurant>;
+export type RestaurantListActionResult = ActionResult<Restaurant[]>;
+
+// ============================================
+// MENU ITEM TYPES
+// ============================================
+
+export interface MenuItem {
+  id: number;
+  restaurantId: number;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateMenuItemRequest {
+  restaurantId: number;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+}
+
+// Specific Response Types
+export type MenuItemResponse = BaseResponse<MenuItem>;
+export type MenuItemListResponse = BaseResponse<MenuItem[]>;
+
+// Specific Action Result Types
+export type MenuItemActionResult = ActionResult<MenuItem>;
+export type MenuItemListActionResult = ActionResult<MenuItem[]>;
+
+// ============================================
+// DELETE TYPES
+// ============================================
+
+export interface DeleteData {
+  id: number;
+  message: string;
+}
+
+export type DeleteResponse = BaseResponse<DeleteData>;
+export type DeleteActionResult = ActionResult<DeleteData>;
+
+// ============================================
+// AUTH TYPES (for future use)
+// ============================================
+
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: 'admin' | 'restaurant' | 'user';
+  createdAt?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  email: string;
+  password: string;
+  name: string;
+  role?: 'admin' | 'restaurant' | 'user';
+}
+
+export type AuthResponse = BaseResponse<{ user: User; token: string }>;
+export type UserActionResult = ActionResult<User>;

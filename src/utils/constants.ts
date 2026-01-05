@@ -12,14 +12,18 @@ export const USER_ROLES = {
   ADMIN: 'ADMIN',         // Quản trị viên hệ thống
   SHIPPER: 'SHIPPER',     // Shipper (không dùng cho web admin)
   SHOP_OWNER: 'SHOP_OWNER', // Chủ nhà hàng
-};
+} as const;
+
+export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 
 // Device Types (cho login request)
 export const DEVICE_TYPES = {
   WEB: 'WEB',
   MOBILE: 'MOBILE',
   TABLET: 'TABLET',
-};
+} as const;
+
+export type DeviceType = typeof DEVICE_TYPES[keyof typeof DEVICE_TYPES];
 
 // HTTP Status Codes
 export const HTTP_STATUS = {
@@ -30,20 +34,20 @@ export const HTTP_STATUS = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   INTERNAL_SERVER_ERROR: 500,
-};
+} as const;
 
 // Response Codes (từ BaseResponse)
 export const RESPONSE_CODES = {
   SUCCESS: 1,
   ERROR: 0,
-};
+} as const;
 
 // Local Storage Keys
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'accessToken',
   REFRESH_TOKEN: 'refreshToken',
   USER_INFO: 'userInfo',
-};
+} as const;
 
 // Routes
 export const ROUTES = {
@@ -72,7 +76,7 @@ export const ROUTES = {
   // Error pages
   UNAUTHORIZED: '/unauthorized',
   NOT_FOUND: '/404',
-};
+} as const;
 
 // Validation Rules
 export const VALIDATION = {
@@ -84,7 +88,7 @@ export const VALIDATION = {
     MIN_LENGTH: 6,
     MESSAGE: 'Mật khẩu phải có ít nhất 6 ký tự',
   },
-};
+} as const;
 
 // Toast Messages
 export const TOAST_MESSAGES = {
@@ -105,7 +109,7 @@ export const TOAST_MESSAGES = {
   MENU_UPDATED: 'Cập nhật món ăn thành công!',
   MENU_DELETED: 'Xóa món ăn thành công!',
   
-  // Generic
-  GENERIC_ERROR: 'Có lỗi xảy ra. Vui lòng thử lại.',
-  NETWORK_ERROR: 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối.',
-};
+  // Errors
+  NETWORK_ERROR: 'Lỗi kết nối mạng. Vui lòng thử lại.',
+  UNKNOWN_ERROR: 'Có lỗi xảy ra. Vui lòng thử lại.',
+} as const;

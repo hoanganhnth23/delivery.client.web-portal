@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './modules/auth/hooks/useAuth'
 import LoginPage from './modules/auth/pages/LoginPageV2'
 import AdminLoginPage from './modules/auth/pages/AdminLoginPage'

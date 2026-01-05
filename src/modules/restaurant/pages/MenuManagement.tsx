@@ -2,14 +2,34 @@
  * Menu Management - Quản lý thực đơn nhà hàng
  * Thêm, sửa, xóa món ăn, quản lý trạng thái active/inactive
  */
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useMenu } from '../hooks/useMenu'
+import MenuItemForm from '../components/MenuItemForm'
 
 const MenuManagement = () => {
+  const { 
+    menuItems: menuItemsData,
+    loading,
+    error,
+    getAllMenuItems,
+    deleteMenuItem,
+    getMenuItemsByRestaurant
+  } = useMenu();
+
   const [darkMode, setDarkMode] = useState(false)
   const [activeTab, setActiveTab] = useState('all')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingMenuItem, setEditingMenuItem] = useState(null)
+  const [restaurantId] = useState(1) // TODO: Lấy từ context hoặc props
 
-  const menuItems = [
+  // Load menu items khi component mount
+  useEffect(() => {
+    getAllMenuItems(); // hoặc getMenuItemsByRestaurant(restaurantId)
+  }, [getAllMenuItems]);
+
+  // Mock data for demo (sẽ được thay thế bằng data từ API)
+  const menuItems = menuItemsData.length > 0 ? menuItemsData : [
     {
       id: 1,
       name: 'Signature Beef Burger',
@@ -85,6 +105,35 @@ const MenuManagement = () => {
     { id: 'sides', name: 'Sides', count: 10 },
     { id: 'desserts', name: 'Desserts', count: 8 }
   ]
+
+  const handleCreate = () => {
+    setEditingMenuItem(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEdit = (item) => {
+    setEditingMenuItem(item);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Bạn có chắc muốn xóa món ăn này?')) {
+      const result = await deleteMenuItem(id, { skipRedirect: true });
+      if (result.success) {
+        alert('Xóa món ăn thành công!');
+        getAllMenuItems(); // Refresh list
+      } else {
+        alert(`Xóa thất bại: ${result.message}`);
+      }
+    }
+  };
+
+  const handleFormSuccess = (data) => {
+    setIsModalOpen(false);
+    setEditingMenuItem(null);
+    alert(editingMenuItem ? 'Cập nhật thành công!' : 'Tạo mới thành công!');
+    getAllMenuItems(); // Refresh list
+  };
 
   return (
     <div className={darkMode ? 'dark' : ''}>
@@ -171,7 +220,9 @@ const MenuManagement = () => {
                 <span className="material-symbols-outlined text-lg">upload</span>
                 Import
               </button>
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-orange-600 transition-colors shadow-md shadow-orange-200 dark:shadow-none">
+              <button 
+                onClick={handleCreate}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-orange-600 transition-colors shadow-md shadow-orange-200 dark:shadow-none">
                 <span className="material-symbols-outlined text-lg">add</span>
                 Add New Item
               </button>
@@ -294,11 +345,15 @@ const MenuManagement = () => {
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 pt-3 border-t border-border-light dark:border-border-dark">
-                      <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary hover:text-white transition-colors text-sm font-medium">
+                      <button 
+                        onClick={() => handleEdit(item)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary hover:text-white transition-colors text-sm font-medium">
                         <span className="material-symbols-outlined text-lg">edit</span>
                         Edit
                       </button>
-                      <button className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+                      <button 
+                        onClick={() => handleDelete(item.id)}
+                        className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
                         <span className="material-symbols-outlined text-lg">delete</span>
                       </button>
                     </div>
@@ -307,7 +362,9 @@ const MenuManagement = () => {
               ))}
 
               {/* Add New Dish Card */}
-              <div className="bg-surface-light dark:bg-surface-dark rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[400px] cursor-pointer group">
+              <div 
+                onClick={handleCreate}
+                className="bg-surface-light dark:bg-surface-dark rounded-2xl border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-primary dark:hover:border-primary shadow-sm hover:shadow-md transition-all flex items-center justify-center min-h-[400px] cursor-pointer group">
                 <div className="text-center p-6">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                     <span className="material-symbols-outlined text-4xl text-primary">add_circle</span>
@@ -329,6 +386,33 @@ const MenuManagement = () => {
             </div>
           </div>
         </main>
+
+        {/* Modal for Create/Edit */}
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {editingMenuItem ? 'Chỉnh sửa món ăn' : 'Thêm món ăn mới'}
+                </h2>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <span className="material-symbols-outlined text-3xl">close</span>
+                </button>
+              </div>
+              <div className="p-6">
+                <MenuItemForm
+                  menuItem={editingMenuItem}
+                  restaurantId={restaurantId}
+                  onSuccess={handleFormSuccess}
+                  onCancel={() => setIsModalOpen(false)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -4,12 +4,13 @@
  */
 
 import { STORAGE_KEYS } from '@/utils/constants';
+import type { User } from '@/types/api.types';
 
 export const TokenStorage = {
   /**
    * Lưu access token
    */
-  setAccessToken(token) {
+  setAccessToken(token: string): void {
     if (token) {
       localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
     }
@@ -18,14 +19,14 @@ export const TokenStorage = {
   /**
    * Lấy access token
    */
-  getAccessToken() {
+  getAccessToken(): string | null {
     return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
   },
 
   /**
    * Lưu refresh token
    */
-  setRefreshToken(token) {
+  setRefreshToken(token: string): void {
     if (token) {
       localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token);
     }
@@ -34,14 +35,14 @@ export const TokenStorage = {
   /**
    * Lấy refresh token
    */
-  getRefreshToken() {
+  getRefreshToken(): string | null {
     return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
   },
 
   /**
    * Lưu thông tin user
    */
-  setUserInfo(userInfo) {
+  setUserInfo(userInfo: User): void {
     if (userInfo) {
       localStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(userInfo));
     }
@@ -50,7 +51,7 @@ export const TokenStorage = {
   /**
    * Lấy thông tin user
    */
-  getUserInfo() {
+  getUserInfo(): User | null {
     const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO);
     return userInfo ? JSON.parse(userInfo) : null;
   },
@@ -58,7 +59,7 @@ export const TokenStorage = {
   /**
    * Xóa tất cả tokens và user info (khi logout)
    */
-  clearAll() {
+  clearAll(): void {
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER_INFO);
@@ -67,7 +68,7 @@ export const TokenStorage = {
   /**
    * Kiểm tra có token hay không
    */
-  hasToken() {
+  hasToken(): boolean {
     return !!this.getAccessToken();
   },
 };
