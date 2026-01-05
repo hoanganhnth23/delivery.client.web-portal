@@ -7,9 +7,9 @@
 import { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as menuService from '../services/menuService';
+import type { CreateMenuItemRequest } from '../services/menuService';
 import type {
   MenuItem,
-  CreateMenuItemRequest,
   MenuItemActionResult,
   MenuItemListActionResult,
   DeleteActionResult,

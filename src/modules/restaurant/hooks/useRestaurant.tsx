@@ -4,38 +4,67 @@
  * Theo pattern: Context API + Custom Hook với useMemo & useCallback
  */
 
-import { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as restaurantService from '../services/restaurantService';
+import type { CreateRestaurantRequest } from '../services/restaurantService';
+import type {
+  Restaurant,
+  RestaurantActionResult,
+  RestaurantListActionResult,
+  DeleteActionResult,
+} from '@/types/api.types';
 
-// Import types for JSDoc
-/** @typedef {import('@/types/api.types').Restaurant} Restaurant */
-/** @typedef {import('@/types/api.types').CreateRestaurantRequest} CreateRestaurantRequest */
-/** @typedef {import('@/types/api.types').RestaurantActionResult} RestaurantActionResult */
-/** @typedef {import('@/types/api.types').RestaurantListActionResult} RestaurantListActionResult */
-/** @typedef {import('@/types/api.types').DeleteActionResult} DeleteActionResult */
+// ============================================
+// LOCAL TYPES
+// ============================================
 
-const RestaurantContext = createContext(null);
+interface RestaurantContextValue {
+  // States
+  restaurants: Restaurant[];
+  currentRestaurant: Restaurant | null;
+  loading: boolean;
+  error: string | null;
+  
+  // Actions
+  createRestaurant: (data: CreateRestaurantRequest, options?: ActionOptions) => Promise<RestaurantActionResult>;
+  updateRestaurant: (id: number, data: CreateRestaurantRequest, options?: ActionOptions) => Promise<RestaurantActionResult>;
+  deleteRestaurant: (id: number, options?: ActionOptions) => Promise<DeleteActionResult>;
+  getRestaurantById: (id: number) => Promise<RestaurantActionResult>;
+  getAllRestaurants: () => Promise<RestaurantListActionResult>;
+  searchRestaurants: (params: Record<string, unknown>) => Promise<RestaurantListActionResult>;
+  
+  // Setters
+  setCurrentRestaurant: (restaurant: Restaurant | null) => void;
+  setError: (error: string | null) => void;
+}
 
-export const RestaurantProvider = ({ children }) => {
+interface ActionOptions {
+  skipRedirect?: boolean;
+}
+
+interface RestaurantProviderProps {
+  children: ReactNode;
+}
+
+const RestaurantContext = createContext<RestaurantContextValue | null>(null);
+
+export const RestaurantProvider = ({ children }: RestaurantProviderProps) => {
   const navigate = useNavigate();
   
   // States
-  /** @type {[Restaurant[], Function]} */
-  const [restaurants, setRestaurants] = useState([]);
-  /** @type {[Restaurant | null, Function]} */
-  const [currentRestaurant, setCurrentRestaurant] = useState(null);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(false);
-  /** @type {[string | null, Function]} */
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   /**
    * Tạo nhà hàng mới
-   * @param {CreateRestaurantRequest} data - Thông tin nhà hàng
-   * @param {Object} options - { skipRedirect: boolean }
-   * @returns {Promise<RestaurantActionResult>}
    */
-  const createRestaurant = useCallback(async (data, options = {}) => {
+  const createRestaurant = useCallback(async (
+    data: CreateRestaurantRequest,
+    options: ActionOptions = {}
+  ): Promise<RestaurantActionResult> => {
     try {
       setLoading(true);
       setError(null);
@@ -58,7 +87,7 @@ export const RestaurantProvider = ({ children }) => {
         return { success: false, message: response.message };
       }
     } catch (err) {
-      const message = err.response?.data?.message || 'Tạo nhà hàng thất bại';
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Tạo nhà hàng thất bại';
       setError(message);
       return { success: false, message };
     } finally {
@@ -68,12 +97,12 @@ export const RestaurantProvider = ({ children }) => {
 
   /**
    * Cập nhật thông tin nhà hàng
-   * @param {number} id - Restaurant ID
-   * @param {CreateRestaurantRequest} data - Thông tin cập nhật
-   * @param {Object} options - { skipRedirect: boolean }
-   * @returns {Promise<RestaurantActionResult>}
    */
-  const updateRestaurant = useCallback(async (id, data, options = {}) => {
+  const updateRestaurant = useCallback(async (
+    id: number,
+    data: CreateRestaurantRequest,
+    options: ActionOptions = {}
+  ): Promise<RestaurantActionResult> => {
     try {
       setLoading(true);
       setError(null);
@@ -97,7 +126,7 @@ export const RestaurantProvider = ({ children }) => {
         return { success: false, message: response.message };
       }
     } catch (err) {
-      const message = err.response?.data?.message || 'Cập nhật nhà hàng thất bại';
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Cập nhật nhà hàng thất bại';
       setError(message);
       return { success: false, message };
     } finally {
@@ -107,11 +136,11 @@ export const RestaurantProvider = ({ children }) => {
 
   /**
    * Xóa nhà hàng
-   * @param {number} id - Restaurant ID
-   * @param {Object} options - { skipRedirect: boolean }
-   * @returns {Promise<DeleteActionResult>}
    */
-  const deleteRestaurant = useCallback(async (id, options = {}) => {
+  const deleteRestaurant = useCallback(async (
+    id: number,
+    options: ActionOptions = {}
+  ): Promise<DeleteActionResult> => {
     try {
       setLoading(true);
       setError(null);
@@ -135,7 +164,7 @@ export const RestaurantProvider = ({ children }) => {
         return { success: false, message: response.message };
       }
     } catch (err) {
-      const message = err.response?.data?.message || 'Xóa nhà hàng thất bại';
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Xóa nhà hàng thất bại';
       setError(message);
       return { success: false, message };
     } finally {
@@ -145,10 +174,8 @@ export const RestaurantProvider = ({ children }) => {
 
   /**
    * Lấy thông tin chi tiết nhà hàng
-   * @param {number} id - Restaurant ID
-   * @returns {Promise<RestaurantActionResult>}
    */
-  const getRestaurantById = useCallback(async (id) => {
+  const getRestaurantById = useCallback(async (id: number): Promise<RestaurantActionResult> => {
     try {
       setLoading(true);
       setError(null);
@@ -163,7 +190,7 @@ export const RestaurantProvider = ({ children }) => {
         return { success: false, message: response.message };
       }
     } catch (err) {
-      const message = err.response?.data?.message || 'Lấy thông tin nhà hàng thất bại';
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy thông tin nhà hàng thất bại';
       setError(message);
       return { success: false, message };
     } finally {
@@ -173,9 +200,8 @@ export const RestaurantProvider = ({ children }) => {
 
   /**
    * Lấy danh sách tất cả nhà hàng
-   * @returns {Promise<RestaurantListActionResult>}
    */
-  const getAllRestaurants = useCallback(async () => {
+  const getAllRestaurants = useCallback(async (): Promise<RestaurantListActionResult> => {
     try {
       setLoading(true);
       setError(null);
@@ -190,7 +216,7 @@ export const RestaurantProvider = ({ children }) => {
         return { success: false, message: response.message };
       }
     } catch (err) {
-      const message = err.response?.data?.message || 'Lấy danh sách nhà hàng thất bại';
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy danh sách nhà hàng thất bại';
       setError(message);
       return { success: false, message };
     } finally {
@@ -200,15 +226,13 @@ export const RestaurantProvider = ({ children }) => {
 
   /**
    * Tìm kiếm nhà hàng
-   * @param {string} keyword - Từ khóa tìm kiếm
-   * @returns {Promise<RestaurantListActionResult>}
    */
-  const searchRestaurants = useCallback(async (keyword) => {
+  const searchRestaurants = useCallback(async (params: Record<string, unknown>): Promise<RestaurantListActionResult> => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await restaurantService.searchRestaurants(keyword);
+      const response = await restaurantService.searchRestaurants(params);
       
       if (response.status === 1) {
         setRestaurants(response.data);
@@ -218,7 +242,7 @@ export const RestaurantProvider = ({ children }) => {
         return { success: false, message: response.message };
       }
     } catch (err) {
-      const message = err.response?.data?.message || 'Tìm kiếm thất bại';
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Tìm kiếm thất bại';
       setError(message);
       return { success: false, message };
     } finally {
@@ -227,7 +251,7 @@ export const RestaurantProvider = ({ children }) => {
   }, []);
 
   // Context Value wrapped in useMemo (CRITICAL for performance)
-  const value = useMemo(() => ({
+  const value = useMemo<RestaurantContextValue>(() => ({
     // States
     restaurants,
     currentRestaurant,

@@ -6,15 +6,50 @@
 import apiClient, { handleResponse, handleError } from '@/services/api/apiClient';
 import { API_ENDPOINTS } from '@/services/api/endpoints';
 import { TokenStorage } from '@/services/storage/localStorage';
-import { DEVICE_TYPES } from '@/utils/constants';
+import { DEVICE_TYPES, type UserRole } from '@/utils/constants';
+import type { User } from '@/types/api.types';
+
+// ============================================
+// LOCAL TYPES (chỉ dùng trong authService)
+// ============================================
+
+interface LoginRequest {
+  email: string;
+  password: string;
+  role?: string; // SHOP_OWNER, ADMIN, etc.
+}
+
+interface RegisterRequest {
+  email: string;
+  password: string;
+  name?: string;
+  role?: 'admin' | 'restaurant' | 'user';
+}
+
+interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  authId: number;
+  email: string;
+  role: UserRole;
+}
+
+interface LoginResult {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}
+
+interface RefreshTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+}
 
 export const authService = {
   /**
    * Đăng ký tài khoản mới
-   * @param {Object} data - { email, password, role }
-   * @returns {Promise<Boolean>}
    */
-  async register(data) {
+  async register(data: RegisterRequest): Promise<boolean> {
     try {
       const response = await apiClient.post(API_ENDPOINTS.AUTH.REGISTER, {
         email: data.email,
@@ -32,11 +67,8 @@ export const authService = {
    * Đăng nhập
    * Backend request: { email, password, role, deviceType, deviceId }
    * Backend response: { accessToken, refreshToken, expiresIn }
-   * 
-   * @param {Object} credentials - { email, password, role, deviceType, deviceId }
-   * @returns {Promise<Object>}
    */
-  async login(credentials) {
+  async login(credentials: LoginRequest & { deviceType?: string; deviceId?: string }): Promise<LoginResult> {
     try {
       // Generate unique device ID if not provided
       const deviceId = credentials.deviceId || this.getOrCreateDeviceId();
@@ -50,7 +82,7 @@ export const authService = {
       });
 
       // Backend trả về: { status: 1, data: { accessToken, refreshToken, authId, email, role } }
-      const responseData = handleResponse(response);
+      const responseData = handleResponse<AuthResponse>(response);
       
       // Destructure từ response data
       const { accessToken, refreshToken, authId, email, role } = responseData;
@@ -60,11 +92,11 @@ export const authService = {
       TokenStorage.setRefreshToken(refreshToken);
 
       // Decode JWT để lấy user info (hoặc dùng info từ response)
-      const userInfo = {
-        authId: authId,
+      const userInfo: User = {
+        id: authId,
         email: email,
-        role: role,
-        userId: authId, // authId = userId
+        name: email.split('@')[0], // Temporary name từ email
+        role: role as 'admin' | 'restaurant' | 'user',
       };
       
       TokenStorage.setUserInfo(userInfo);
@@ -103,7 +135,7 @@ export const authService = {
    * Backend request: { refreshToken }
    * Backend response: { accessToken, refreshToken, expiresIn }
    */
-  async refreshToken() {
+  async refreshToken(): Promise<string> {
     try {
       const refreshToken = TokenStorage.getRefreshToken();
 
@@ -115,7 +147,7 @@ export const authService = {
         refreshToken,
       });
 
-      const { accessToken, refreshToken: newRefreshToken } = handleResponse(response);
+      const { accessToken, refreshToken: newRefreshToken } = handleResponse<RefreshTokenResponse>(response);
 
       // Cập nhật tokens
       TokenStorage.setAccessToken(accessToken);
@@ -135,7 +167,7 @@ export const authService = {
    * Lấy danh sách sessions đang hoạt động
    * Yêu cầu: User đã đăng nhập
    */
-  async getSessions() {
+  async getSessions(): Promise<unknown> {
     try {
       const response = await apiClient.get(API_ENDPOINTS.AUTH.GET_SESSIONS);
       return handleResponse(response);
@@ -146,9 +178,8 @@ export const authService = {
 
   /**
    * Lấy thông tin account theo ID
-   * @param {Number} id - Account ID
    */
-  async getAccountById(id) {
+  async getAccountById(id: number): Promise<unknown> {
     try {
       const response = await apiClient.get(API_ENDPOINTS.AUTH.GET_ACCOUNT_BY_ID(id));
       return handleResponse(response);
@@ -168,7 +199,7 @@ export const authService = {
    *   exp: timestamp
    * }
    */
-  decodeToken(token) {
+  decodeToken(token: string): Record<string, unknown> | null {
     try {
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -197,30 +228,33 @@ export const authService = {
   /**
    * Kiểm tra user đã login chưa
    */
-  isAuthenticated() {
+  isAuthenticated(): boolean {
     const token = TokenStorage.getAccessToken();
     if (!token) return false;
 
-    // Kiểm tra token có hết hạn chưa
-    const userInfo = TokenStorage.getUserInfo();
-    if (!userInfo || !userInfo.exp) return false;
+    // Kiểm tra token có hết hạn chưa bằng cách decode
+    try {
+      const decoded = this.decodeToken(token);
+      if (!decoded || !decoded.exp) return false;
 
-    const now = Math.floor(Date.now() / 1000);
-    return userInfo.exp > now;
+      const now = Math.floor(Date.now() / 1000);
+      return (decoded.exp as number) > now;
+    } catch {
+      return false;
+    }
   },
 
   /**
    * Lấy thông tin user hiện tại từ localStorage
    */
-  getCurrentUser() {
+  getCurrentUser(): User | null {
     return TokenStorage.getUserInfo();
   },
 
   /**
    * Kiểm tra user có role cụ thể không
-   * @param {String|Array} allowedRoles - Role hoặc mảng roles cho phép
    */
-  hasRole(allowedRoles) {
+  hasRole(allowedRoles: string | string[]): boolean {
     const user = this.getCurrentUser();
     if (!user || !user.role) return false;
 
@@ -235,7 +269,7 @@ export const authService = {
    * Lấy hoặc tạo Device ID
    * Sử dụng fingerprint của browser để tạo unique device ID
    */
-  getOrCreateDeviceId() {
+  getOrCreateDeviceId(): string {
     const DEVICE_ID_KEY = 'deviceId';
     
     // Kiểm tra đã có deviceId trong localStorage chưa
@@ -263,7 +297,7 @@ export const authService = {
   /**
    * Hash function đơn giản để tạo device ID
    */
-  hashCode(str) {
+  hashCode(str: string): number {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);

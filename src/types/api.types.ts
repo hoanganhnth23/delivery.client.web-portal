@@ -46,18 +46,6 @@ export interface Restaurant {
   updatedAt?: string;
 }
 
-export interface CreateRestaurantRequest {
-  name: string;
-  address: string;
-  phone: string;
-  openingHour: string;
-  closingHour: string;
-  image: string;
-  addressLat: number;
-  addressLng: number;
-  description: string;
-}
-
 // Specific Response Types
 export type RestaurantResponse = BaseResponse<Restaurant>;
 export type RestaurantListResponse = BaseResponse<Restaurant[]>;
@@ -79,14 +67,6 @@ export interface MenuItem {
   image: string;
   createdAt?: string;
   updatedAt?: string;
-}
-
-export interface CreateMenuItemRequest {
-  restaurantId: number;
-  name: string;
-  description: string;
-  price: number;
-  image: string;
 }
 
 // Specific Response Types
@@ -120,18 +100,3 @@ export interface User {
   role: 'admin' | 'restaurant' | 'user';
   createdAt?: string;
 }
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  name: string;
-  role?: 'admin' | 'restaurant' | 'user';
-}
-
-export type AuthResponse = BaseResponse<{ user: User; token: string }>;
-export type UserActionResult = ActionResult<User>;

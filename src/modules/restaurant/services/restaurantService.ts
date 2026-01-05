@@ -9,8 +9,23 @@ import type {
   RestaurantResponse,
   RestaurantListResponse,
   DeleteResponse,
-  CreateRestaurantRequest,
 } from '@/types/api.types';
+
+// ============================================
+// LOCAL TYPES (chỉ dùng trong restaurant module)
+// ============================================
+
+export interface CreateRestaurantRequest {
+  name: string;
+  address: string;
+  phone: string;
+  openingHour: string;
+  closingHour: string;
+  image: string;
+  addressLat: number;
+  addressLng: number;
+  description: string;
+}
 
 /**
  * Tạo nhà hàng mới

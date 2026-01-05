@@ -9,8 +9,19 @@ import type {
   MenuItemResponse,
   MenuItemListResponse,
   DeleteResponse,
-  CreateMenuItemRequest,
 } from '@/types/api.types';
+
+// ============================================
+// LOCAL TYPES (chỉ dùng trong menu service)
+// ============================================
+
+export interface CreateMenuItemRequest {
+  restaurantId: number;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+}
 
 /**
  * Tạo món ăn mới
