@@ -3,11 +3,17 @@
  * Protected route dựa trên role - Kiểm tra quyền truy cập
  */
 
+import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/hooks/useAuth';
 import { ROUTES } from '@/utils/constants';
 
-const RoleRoute = ({ children, allowedRoles }) => {
+interface RoleRouteProps {
+  children: ReactNode;
+  allowedRoles: string[];
+}
+
+const RoleRoute = ({ children, allowedRoles }: RoleRouteProps) => {
   const { user, loading } = useAuth();
 
   // Đang loading -> hiển thị loading

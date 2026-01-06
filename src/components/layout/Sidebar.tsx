@@ -2,10 +2,34 @@
  * Sidebar Component - Reusable sidebar for all dashboard pages
  * Props: brand, menuItems, bottomContent
  */
-import React from 'react'
-import { Link } from 'react-router-dom'
+import { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 
-const Sidebar = ({ brand, menuItems, bottomContent, className = '' }) => {
+interface Brand {
+  name: string;
+  subtitle: string;
+  avatar?: string;
+  icon?: string;
+}
+
+interface MenuItem {
+  to: string;
+  label: string;
+  icon: string;
+  active?: boolean;
+  danger?: boolean;
+  badge?: string | number;
+  divider?: boolean;
+}
+
+interface SidebarProps {
+  brand: Brand;
+  menuItems: MenuItem[];
+  bottomContent?: ReactNode;
+  className?: string;
+}
+
+const Sidebar = ({ brand, menuItems, bottomContent, className = '' }: SidebarProps) => {
   return (
     <aside className={`hidden lg:flex flex-col w-72 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark flex-shrink-0 transition-colors duration-200 ${className}`}>
       <div className="flex h-full flex-col justify-between p-6">
@@ -36,7 +60,7 @@ const Sidebar = ({ brand, menuItems, bottomContent, className = '' }) => {
           {/* Navigation Menu */}
           <nav className="flex flex-col gap-2">
             {menuItems.map((item) => (
-              <React.Fragment key={item.to}>
+              <div key={item.to}>
                 {item.divider ? (
                   <div className="h-px bg-border-light dark:bg-border-dark my-2 mx-4" />
                 ) : (
@@ -63,7 +87,7 @@ const Sidebar = ({ brand, menuItems, bottomContent, className = '' }) => {
                     )}
                   </Link>
                 )}
-              </React.Fragment>
+              </div>
             ))}
           </nav>
         </div>
@@ -72,7 +96,7 @@ const Sidebar = ({ brand, menuItems, bottomContent, className = '' }) => {
         {bottomContent && <div className="mt-auto">{bottomContent}</div>}
       </div>
     </aside>
-  )
-}
+  );
+};
 
-export default Sidebar
+export default Sidebar;

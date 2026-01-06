@@ -3,43 +3,71 @@
  * Form để tạo mới hoặc chỉnh sửa món ăn
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useMenu } from '../hooks/useMenu';
+import type { MenuItem } from '@/types/api.types';
 
-const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }) => {
+// ============================================
+// LOCAL TYPES
+// ============================================
+
+interface MenuItemFormProps {
+  menuItem?: MenuItem | null;
+  restaurantId: number;
+  onSuccess?: (data: unknown) => void;
+  onCancel?: () => void;
+}
+
+interface FormData {
+  restaurantId: string;
+  name: string;
+  description: string;
+  price: string;
+  image: string;
+}
+
+interface FormErrors {
+  restaurantId?: string;
+  name?: string;
+  description?: string;
+  price?: string;
+  image?: string;
+}
+
+const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: MenuItemFormProps) => {
   const { createMenuItem, updateMenuItem, loading } = useMenu();
   
-  const [formData, setFormData] = useState({
-    restaurantId: restaurantId || '',
+  const [formData, setFormData] = useState<FormData>({
+    restaurantId: restaurantId?.toString() || '',
     name: '',
     description: '',
     price: '',
     image: ''
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<FormErrors>({});
 
   // Load dữ liệu khi edit
   useEffect(() => {
     if (menuItem) {
       setFormData({
-        restaurantId: menuItem.restaurantId || restaurantId || '',
+        restaurantId: menuItem.restaurantId?.toString() || restaurantId?.toString() || '',
         name: menuItem.name || '',
         description: menuItem.description || '',
-        price: menuItem.price || '',
+        price: menuItem.price?.toString() || '',
         image: menuItem.image || ''
       });
     }
   }, [menuItem, restaurantId]);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
     // Clear error khi user nhập
-    if (errors[name]) {
+    if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({
         ...prev,
         [name]: ''
@@ -47,8 +75,8 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }) =>
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
     
     if (!formData.restaurantId) {
       newErrors.restaurantId = 'Restaurant ID không được để trống';
@@ -60,7 +88,7 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }) =>
     
     if (!formData.price) {
       newErrors.price = 'Giá không được để trống';
-    } else if (isNaN(formData.price) || parseFloat(formData.price) <= 0) {
+    } else if (isNaN(Number(formData.price)) || parseFloat(formData.price) <= 0) {
       newErrors.price = 'Giá phải là số dương';
     }
     
@@ -68,7 +96,7 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }) =>
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -178,7 +206,10 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }) =>
             src={formData.image} 
             alt="Preview" 
             className="mt-2 w-32 h-32 object-cover rounded-lg"
-            onError={(e) => e.target.style.display = 'none'}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
           />
         )}
       </div>

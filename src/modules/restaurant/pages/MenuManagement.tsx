@@ -2,26 +2,35 @@
  * Menu Management - Quản lý thực đơn nhà hàng
  * Thêm, sửa, xóa món ăn, quản lý trạng thái active/inactive
  */
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { useMenu } from '../hooks/useMenu'
-import MenuItemForm from '../components/MenuItemForm'
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useMenu } from '../hooks/useMenu';
+import MenuItemForm from '../components/MenuItemForm';
+import type { MenuItem } from '@/types/api.types';
+
+// ============================================
+// LOCAL TYPES
+// ============================================
+
+interface MockMenuItem extends MenuItem {
+  category: string;
+  type: string;
+  status: string;
+  stock: string;
+}
 
 const MenuManagement = () => {
   const { 
     menuItems: menuItemsData,
-    loading,
-    error,
     getAllMenuItems,
     deleteMenuItem,
-    getMenuItemsByRestaurant
   } = useMenu();
 
-  const [darkMode, setDarkMode] = useState(false)
-  const [activeTab, setActiveTab] = useState('all')
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingMenuItem, setEditingMenuItem] = useState(null)
-  const [restaurantId] = useState(1) // TODO: Lấy từ context hoặc props
+  const [darkMode] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | MockMenuItem | null>(null);
+  const restaurantId = 1; // TODO: Lấy từ context hoặc props
 
   // Load menu items khi component mount
   useEffect(() => {
@@ -29,9 +38,10 @@ const MenuManagement = () => {
   }, [getAllMenuItems]);
 
   // Mock data for demo (sẽ được thay thế bằng data từ API)
-  const menuItems = menuItemsData.length > 0 ? menuItemsData : [
+  const mockData: MockMenuItem[] = [
     {
       id: 1,
+      restaurantId: 1,
       name: 'Signature Beef Burger',
       price: 12.50,
       category: 'Burgers',
@@ -43,6 +53,7 @@ const MenuManagement = () => {
     },
     {
       id: 2,
+      restaurantId: 1,
       name: 'Iced Lemon Tea',
       price: 4.00,
       category: 'Beverages',
@@ -54,6 +65,7 @@ const MenuManagement = () => {
     },
     {
       id: 3,
+      restaurantId: 1,
       name: 'Spicy Chicken Wings',
       price: 8.90,
       category: 'Sides',
@@ -65,6 +77,7 @@ const MenuManagement = () => {
     },
     {
       id: 4,
+      restaurantId: 1,
       name: 'Seafood Pasta',
       price: 15.00,
       category: 'Mains',
@@ -76,6 +89,7 @@ const MenuManagement = () => {
     },
     {
       id: 5,
+      restaurantId: 1,
       name: 'Caesar Salad',
       price: 9.50,
       category: 'Sides',
@@ -87,6 +101,7 @@ const MenuManagement = () => {
     },
     {
       id: 6,
+      restaurantId: 1,
       name: 'Mango Sticky Rice',
       price: 6.00,
       category: 'Desserts',
@@ -96,7 +111,9 @@ const MenuManagement = () => {
       status: 'inactive',
       stock: 'low'
     }
-  ]
+  ];
+
+  const menuItems: MockMenuItem[] = menuItemsData.length > 0 ? menuItemsData as MockMenuItem[] : mockData;
 
   const categories = [
     { id: 'all', name: 'All Items', count: 48 },
@@ -111,12 +128,12 @@ const MenuManagement = () => {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (item) => {
+  const handleEdit = (item: MockMenuItem) => {
     setEditingMenuItem(item);
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm('Bạn có chắc muốn xóa món ăn này?')) {
       const result = await deleteMenuItem(id, { skipRedirect: true });
       if (result.success) {
@@ -128,7 +145,7 @@ const MenuManagement = () => {
     }
   };
 
-  const handleFormSuccess = (data) => {
+  const handleFormSuccess = (_data: unknown) => {
     setIsModalOpen(false);
     setEditingMenuItem(null);
     alert(editingMenuItem ? 'Cập nhật thành công!' : 'Tạo mới thành công!');
@@ -404,7 +421,7 @@ const MenuManagement = () => {
               </div>
               <div className="p-6">
                 <MenuItemForm
-                  menuItem={editingMenuItem}
+                  menuItem={editingMenuItem as any}
                   restaurantId={restaurantId}
                   onSuccess={handleFormSuccess}
                   onCancel={() => setIsModalOpen(false)}

@@ -2,11 +2,11 @@
  * Admin Dashboard - Trang quản trị ShopeeFood Admin
  * Quản lý nhà hàng, menu, categories, users
  */
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const AdminDashboard = () => {
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode] = useState(false);
 
   const restaurantRequests = [
     {

@@ -2,7 +2,22 @@
  * StatCard Component - Reusable statistics card
  * Props: icon, label, value, change, color
  */
-import React from 'react'
+import { ReactNode } from 'react';
+
+interface StatChange {
+  type: 'success' | 'warning' | 'danger' | 'info';
+  value: string | ReactNode;
+}
+
+interface StatCardProps {
+  icon: string;
+  label: string;
+  value: string | ReactNode;
+  change?: StatChange;
+  iconBgColor?: string;
+  iconColor?: string;
+  className?: string;
+}
 
 const StatCard = ({ 
   icon, 
@@ -12,7 +27,7 @@ const StatCard = ({
   iconBgColor = 'bg-orange-50 dark:bg-orange-900/20',
   iconColor = 'text-primary',
   className = ''
-}) => {
+}: StatCardProps) => {
   return (
     <div className={`bg-surface-light dark:bg-surface-dark p-6 rounded-2xl border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-shadow group ${className}`}>
       <div className="flex justify-between items-start mb-4">
@@ -36,7 +51,7 @@ const StatCard = ({
       <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">{label}</p>
       <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{value}</h3>
     </div>
-  )
-}
+  );
+};
 
-export default StatCard
+export default StatCard;

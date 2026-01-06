@@ -4,21 +4,68 @@
  * Navigation logic được xử lý bởi UI components, không phải hook
  */
 
-import { useState, useEffect, useCallback, useMemo, createContext, useContext } from 'react';
+import { useState, useEffect, useCallback, useMemo, createContext, useContext, ReactNode } from 'react';
 import { authService } from '../services/authService';
-import { USER_ROLES } from '@/utils/constants';
+import type { User } from '@/types/api.types';
+
+// ============================================
+// LOCAL TYPES
+// ============================================
+
+interface LoginCredentials {
+  email: string;
+  password: string;
+  role: string;
+}
+
+interface RegisterData {
+  email: string;
+  password: string;
+  name?: string;
+  role?: 'admin' | 'restaurant' | 'user';
+}
+
+interface LoginResult {
+  success: boolean;
+  data?: {
+    user: User;
+    accessToken: string;
+    refreshToken: string;
+  };
+  message?: string;
+}
+
+interface ActionResult {
+  success: boolean;
+  message?: string;
+}
+
+interface AuthContextValue {
+  user: User | null;
+  loading: boolean;
+  error: string | null;
+  login: (credentials: LoginCredentials) => Promise<LoginResult>;
+  register: (data: RegisterData) => Promise<ActionResult>;
+  logout: () => Promise<ActionResult>;
+  hasRole: (roles: string | string[]) => boolean;
+  isAuthenticated: boolean;
+}
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
 
 // Create Auth Context
-const AuthContext = createContext(null);
+const AuthContext = createContext<AuthContextValue | null>(null);
 
 /**
  * Auth Provider Component
  * Wrap ứng dụng với provider này để share auth state
  */
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Khởi tạo: Check user đã login chưa
   useEffect(() => {
@@ -30,7 +77,7 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
-        setError(err.message);
+        setError((err as Error).message);
       } finally {
         setLoading(false);
       }
@@ -43,11 +90,8 @@ export const AuthProvider = ({ children }) => {
    * Đăng nhập
    * Hook CHỈ xử lý authentication logic, KHÔNG điều hướng
    * UI component sẽ nhận result và tự quyết định navigation
-   * 
-   * @param {Object} credentials - { email, password, role }
-   * @returns {Promise<Object>} - { success, data: { user, accessToken, refreshToken }, error }
    */
-  const login = useCallback(async (credentials) => {
+  const login = useCallback(async (credentials: LoginCredentials): Promise<LoginResult> => {
     try {
       setLoading(true);
       setError(null);
@@ -71,10 +115,10 @@ export const AuthProvider = ({ children }) => {
         }
       };
     } catch (err) {
-      const errorMessage = err.message || 'Login failed';
+      const errorMessage = (err as Error).message || 'Login failed';
       setError(errorMessage);
       console.error('Login error:', err);
-      return { success: false, error: errorMessage };
+      return { success: false, message: errorMessage };
     } finally {
       setLoading(false);
     }
@@ -82,9 +126,8 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Đăng ký
-   * @param {Object} data - { email, password, role }
    */
-  const register = useCallback(async (data) => {
+  const register = useCallback(async (data: RegisterData): Promise<ActionResult> => {
     try {
       setLoading(true);
       setError(null);
@@ -93,8 +136,9 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (err) {
-      setError(err.message);
-      return { success: false, error: err.message };
+      const message = (err as Error).message;
+      setError(message);
+      return { success: false, message };
     } finally {
       setLoading(false);
     }
@@ -104,7 +148,7 @@ export const AuthProvider = ({ children }) => {
    * Đăng xuất
    * Hook CHỈ xử lý logout logic, UI component tự navigate
    */
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (): Promise<ActionResult> => {
     try {
       setLoading(true);
       await authService.logout();
@@ -113,26 +157,19 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (err) {
       console.error('Logout error:', err);
-      setError(err.message);
-      return { success: false, error: err.message };
+      const message = (err as Error).message;
+      setError(message);
+      return { success: false, message };
     } finally {
       setLoading(false);
     }
   }, []);
 
   /**
-   * Refresh user info
-   */
-  const refreshUser = useCallback(() => {
-    const currentUser = authService.getCurrentUser();
-    setUser(currentUser);
-  }, []);
-
-  /**
    * Kiểm tra user có role không
    */
   const hasRole = useCallback(
-    (allowedRoles) => {
+    (allowedRoles: string | string[]) => {
       return authService.hasRole(allowedRoles);
     },
     [user]
@@ -140,7 +177,7 @@ export const AuthProvider = ({ children }) => {
 
   // ✅ PERFORMANCE OPTIMIZATION: Memoize context value
   // Tránh re-render không cần thiết cho các components con
-  const value = useMemo(
+  const value = useMemo<AuthContextValue>(
     () => ({
       user,
       loading,
@@ -149,10 +186,9 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
-      refreshUser,
       hasRole,
     }),
-    [user, loading, error, login, register, logout, refreshUser, hasRole]
+    [user, loading, error, login, register, logout, hasRole]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -162,7 +198,7 @@ export const AuthProvider = ({ children }) => {
  * useAuth Hook
  * Sử dụng trong components để access auth state và functions
  */
-export const useAuth = () => {
+export const useAuth = (): AuthContextValue => {
   const context = useContext(AuthContext);
 
   if (!context) {
@@ -171,5 +207,3 @@ export const useAuth = () => {
 
   return context;
 };
-
-export default useAuth;

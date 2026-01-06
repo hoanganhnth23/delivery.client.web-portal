@@ -3,9 +3,10 @@
  * CRUD: Create, Read, Update, Delete
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRestaurant } from '../hooks/useRestaurant';
 import RestaurantForm from '../components/RestaurantForm';
+import type { Restaurant } from '@/types/api.types';
 
 const RestaurantListPage = () => {
   const { 
@@ -18,7 +19,7 @@ const RestaurantListPage = () => {
   } = useRestaurant();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRestaurant, setEditingRestaurant] = useState(null);
+  const [editingRestaurant, setEditingRestaurant] = useState<Restaurant | null>(null);
   const [searchKeyword, setSearchKeyword] = useState('');
 
   // Load danh sách nhà hàng khi component mount
@@ -31,12 +32,12 @@ const RestaurantListPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (restaurant) => {
+  const handleEdit = (restaurant: Restaurant) => {
     setEditingRestaurant(restaurant);
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm('Bạn có chắc muốn xóa nhà hàng này?')) {
       const result = await deleteRestaurant(id, { skipRedirect: true });
       if (result.success) {
@@ -47,17 +48,17 @@ const RestaurantListPage = () => {
     }
   };
 
-  const handleFormSuccess = (data) => {
+  const handleFormSuccess = (_data: unknown) => {
     setIsModalOpen(false);
     setEditingRestaurant(null);
     alert(editingRestaurant ? 'Cập nhật thành công!' : 'Tạo mới thành công!');
     getAllRestaurants(); // Refresh list
   };
 
-  const handleSearch = async (e) => {
+  const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (searchKeyword.trim()) {
-      await searchRestaurants(searchKeyword);
+      await searchRestaurants({ keyword: searchKeyword });
     } else {
       await getAllRestaurants();
     }

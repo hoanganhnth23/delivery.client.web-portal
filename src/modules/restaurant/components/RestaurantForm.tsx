@@ -3,13 +3,46 @@
  * Form để tạo mới hoặc chỉnh sửa nhà hàng
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRestaurant } from '../hooks/useRestaurant';
+import type { Restaurant } from '@/types/api.types';
 
-const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }) => {
+// ============================================
+// LOCAL TYPES
+// ============================================
+
+interface RestaurantFormProps {
+  restaurant?: Restaurant | null;
+  onSuccess?: (data: unknown) => void;
+  onCancel?: () => void;
+}
+
+interface FormData {
+  name: string;
+  address: string;
+  phone: string;
+  openingHour: string;
+  closingHour: string;
+  image: string;
+  addressLat: number;
+  addressLng: number;
+  description: string;
+}
+
+interface FormErrors {
+  name?: string;
+  address?: string;
+  phone?: string;
+  openingHour?: string;
+  closingHour?: string;
+  image?: string;
+  description?: string;
+}
+
+const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFormProps) => {
   const { createRestaurant, updateRestaurant, loading } = useRestaurant();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     address: '',
     phone: '',
@@ -21,7 +54,7 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }) => {
     description: ''
   });
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<FormErrors>({});
 
   // Load dữ liệu khi edit
   useEffect(() => {
@@ -40,14 +73,14 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }) => {
     }
   }, [restaurant]);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
     // Clear error khi user nhập
-    if (errors[name]) {
+    if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({
         ...prev,
         [name]: ''
@@ -55,8 +88,8 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }) => {
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
     
     if (!formData.name.trim()) {
       newErrors.name = 'Tên nhà hàng không được để trống';
@@ -84,7 +117,7 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -250,7 +283,10 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }) => {
             src={formData.image} 
             alt="Preview" 
             className="mt-2 w-32 h-32 object-cover rounded-lg"
-            onError={(e) => e.target.style.display = 'none'}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+            }}
           />
         )}
       </div>

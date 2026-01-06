@@ -2,7 +2,7 @@
  * Home Page - Trang chủ cho người dùng
  * Hiển thị danh sách nhà hàng, categories, flash sale
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/hooks/useAuth';
 
@@ -451,7 +451,22 @@ const HomePage = () => {
 };
 
 // Restaurant Card Component
-const RestaurantCard = ({ restaurant, showDiscount = false }) => {
+interface RestaurantCardProps {
+  restaurant: {
+    id: number;
+    name: string;
+    image: string;
+    rating: number;
+    category: string;
+    deliveryTime: string;
+    deliveryFee: string;
+    distance?: string;
+    discount?: string;
+  };
+  showDiscount?: boolean;
+}
+
+const RestaurantCard = ({ restaurant, showDiscount = false }: RestaurantCardProps) => {
   return (
     <div className="group flex flex-col bg-surface-light dark:bg-surface-dark rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-transparent hover:border-gray-100 dark:hover:border-gray-700">
       <div className="relative h-48 overflow-hidden">

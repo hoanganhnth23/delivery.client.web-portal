@@ -2,7 +2,21 @@
  * PageHeader Component - Reusable page header with search and actions
  * Props: title, searchPlaceholder, actions
  */
-import React from 'react'
+
+interface HeaderAction {
+  label: string;
+  icon?: string;
+  variant?: 'primary' | 'secondary';
+  onClick: () => void;
+}
+
+interface PageHeaderProps {
+  title: string;
+  searchPlaceholder?: string;
+  showSearch?: boolean;
+  actions?: HeaderAction[];
+  className?: string;
+}
 
 const PageHeader = ({ 
   title, 
@@ -10,7 +24,7 @@ const PageHeader = ({
   showSearch = true,
   actions = [],
   className = '' 
-}) => {
+}: PageHeaderProps) => {
   return (
     <header className={`hidden lg:flex items-center justify-between px-8 py-5 bg-background-light dark:bg-background-dark/50 backdrop-blur-sm sticky top-0 z-10 ${className}`}>
       <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{title}</h2>
@@ -53,7 +67,7 @@ const PageHeader = ({
         </button>
       </div>
     </header>
-  )
-}
+  );
+};
 
-export default PageHeader
+export default PageHeader;

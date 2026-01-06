@@ -7,11 +7,31 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
+// ============================================
+// LOCAL TYPES
+// ============================================
+
+interface RegisterFormData {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+interface RegisterErrors {
+  general?: string;
+  fullName?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  terms?: string;
+}
+
 const RegisterPageV2 = () => {
   const navigate = useNavigate();
   const { register, loading } = useAuth();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RegisterFormData>({
     fullName: '',
     email: '',
     password: '',
@@ -20,18 +40,18 @@ const RegisterPageV2 = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<RegisterErrors>({});
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
+    if (errors[name as keyof RegisterErrors]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
+  const validateForm = (): RegisterErrors => {
+    const newErrors: RegisterErrors = {};
     
     if (!formData.fullName.trim()) {
       newErrors.fullName = 'Full name is required';
@@ -60,7 +80,7 @@ const RegisterPageV2 = () => {
     return newErrors;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     const validationErrors = validateForm();
@@ -77,11 +97,12 @@ const RegisterPageV2 = () => {
       });
       navigate('/login', { state: { message: 'Registration successful! Please log in.' } });
     } catch (err) {
-      setErrors({ general: err.message || 'Registration failed' });
+      const message = (err as Error).message || 'Registration failed';
+      setErrors({ general: message });
     }
   };
 
-  const handleSocialLogin = (provider) => {
+  const handleSocialLogin = (provider: string) => {
     console.log(`Social registration with ${provider}`);
     // TODO: Implement social registration
   };

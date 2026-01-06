@@ -7,30 +7,45 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
+// ============================================
+// LOCAL TYPES
+// ============================================
+
+interface LoginFormData {
+    email: string;
+    password: string;
+}
+
+interface LoginErrors {
+    general?: string;
+    email?: string;
+    password?: string;
+}
+
 const LoginPageV2 = () => {
     const navigate = useNavigate();
     const { login, loading } = useAuth();
 
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<LoginFormData>({
         email: '',
         password: ''
     });
     const [showPassword, setShowPassword] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors] = useState<LoginErrors>({});
 
-    const handleChange = (e) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-        if (errors[name]) {
+        if (errors[name as keyof LoginErrors]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         // Validation
-        const newErrors = {};
+        const newErrors: LoginErrors = {};
         if (!formData.email) newErrors.email = 'Email or username is required';
         if (!formData.password) newErrors.password = 'Password is required';
 
@@ -52,20 +67,21 @@ const LoginPageV2 = () => {
             // ✅ UI component tự xử lý navigation
             if (result.success) {
                 // Redirect based on role
-                if (result.data.user.role === 'SHOP_OWNER') {
+                if (result.data?.user.role === 'restaurant') {
                     navigate('/restaurant/dashboard');
                 } else {
                     navigate('/dashboard');
                 }
             } else {
-                setErrors({ general: result.error });
+                setErrors({ general: result.message || 'Login failed' });
             }
         } catch (err) {
-            setErrors({ general: err.message || 'Login failed' });
+            const message = (err as Error).message || 'Login failed';
+            setErrors({ general: message });
         }
     };
 
-    const handleSocialLogin = (provider) => {
+    const handleSocialLogin = (provider: string) => {
         console.log(`Social login with ${provider}`);
         // TODO: Implement social login
     };

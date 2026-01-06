@@ -2,8 +2,8 @@
  * Restaurant Dashboard - Trang Dashboard của nhà hàng/merchant
  * Hiển thị đơn hàng, doanh thu, thống kê
  */
-import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 const RestaurantDashboard = () => {
   const [activeTab, setActiveTab] = useState('pending')

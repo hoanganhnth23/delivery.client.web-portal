@@ -63,7 +63,7 @@ apiClient.interceptors.response.use(
 
     // Kiểm tra BaseResponse format từ backend
     // Backend trả về: { status: 1, message: "...", data: {...} }
-    const { status, code, data, message } = response.data;
+    const { status, code, message } = response.data;
 
     // Backend dùng "status" thay vì "code"
     const successCode = status || code;

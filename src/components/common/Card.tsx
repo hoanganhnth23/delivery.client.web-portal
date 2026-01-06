@@ -2,7 +2,17 @@
  * Card Component - Reusable card container
  * Props: children, title, actions, className
  */
-import React from 'react'
+import { ReactNode } from 'react';
+
+interface CardProps {
+  children: ReactNode;
+  title?: string;
+  subtitle?: string;
+  actions?: ReactNode;
+  className?: string;
+  headerClassName?: string;
+  bodyClassName?: string;
+}
 
 const Card = ({ 
   children, 
@@ -12,7 +22,7 @@ const Card = ({
   className = '',
   headerClassName = '',
   bodyClassName = ''
-}) => {
+}: CardProps) => {
   return (
     <div className={`bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm ${className}`}>
       {(title || actions) && (
@@ -34,7 +44,7 @@ const Card = ({
         {children}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Card
+export default Card;
