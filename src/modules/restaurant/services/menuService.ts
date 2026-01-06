@@ -78,3 +78,12 @@ export const searchMenuItems = async (params: Record<string, unknown>): Promise<
   const response = await apiClient.get(API_ENDPOINTS.MENU.SEARCH, { params });
   return response.data;
 };
+
+/**
+ * Lấy danh sách món ăn của nhà hàng hiện tại
+ * Sử dụng X_USER_ID từ header (được set tự động bởi apiClient)
+ */
+export const getMyMenuItems = async (): Promise<MenuItemListResponse> => {
+  const response = await apiClient.get(API_ENDPOINTS.MENU.GET_MY_MENU_ITEMS);
+  return response.data;
+};

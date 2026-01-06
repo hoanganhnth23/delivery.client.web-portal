@@ -1,123 +1,38 @@
 /**
- * Menu Management - Quản lý thực đơn nhà hàng
+ * MenuManagement - Quản lý thực đơn nhà hàng
  * Thêm, sửa, xóa món ăn, quản lý trạng thái active/inactive
  */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useMenu } from '../hooks/useMenu';
+import { useRestaurant } from '../hooks/useRestaurant';
 import MenuItemForm from '../components/MenuItemForm';
 import type { MenuItem } from '@/types/api.types';
 
-// ============================================
-// LOCAL TYPES
-// ============================================
-
-interface MockMenuItem extends MenuItem {
-  category: string;
-  type: string;
-  status: string;
-  stock: string;
-}
-
 const MenuManagement = () => {
   const { 
-    menuItems: menuItemsData,
-    getAllMenuItems,
+    menuItems,
+    loading,
+    error,
+    getMyMenuItems,
     deleteMenuItem,
   } = useMenu();
+  
+  const { currentRestaurant } = useRestaurant();
 
   const [darkMode] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | MockMenuItem | null>(null);
-  const restaurantId = 1; // TODO: Lấy từ context hoặc props
+  const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
 
   // Load menu items khi component mount
   useEffect(() => {
-    getAllMenuItems(); // hoặc getMenuItemsByRestaurant(restaurantId)
-  }, [getAllMenuItems]);
-
-  // Mock data for demo (sẽ được thay thế bằng data từ API)
-  const mockData: MockMenuItem[] = [
-    {
-      id: 1,
-      restaurantId: 1,
-      name: 'Signature Beef Burger',
-      price: 12.50,
-      category: 'Burgers',
-      type: 'Main Course',
-      description: 'Juicy grilled beef patty with fresh lettuce, tomato, and special sauce on a toasted bun',
-      image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400',
-      status: 'active',
-      stock: 'available'
-    },
-    {
-      id: 2,
-      restaurantId: 1,
-      name: 'Iced Lemon Tea',
-      price: 4.00,
-      category: 'Beverages',
-      type: 'Cold Drinks',
-      description: 'Refreshing cold tea with freshly squeezed lemon juice and a hint of mint',
-      image: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400',
-      status: 'soldout',
-      stock: 'out'
-    },
-    {
-      id: 3,
-      restaurantId: 1,
-      name: 'Spicy Chicken Wings',
-      price: 8.90,
-      category: 'Sides',
-      type: 'Appetizers',
-      description: 'Crispy fried chicken wings tossed in our signature spicy sauce with sesame seeds',
-      image: 'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=400',
-      status: 'active',
-      stock: 'available'
-    },
-    {
-      id: 4,
-      restaurantId: 1,
-      name: 'Seafood Pasta',
-      price: 15.00,
-      category: 'Mains',
-      type: 'Italian',
-      description: 'Fresh linguine with shrimp, mussels, and calamari in a rich tomato cream sauce',
-      image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400',
-      status: 'active',
-      stock: 'available'
-    },
-    {
-      id: 5,
-      restaurantId: 1,
-      name: 'Caesar Salad',
-      price: 9.50,
-      category: 'Sides',
-      type: 'Healthy',
-      description: 'Crisp romaine lettuce, parmesan cheese, croutons, and creamy caesar dressing',
-      image: 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400',
-      status: 'active',
-      stock: 'available'
-    },
-    {
-      id: 6,
-      restaurantId: 1,
-      name: 'Mango Sticky Rice',
-      price: 6.00,
-      category: 'Desserts',
-      type: 'Thai',
-      description: 'Sweet glutinous rice with fresh mango slices and coconut cream topping',
-      image: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400',
-      status: 'inactive',
-      stock: 'low'
-    }
-  ];
-
-  const menuItems: MockMenuItem[] = menuItemsData.length > 0 ? menuItemsData as MockMenuItem[] : mockData;
+    getMyMenuItems();
+  }, [getMyMenuItems]);
 
   const categories = [
-    { id: 'all', name: 'All Items', count: 48 },
-    { id: 'mains', name: 'Mains', count: 18 },
+    { id: 'all', name: 'All Items', count: menuItems.length },
+    { id: 'mains', name: 'Mains', count: menuItems.filter(item => item.name.toLowerCase().includes('burger') || item.name.toLowerCase().includes('pasta')).length },
     { id: 'beverages', name: 'Beverages', count: 12 },
     { id: 'sides', name: 'Sides', count: 10 },
     { id: 'desserts', name: 'Desserts', count: 8 }
@@ -128,7 +43,7 @@ const MenuManagement = () => {
     setIsModalOpen(true);
   };
 
-  const handleEdit = (item: MockMenuItem) => {
+  const handleEdit = (item: MenuItem) => {
     setEditingMenuItem(item);
     setIsModalOpen(true);
   };
@@ -138,7 +53,7 @@ const MenuManagement = () => {
       const result = await deleteMenuItem(id, { skipRedirect: true });
       if (result.success) {
         alert('Xóa món ăn thành công!');
-        getAllMenuItems(); // Refresh list
+        getMyMenuItems(); // Refresh list
       } else {
         alert(`Xóa thất bại: ${result.message}`);
       }
@@ -149,7 +64,7 @@ const MenuManagement = () => {
     setIsModalOpen(false);
     setEditingMenuItem(null);
     alert(editingMenuItem ? 'Cập nhật thành công!' : 'Tạo mới thành công!');
-    getAllMenuItems(); // Refresh list
+    getMyMenuItems(); // Refresh list
   };
 
   return (
@@ -316,9 +231,42 @@ const MenuManagement = () => {
               </div>
             </div>
 
+            {/* Loading State */}
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              </div>
+            )}
+
+            {/* Error State */}
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-red-600 dark:text-red-400">error</span>
+                  <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {!loading && !error && menuItems.length === 0 && (
+              <div className="text-center py-12">
+                <span className="material-symbols-outlined text-gray-400 text-6xl mb-4">restaurant_menu</span>
+                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No menu items yet</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">Start by adding your first menu item</p>
+                <button
+                  onClick={handleCreate}
+                  className="px-6 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+                >
+                  Add Menu Item
+                </button>
+              </div>
+            )}
+
             {/* Menu Items Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-              {menuItems.map((item) => (
+            {!loading && !error && menuItems.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+                {menuItems.map((item) => (
                 <div key={item.id} className="group bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm hover:shadow-lg transition-all overflow-hidden flex flex-col">
                   {/* Image Container */}
                   <div className="relative h-48 overflow-hidden bg-gray-100 dark:bg-gray-800">
@@ -326,11 +274,6 @@ const MenuManagement = () => {
                       className="h-full w-full bg-cover bg-center transform group-hover:scale-110 transition-transform duration-300"
                       style={{backgroundImage: `url('${item.image}')`}}
                     />
-                    {item.status === 'soldout' && (
-                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">SOLD OUT</span>
-                      </div>
-                    )}
                     <div className="absolute top-3 right-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm px-2.5 py-1 rounded-full">
                       <p className="text-primary font-bold text-sm">${item.price.toFixed(2)}</p>
                     </div>
@@ -340,20 +283,6 @@ const MenuManagement = () => {
                   <div className="flex flex-col flex-1 p-4">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h3 className="font-bold text-gray-900 dark:text-white text-base line-clamp-1">{item.name}</h3>
-                      <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
-                        <input 
-                          type="checkbox" 
-                          className="sr-only peer" 
-                          defaultChecked={item.status === 'active'}
-                        />
-                        <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                      </label>
-                    </div>
-
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs px-2 py-1 rounded-md bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 font-medium">{item.category}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">•</span>
-                      <span className="text-xs text-gray-600 dark:text-gray-400">{item.type}</span>
                     </div>
 
                     <p className="text-xs text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 flex-1">
@@ -390,7 +319,8 @@ const MenuManagement = () => {
                   <p className="text-sm text-gray-500 dark:text-gray-400">Create a new menu item</p>
                 </div>
               </div>
-            </div>
+              </div>
+            )}
 
             {/* Footer area */}
             <div className="border-t border-border-light dark:border-border-dark pt-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400 pb-4 mt-8">
@@ -422,7 +352,7 @@ const MenuManagement = () => {
               <div className="p-6">
                 <MenuItemForm
                   menuItem={editingMenuItem as any}
-                  restaurantId={restaurantId}
+                  restaurantId={currentRestaurant?.id || 0}
                   onSuccess={handleFormSuccess}
                   onCancel={() => setIsModalOpen(false)}
                 />

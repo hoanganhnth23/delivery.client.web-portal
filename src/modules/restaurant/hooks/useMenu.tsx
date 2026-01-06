@@ -30,6 +30,7 @@ interface MenuContextValue {
   getMenuItemsByRestaurant: (restaurantId: number) => Promise<MenuItemListActionResult>;
   getAllMenuItems: () => Promise<MenuItemListActionResult>;
   searchMenuItems: (params: Record<string, unknown>) => Promise<MenuItemListActionResult>;
+  getMyMenuItems: () => Promise<MenuItemListActionResult>;
   
   // Setters
   setCurrentMenuItem: (menuItem: MenuItem | null) => void;
@@ -273,6 +274,32 @@ export const MenuProvider = ({ children }: MenuProviderProps) => {
     }
   }, []);
 
+  /**
+   * Lấy danh sách món ăn của nhà hàng hiện tại
+   */
+  const getMyMenuItems = useCallback(async (): Promise<MenuItemListActionResult> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await menuService.getMyMenuItems();
+      
+      if (response.status === 1) {
+        setMenuItems(response.data);
+        return { success: true, data: response.data };
+      } else {
+        setError(response.message);
+        return { success: false, message: response.message };
+      }
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy danh sách món ăn thất bại';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Context Value wrapped in useMemo (CRITICAL for performance)
   const value = useMemo<MenuContextValue>(() => ({
     // States
@@ -288,6 +315,7 @@ export const MenuProvider = ({ children }: MenuProviderProps) => {
     getMenuItemsByRestaurant,
     getAllMenuItems,
     searchMenuItems,
+    getMyMenuItems,
     // Setters
     setCurrentMenuItem,
     setError
@@ -302,7 +330,8 @@ export const MenuProvider = ({ children }: MenuProviderProps) => {
     getMenuItemById,
     getMenuItemsByRestaurant,
     getAllMenuItems,
-    searchMenuItems
+    searchMenuItems,
+    getMyMenuItems
   ]);
 
   return (

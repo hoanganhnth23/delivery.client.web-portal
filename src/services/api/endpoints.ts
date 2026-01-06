@@ -43,6 +43,7 @@ export const API_ENDPOINTS = {
     GET_BY_RESTAURANT: (restaurantId: number) => `/api/menu-items/restaurant/${restaurantId}`,
     GET_ALL: '/api/menu-items',
     SEARCH: '/api/menu-items/search',
+    GET_MY_MENU_ITEMS: '/api/menu-items/my-menu-items', // Lấy menu items của nhà hàng hiện tại
   },
 
   // ==================== ORDER SERVICE (port 8084) ====================

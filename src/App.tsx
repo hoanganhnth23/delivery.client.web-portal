@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './modules/auth/hooks/useAuth'
 import { RestaurantProvider } from './modules/restaurant/hooks/useRestaurant'
+import { MenuProvider } from './modules/restaurant/hooks/useMenu'
 import LoginPage from './modules/auth/pages/LoginPageV2'
 import AdminLoginPage from './modules/auth/pages/AdminLoginPage'
 import RegisterPage from './modules/auth/pages/RegisterPageV2'
@@ -27,34 +28,36 @@ export default function App() {
   return (
     <AuthProvider>
       <RestaurantProvider>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-          <Route path="/admin/login" element={<AdminLoginPage />} />
-          <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-          
-          {/* Restaurant Routes */}
-          <Route path="/restaurant/dashboard" element={<RestaurantDashboard />} />
-          <Route path="/restaurant/profile" element={<RestaurantProfilePage />} />
-          <Route path="/restaurant/menu" element={<MenuManagement />} />
+        <MenuProvider>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+            
+            {/* Restaurant Routes */}
+            <Route path="/restaurant/dashboard" element={<RestaurantDashboard />} />
+            <Route path="/restaurant/profile" element={<RestaurantProfilePage />} />
+            <Route path="/restaurant/menu" element={<MenuManagement />} />
 
-          {/* Admin Routes */}
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            {/* Admin Routes */}
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
-          {/* Protected Routes */}
-          <Route
-            path={ROUTES.DASHBOARD}
-            element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            }
-          />
+            {/* Protected Routes */}
+            <Route
+              path={ROUTES.DASHBOARD}
+              element={
+                <PrivateRoute>
+                  <Dashboard />
+                </PrivateRoute>
+              }
+            />
 
-          {/* 404 Route */}
-          <Route path="*" element={<div>404 - Page Not Found</div>} />
-        </Routes>
+            {/* 404 Route */}
+            <Route path="*" element={<div>404 - Page Not Found</div>} />
+          </Routes>
+        </MenuProvider>
       </RestaurantProvider>
     </AuthProvider>
   )
