@@ -74,3 +74,12 @@ export const searchRestaurants = async (params: Record<string, unknown>): Promis
   const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.SEARCH, { params });
   return response.data;
 };
+
+/**
+ * Lấy danh sách nhà hàng của user hiện tại
+ * Sử dụng X_USER_ID từ header (được set tự động bởi apiClient)
+ */
+export const getMyRestaurants = async (): Promise<RestaurantListResponse> => {
+  const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.GET_MY_RESTAURANTS);
+  return response.data;
+};

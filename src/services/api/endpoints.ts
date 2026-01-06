@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
     GET_BY_ID: (id: number) => `/api/restaurants/${id}`,
     GET_ALL: '/api/restaurants',
     SEARCH: '/api/restaurants/search', // ?keyword=xxx
+    GET_MY_RESTAURANTS: '/api/restaurants/my-restaurants', // Lấy nhà hàng của user hiện tại
   },
 
   // Menu Items (Restaurant Service)

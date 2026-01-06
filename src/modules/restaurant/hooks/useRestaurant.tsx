@@ -33,6 +33,7 @@ interface RestaurantContextValue {
   getRestaurantById: (id: number) => Promise<RestaurantActionResult>;
   getAllRestaurants: () => Promise<RestaurantListActionResult>;
   searchRestaurants: (params: Record<string, unknown>) => Promise<RestaurantListActionResult>;
+  getMyRestaurants: () => Promise<RestaurantListActionResult>;
   
   // Setters
   setCurrentRestaurant: (restaurant: Restaurant | null) => void;
@@ -49,7 +50,7 @@ interface RestaurantProviderProps {
 
 const RestaurantContext = createContext<RestaurantContextValue | null>(null);
 
-export const RestaurantProvider = ({ children }: RestaurantProviderProps) => {
+export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
   const navigate = useNavigate();
   
   // States
@@ -250,6 +251,36 @@ export const RestaurantProvider = ({ children }: RestaurantProviderProps) => {
     }
   }, []);
 
+  /**
+   * Lấy danh sách nhà hàng của user hiện tại
+   */
+  const getMyRestaurants = useCallback(async (): Promise<RestaurantListActionResult> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await restaurantService.getMyRestaurants();
+      
+      if (response.status === 1) {
+        setRestaurants(response.data);
+        // Set currentRestaurant là nhà hàng đầu tiên nếu có
+        if (response.data.length > 0) {
+          setCurrentRestaurant(response.data[0]);
+        }
+        return { success: true, data: response.data };
+      } else {
+        setError(response.message);
+        return { success: false, message: response.message };
+      }
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy danh sách nhà hàng thất bại';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Context Value wrapped in useMemo (CRITICAL for performance)
   const value = useMemo<RestaurantContextValue>(() => ({
     // States
@@ -264,6 +295,7 @@ export const RestaurantProvider = ({ children }: RestaurantProviderProps) => {
     getRestaurantById,
     getAllRestaurants,
     searchRestaurants,
+    getMyRestaurants,
     // Setters
     setCurrentRestaurant,
     setError
@@ -277,7 +309,8 @@ export const RestaurantProvider = ({ children }: RestaurantProviderProps) => {
     deleteRestaurant,
     getRestaurantById,
     getAllRestaurants,
-    searchRestaurants
+    searchRestaurants,
+    getMyRestaurants
   ]);
 
   return (
