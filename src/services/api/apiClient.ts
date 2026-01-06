@@ -13,6 +13,25 @@ interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
+// Request queue để chặn các API calls khi đang refresh token
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value: string) => void;
+  reject: (reason?: unknown) => void;
+}> = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token!);
+    }
+  });
+  
+  failedQueue = [];
+};
+
 // Tạo axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -99,7 +118,22 @@ apiClient.interceptors.response.use(
       !originalRequest.url?.includes('/api/auth/login') &&
       !originalRequest.url?.includes('/api/auth/refresh-token')
     ) {
+      // Nếu đang refresh token, thêm request vào queue
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return apiClient(originalRequest);
+          })
+          .catch(err => {
+            return Promise.reject(err);
+          });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         const refreshToken = TokenStorage.getRefreshToken();
@@ -119,12 +153,19 @@ apiClient.interceptors.response.use(
         // Lưu token mới
         TokenStorage.setAccessToken(accessToken);
 
-        // Retry request với token mới
+        // Process queue - retry tất cả requests đang chờ
+        processQueue(null, accessToken);
+
+        // Retry request hiện tại với token mới
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
       } catch (refreshError) {
         // Refresh token thất bại -> logout
         console.error('❌ Refresh Token Failed:', refreshError);
+        
+        // Process queue với error - reject tất cả requests
+        processQueue(refreshError, null);
+        
         TokenStorage.clearAll();
 
         // Redirect về login page
@@ -133,6 +174,8 @@ apiClient.interceptors.response.use(
         }
 
         return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
 

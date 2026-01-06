@@ -74,7 +74,7 @@ const RestaurantProfilePage = () => {
   useEffect(() => {
     // Gọi API để lấy nhà hàng của user hiện tại
     getMyRestaurants();
-  }, [getMyRestaurants]);
+  }, []);
 
   // Sync data từ currentRestaurant vào form
   useEffect(() => {
