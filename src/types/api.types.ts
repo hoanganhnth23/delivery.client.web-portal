@@ -100,3 +100,54 @@ export interface User {
   role: 'admin' | 'restaurant' | 'user';
   createdAt?: string;
 }
+
+// ============================================
+// ORDER TYPES
+// ============================================
+
+export interface OrderItem {
+  id: number;
+  menuItemId: number;
+  menuItemName: string;
+  quantity: number;
+  price: number;
+  notes?: string;
+}
+
+export interface Order {
+  id: number;
+  userId: number;
+  restaurantId: number;
+  restaurantName: string;
+  restaurantAddress: string;
+  restaurantPhone: string;
+  restaurantLat: number;
+  restaurantLng: number;
+  shipperId?: number;
+  subtotalPrice: number;
+  discountAmount: number;
+  shippingFee: number;
+  totalPrice: number;
+  status: string;
+  paymentMethod: string;
+  deliveryAddress: string;
+  deliveryLat: number;
+  deliveryLng: number;
+  pickupLat: number;
+  pickupLng: number;
+  customerName: string;
+  customerPhone: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  items: OrderItem[];
+}
+
+// Specific Response Types
+export type OrderResponse = BaseResponse<Order>;
+export type OrderListResponse = BaseResponse<Order[]>;
+
+// Specific Action Result Types
+export type OrderActionResult = ActionResult<Order>;
+export type OrderListActionResult = ActionResult<Order[]>;
+

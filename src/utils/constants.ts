@@ -11,7 +11,7 @@ export const USER_ROLES = {
   USER: 'USER',           // Khách hàng (không dùng cho web admin)
   ADMIN: 'ADMIN',         // Quản trị viên hệ thống
   SHIPPER: 'SHIPPER',     // Shipper (không dùng cho web admin)
-  SHOP_OWNER: 'SHOP_OWNER', // Chủ nhà hàng
+  RESTAURANT_OWNER: 'SHOP_OWNER', // Chủ nhà hàng
 } as const;
 
 export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];

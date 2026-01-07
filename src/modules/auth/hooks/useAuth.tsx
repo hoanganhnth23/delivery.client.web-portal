@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setLoading(true);
       setError(null);
       
-      // Credentials phải có role (SHOP_OWNER hoặc ADMIN)
+      // Credentials phải có role (RESTAURANT_OWNER hoặc ADMIN)
       if (!credentials.role) {
         throw new Error('Role is required for login');
       }

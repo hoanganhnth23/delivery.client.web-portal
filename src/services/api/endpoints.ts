@@ -52,6 +52,7 @@ export const API_ENDPOINTS = {
     GET_BY_ID: (id: number) => `/api/orders/${id}`,
     GET_ALL: '/api/orders',
     GET_BY_USER: (userId: number) => `/api/orders/user/${userId}`,
+    GET_MY_ORDERS: '/api/orders/my-restaurant-orders', // Lấy orders của nhà hàng hiện tại
     UPDATE_STATUS: (id: number) => `/api/orders/${id}/status`,
     CANCEL: (id: number) => `/api/orders/${id}/cancel`,
   },

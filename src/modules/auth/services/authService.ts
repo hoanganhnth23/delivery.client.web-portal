@@ -6,7 +6,7 @@
 import apiClient, { handleResponse, handleError } from '@/services/api/apiClient';
 import { API_ENDPOINTS } from '@/services/api/endpoints';
 import { TokenStorage } from '@/services/storage/localStorage';
-import { DEVICE_TYPES, type UserRole } from '@/utils/constants';
+import { DEVICE_TYPES, USER_ROLES, type UserRole } from '@/utils/constants';
 import type { User } from '@/types/api.types';
 
 // ============================================
@@ -16,7 +16,7 @@ import type { User } from '@/types/api.types';
 interface LoginRequest {
   email: string;
   password: string;
-  role?: string; // SHOP_OWNER, ADMIN, etc.
+  role?: string; // RESTAURANT_OWNER, ADMIN, etc.
 }
 
 interface RegisterRequest {
@@ -54,7 +54,7 @@ export const authService = {
       const response = await apiClient.post(API_ENDPOINTS.AUTH.REGISTER, {
         email: data.email,
         password: data.password,
-        role: data.role || 'SHOP_OWNER', // Default role
+        role: data.role || USER_ROLES.RESTAURANT_OWNER, // Default role
       });
 
       return handleResponse(response);
@@ -76,7 +76,7 @@ export const authService = {
       const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, {
         email: credentials.email,
         password: credentials.password,
-        role: credentials.role || 'SHOP_OWNER', // Role phải được truyền từ login page
+        role: credentials.role || USER_ROLES.RESTAURANT_OWNER, // Role phải được truyền từ login page
         deviceType: credentials.deviceType || DEVICE_TYPES.WEB,
         deviceId: deviceId,
       });
@@ -194,7 +194,7 @@ export const authService = {
    * {
    *   sub: "email",
    *   userId: 123,
-   *   role: "SHOP_OWNER",
+   *   role: "RESTAURANT_OWNER",
    *   iat: timestamp,
    *   exp: timestamp
    * }

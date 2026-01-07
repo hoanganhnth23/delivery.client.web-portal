@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useRestaurant } from '@/modules/restaurant/hooks/useRestaurant';
-import { ROUTES } from '@/utils/constants';
+import { ROUTES, USER_ROLES } from '@/utils/constants';
 
 // ============================================
 // LOCAL TYPES
@@ -61,7 +61,7 @@ const LoginPageV2 = () => {
             // Shop Owner login - truyền role
             const credentials = {
                 ...formData,
-                role: 'SHOP_OWNER', // Trang này dành cho SHOP_OWNER
+                role: USER_ROLES.RESTAURANT_OWNER, // Trang này dành cho RESTAURANT_OWNER
             };
 
             console.log("Shop Owner login credentials:", credentials);
