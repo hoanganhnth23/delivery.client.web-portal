@@ -3,10 +3,10 @@
  * Thêm, sửa, xóa món ăn, quản lý trạng thái active/inactive
  */
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { useMenu } from '../hooks/useMenu';
 import { useRestaurant } from '../hooks/useRestaurant';
 import MenuItemForm from '../components/MenuItemForm';
+import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import type { MenuItem } from '@/types/api.types';
 
 const MenuManagement = () => {
@@ -71,68 +71,10 @@ const MenuManagement = () => {
     <div className={darkMode ? 'dark' : ''}>
       <div className="flex min-h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark transition-colors duration-200">
         {/* Sidebar Navigation */}
-        <aside className="hidden lg:flex flex-col w-72 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark flex-shrink-0 transition-colors duration-200">
-          <div className="flex h-full flex-col justify-between p-6">
-            <div className="flex flex-col gap-8">
-              {/* Logo / User */}
-              <div className="flex items-center gap-4 px-2">
-                <div
-                  className="bg-center bg-no-repeat bg-cover rounded-full size-12 shadow-sm border-2 border-primary"
-                  style={{backgroundImage: "url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200')"}}
-                />
-                <div className="flex flex-col">
-                  <h1 className="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-tight">Tasty Bites</h1>
-                  <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider">Merchant Panel</p>
-                </div>
-              </div>
-
-              {/* Navigation Links */}
-              <nav className="flex flex-col gap-2">
-                <Link to="/restaurant/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  <span className="material-symbols-outlined">dashboard</span>
-                  <span className="text-sm font-medium">Dashboard</span>
-                </Link>
-                <Link to="/restaurant/menu" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary group transition-all hover:bg-primary/20">
-                  <span className="material-symbols-outlined icon-filled">restaurant_menu</span>
-                  <span className="text-sm font-bold">Menu Management</span>
-                </Link>
-                <Link to="/restaurant/orders" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  <span className="material-symbols-outlined">receipt_long</span>
-                  <span className="text-sm font-medium">Orders History</span>
-                </Link>
-                <Link to="/restaurant/reviews" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  <span className="material-symbols-outlined">star</span>
-                  <span className="text-sm font-medium">Reviews</span>
-                </Link>
-                <Link to="/restaurant/analytics" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  <span className="material-symbols-outlined">analytics</span>
-                  <span className="text-sm font-medium">Analytics</span>
-                </Link>
-                <div className="h-px bg-border-light dark:bg-border-dark my-2 mx-4"></div>
-                <Link to="/restaurant/settings" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  <span className="material-symbols-outlined">settings</span>
-                  <span className="text-sm font-medium">Settings</span>
-                </Link>
-                <Link to="/login" className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                  <span className="material-symbols-outlined">logout</span>
-                  <span className="text-sm font-medium">Logout</span>
-                </Link>
-              </nav>
-            </div>
-
-            {/* Bottom Graphic */}
-            <div className="rounded-xl bg-gradient-to-br from-primary to-orange-600 p-4 text-white relative overflow-hidden">
-              <div className="absolute -right-2 -top-2 opacity-20 transform rotate-12">
-                <span className="material-symbols-outlined text-6xl">restaurant</span>
-              </div>
-              <p className="text-xs font-medium opacity-80 mb-1">Need Help?</p>
-              <p className="font-bold text-sm mb-2">Contact Support</p>
-              <button className="text-xs bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-1.5 rounded-lg font-medium transition-colors">
-                Get Help
-              </button>
-            </div>
-          </div>
-        </aside>
+        <RestaurantSidebar 
+          restaurantName={currentRestaurant?.name}
+          restaurantImage={currentRestaurant?.image}
+        />
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col h-screen overflow-y-auto">

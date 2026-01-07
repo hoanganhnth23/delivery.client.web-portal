@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRestaurant } from '../hooks/useRestaurant';
-import Sidebar from '@/components/layout/Sidebar';
+import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import type { CreateRestaurantRequest } from '../services/restaurantService';
 
 interface FormData {
@@ -217,20 +217,9 @@ const RestaurantProfilePage = () => {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
-      <Sidebar
-        brand={{
-          icon: 'restaurant_menu',
-          name: 'Tasty Bites',
-          subtitle: 'Merchant Panel',
-        }}
-        menuItems={[
-          { icon: 'dashboard', label: 'Dashboard', to: '/restaurant/dashboard' },
-          { icon: 'shopping_bag', label: 'Orders', to: '/restaurant/orders' },
-          { icon: 'menu_book', label: 'Menu Mgmt', to: '/restaurant/menu' },
-          { icon: 'storefront', label: 'Profile', to: '/restaurant/profile', active: true },
-          { icon: 'bar_chart', label: 'Analytics', to: '/restaurant/analytics' },
-          { icon: 'settings', label: 'Settings', to: '/restaurant/settings' },
-        ]}
+      <RestaurantSidebar 
+        restaurantName={currentRestaurant?.name}
+        restaurantImage={currentRestaurant?.image}
       />
 
       <main className="flex flex-1 flex-col overflow-y-auto">

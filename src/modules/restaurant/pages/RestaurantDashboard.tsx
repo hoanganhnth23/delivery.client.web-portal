@@ -3,7 +3,7 @@
  * Hiển thị đơn hàng, doanh thu, thống kê
  */
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 
 const RestaurantDashboard = () => {
   const [activeTab, setActiveTab] = useState('pending')
@@ -77,56 +77,7 @@ const RestaurantDashboard = () => {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
       {/* Sidebar */}
-      <aside className="flex w-64 flex-col justify-between border-r border-gray-200 dark:border-gray-800 bg-card-light dark:bg-card-dark h-full flex-shrink-0 transition-colors duration-200">
-        <div className="flex flex-col gap-6 p-6">
-          {/* Brand */}
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/30">
-              <span className="material-symbols-outlined">restaurant_menu</span>
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-lg font-bold leading-none tracking-tight dark:text-white">Tasty Bites</h1>
-              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium mt-1">Merchant Panel</p>
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="flex flex-col gap-2">
-            <Link to="/restaurant/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
-              <span className="material-symbols-outlined fill-1">dashboard</span>
-              <span className="text-sm font-bold">Dashboard</span>
-            </Link>
-            <Link to="/restaurant/orders" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400 transition-colors">
-              <span className="material-symbols-outlined">shopping_bag</span>
-              <span className="text-sm font-semibold">Orders</span>
-            </Link>
-            <Link to="/restaurant/menu" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400 transition-colors">
-              <span className="material-symbols-outlined">menu_book</span>
-              <span className="text-sm font-semibold">Menu Mgmt</span>
-            </Link>
-            <Link to="/restaurant/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400 transition-colors">
-              <span className="material-symbols-outlined">storefront</span>
-              <span className="text-sm font-semibold">Profile</span>
-            </Link>
-            <Link to="/restaurant/analytics" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400 transition-colors">
-              <span className="material-symbols-outlined">bar_chart</span>
-              <span className="text-sm font-semibold">Analytics</span>
-            </Link>
-            <Link to="/restaurant/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400 transition-colors">
-              <span className="material-symbols-outlined">settings</span>
-              <span className="text-sm font-semibold">Settings</span>
-            </Link>
-          </nav>
-        </div>
-
-        {/* Bottom Actions */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-800">
-          <button className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl h-10 px-4 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-200 text-sm font-bold transition-colors">
-            <span className="material-symbols-outlined text-[20px]">logout</span>
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
+      <RestaurantSidebar />
 
       {/* Main Content */}
       <main className="flex flex-1 flex-col overflow-y-auto">
