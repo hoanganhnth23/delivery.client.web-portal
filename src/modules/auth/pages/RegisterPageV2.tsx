@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { ROUTES } from '@/utils/constants';
 
 // ============================================
 // LOCAL TYPES
@@ -95,7 +96,7 @@ const RegisterPageV2 = () => {
         email: formData.email,
         password: formData.password
       });
-      navigate('/login', { state: { message: 'Registration successful! Please log in.' } });
+      navigate(ROUTES.LOGIN, { state: { message: 'Registration successful! Please log in.' } });
     } catch (err) {
       const message = (err as Error).message || 'Registration failed';
       setErrors({ general: message });
@@ -119,7 +120,7 @@ const RegisterPageV2 = () => {
           </div>
           <h2 className="text-lg font-bold leading-tight">ShopeeFood</h2>
         </Link>
-        <Link to="/login" className="text-sm font-bold text-[#f49d25] hover:text-[#d68b1f] transition-colors">
+        <Link to={ROUTES.LOGIN} className="text-sm font-bold text-[#f49d25] hover:text-[#d68b1f] transition-colors">
           Log In
         </Link>
       </header>
@@ -344,7 +345,7 @@ const RegisterPageV2 = () => {
               <div className="flex justify-center mt-4">
                 <p className="text-sm text-[#9c7a49] dark:text-neutral-400">
                   Already have an account?{' '}
-                  <Link to="/login" className="text-[#f49d25] font-bold hover:underline">
+                  <Link to={ROUTES.LOGIN} className="text-[#f49d25] font-bold hover:underline">
                     Log in
                   </Link>
                 </p>

@@ -34,13 +34,17 @@ src/
 - Tailwind via CDN in `index.html`
 
 ## Coding Conventions
-- Naming: Variables (camelCase), Components (PascalCase), Constants (UPPER_CASE)
-- Comments: JSDoc for functions
-- Error Handling: Always handle async/await with try-catch
-- Performance: Use `useMemo`, `useCallback` for expensive operations
-- File Extensions: Use `.tsx` for React components, `.ts` for utilities/services
-- Types: Always use TypeScript interfaces/types, never `any`
-- Documentation: DO NOT create `.md` files (README, SUMMARY, ARCHITECTURE, etc.) unless explicitly requested
+- **Naming:** Variables (camelCase), Components (PascalCase), Constants (UPPER_CASE)
+- **Comments:** JSDoc for functions
+- **Error Handling:** Always handle async/await with try-catch
+- **Performance:** Use `useMemo`, `useCallback` for expensive operations
+- **File Extensions:** Use `.tsx` for React components, `.ts` for utilities/services
+- **Types:** Always use TypeScript interfaces/types, never `any`
+- **Documentation:** DO NOT create `.md` files (README, SUMMARY, ARCHITECTURE, etc.) unless explicitly requested
+- **Routing:** ALWAYS use `ROUTES` constants from `@/utils/constants` - NEVER hardcode paths
+  - ✅ `navigate(ROUTES.RESTAURANT_DASHBOARD)` or `<Link to={ROUTES.LOGIN}>`
+  - ❌ `navigate('/restaurant/dashboard')` or `<Link to="/login">`
+  - Benefits: Single source of truth, type-safe, easy refactoring, prevents typos
 
 ## Response Format (BaseResponse)
 Backend **BẮT BUỘC** trả về:
@@ -62,6 +66,9 @@ Backend **BẮT BUỘC** trả về:
 
 ## 2. Navigation Logic
 - **Hybrid Approach:** Implement default navigation logic inside the hook but allow overrides via an `options` object (e.g., `{ skipRedirect: true }`).
+- **Routes Constants:** ALWAYS import and use `ROUTES` from `@/utils/constants` for navigation
+  - Example: `navigate(ROUTES.RESTAURANT_DASHBOARD)` instead of `navigate('/restaurant/dashboard')`
+  - Also applies to `<Link to={ROUTES.LOGIN}>` components
 
 ## 3. Type Safety with TypeScript
 - **NO `any` types:** Always use SPECIFIC types from `src/types/api.types.ts`
@@ -162,5 +169,48 @@ export const useMyHook = (): MyContextValue => {
   - `EntityListResponse` for array of entities
   - `EntityActionResult` for hook action results
   - `DeleteResponse` / `DeleteActionResult` for delete operations
+
+## 6. Routes Constants Pattern (MANDATORY)
+- **Location:** All routes defined in `src/utils/constants.ts` under `ROUTES` object
+- **Usage:** ALWAYS import and use `ROUTES` constants - NEVER hardcode route strings
+- **Import:** `import { ROUTES } from '@/utils/constants';`
+
+### ✅ Correct Usage:
+```typescript
+// In components
+import { ROUTES } from '@/utils/constants';
+
+// React Router navigation
+navigate(ROUTES.RESTAURANT_DASHBOARD);
+navigate(ROUTES.LOGIN, { state: { message: 'Success' } });
+
+// Link components
+<Link to={ROUTES.RESTAURANT_MENU}>Menu</Link>
+<Link to={ROUTES.ADMIN_DASHBOARD}>Dashboard</Link>
+
+// Window location (edge cases)
+window.location.href = ROUTES.LOGIN;
+```
+
+### ❌ Wrong Usage (DO NOT DO THIS):
+```typescript
+// ❌ Hardcoded strings
+navigate('/restaurant/dashboard');
+<Link to="/login">Login</Link>
+window.location.href = '/admin/dashboard';
+```
+
+### Benefits:
+1. **Single Source of Truth** - Change route in one place, affects all usages
+2. **Type Safety** - TypeScript checks constant names at compile time
+3. **IDE Support** - Autocomplete and find all references
+4. **Refactoring** - Easy to rename/restructure routes
+5. **Error Prevention** - Typos caught during development
+
+### Available Routes:
+See `src/utils/constants.ts` for complete list including:
+- Public: `HOME`, `LOGIN`, `REGISTER`, `ADMIN_LOGIN`
+- Restaurant: `RESTAURANT_DASHBOARD`, `RESTAURANT_MENU`, `RESTAURANT_PROFILE`, etc.
+- Admin: `ADMIN_DASHBOARD`, `ADMIN_RESTAURANTS`, `ADMIN_USERS`, etc.
 
 **Happy Coding! 🚀**

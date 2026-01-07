@@ -14,6 +14,7 @@ import type {
   MenuItemListActionResult,
   DeleteActionResult,
 } from '@/types/api.types';
+import { ROUTES } from '@/utils/constants';
 
 interface MenuContextValue {
   // States
@@ -76,7 +77,7 @@ export const MenuProvider = ({ children }: MenuProviderProps) => {
         
         // Navigation logic (Hybrid)
         if (!options.skipRedirect) {
-          navigate('/restaurant/menu');
+          navigate(ROUTES.RESTAURANT_MENU);
         }
         
         return { success: true, data: response.data };
@@ -115,7 +116,7 @@ export const MenuProvider = ({ children }: MenuProviderProps) => {
         setCurrentMenuItem(response.data);
         
         if (!options.skipRedirect) {
-          navigate('/restaurant/menu');
+          navigate(ROUTES.RESTAURANT_MENU);
         }
         
         return { success: true, data: response.data };
@@ -153,7 +154,7 @@ export const MenuProvider = ({ children }: MenuProviderProps) => {
         }
         
         if (!options.skipRedirect) {
-          navigate('/restaurant/menu');
+          navigate(ROUTES.RESTAURANT_MENU);
         }
         
         return { success: true };

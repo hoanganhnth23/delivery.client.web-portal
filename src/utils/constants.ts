@@ -47,6 +47,7 @@ export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'accessToken',
   REFRESH_TOKEN: 'refreshToken',
   USER_INFO: 'userInfo',
+  CURRENT_RESTAURANT_ID: 'currentRestaurantId',
 } as const;
 
 // Routes
@@ -60,7 +61,18 @@ export const ROUTES = {
   // Protected routes
   DASHBOARD: '/dashboard',
   ADMIN_DASHBOARD: '/admin/dashboard',
+  ADMIN_RESTAURANTS: '/admin/restaurants',
+  ADMIN_MENUS: '/admin/menus',
+  ADMIN_CATEGORIES: '/admin/categories',
+  ADMIN_USERS: '/admin/users',
+  ADMIN_SETTINGS: '/admin/settings',
   RESTAURANT_DASHBOARD: '/restaurant/dashboard', // Shop Owner dashboard
+  RESTAURANT_PROFILE: '/restaurant/profile',
+  RESTAURANT_MENU: '/restaurant/menu',
+  RESTAURANT_ORDERS: '/restaurant/orders',
+  RESTAURANT_ANALYTICS: '/restaurant/analytics',
+  RESTAURANT_REVIEWS: '/restaurant/reviews',
+  RESTAURANT_SETTINGS: '/restaurant/settings',
   
   // Restaurant routes
   RESTAURANTS: '/restaurants',

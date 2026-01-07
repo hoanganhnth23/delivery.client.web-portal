@@ -33,16 +33,16 @@ export default function App() {
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
             <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
             <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
             
             {/* Restaurant Routes */}
-            <Route path="/restaurant/dashboard" element={<RestaurantDashboard />} />
-            <Route path="/restaurant/profile" element={<RestaurantProfilePage />} />
-            <Route path="/restaurant/menu" element={<MenuManagement />} />
+            <Route path={ROUTES.RESTAURANT_DASHBOARD} element={<RestaurantDashboard />} />
+            <Route path={ROUTES.RESTAURANT_PROFILE} element={<RestaurantProfilePage />} />
+            <Route path={ROUTES.RESTAURANT_MENU} element={<MenuManagement />} />
 
             {/* Admin Routes */}
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboard />} />
 
             {/* Protected Routes */}
             <Route

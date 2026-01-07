@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { ROUTES } from '@/utils/constants';
 
 // ============================================
 // LOCAL TYPES
@@ -66,7 +67,7 @@ const AdminLoginPage = () => {
 
             // ✅ UI component tự xử lý navigation
             if (result.success) {
-                navigate('/admin/dashboard');
+                navigate(ROUTES.ADMIN_DASHBOARD);
             } else {
                 setErrors({ general: result.message || 'Admin login failed' });
             }
@@ -231,7 +232,7 @@ const AdminLoginPage = () => {
                         <p className="text-gray-600">
                             Not an admin?{' '}
                             <Link
-                                to="/login"
+                                to={ROUTES.LOGIN}
                                 className="font-medium text-[#f49d25] hover:text-[#e38b14] transition-colors"
                             >
                                 Login as Shop Owner

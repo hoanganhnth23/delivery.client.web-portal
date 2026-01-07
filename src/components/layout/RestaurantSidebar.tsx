@@ -4,6 +4,7 @@
  */
 
 import { Link, useLocation } from 'react-router-dom';
+import { ROUTES } from '@/utils/constants';
 
 interface MenuItem {
   icon: string;
@@ -24,13 +25,13 @@ const RestaurantSidebar = ({
   const location = useLocation();
 
   const menuItems: MenuItem[] = [
-    { icon: 'dashboard', label: 'Dashboard', to: '/restaurant/dashboard' },
-    { icon: 'shopping_bag', label: 'Orders', to: '/restaurant/orders', badge: '12' },
-    { icon: 'menu_book', label: 'Menu Management', to: '/restaurant/menu' },
-    { icon: 'storefront', label: 'Profile', to: '/restaurant/profile' },
-    { icon: 'bar_chart', label: 'Analytics', to: '/restaurant/analytics' },
-    { icon: 'reviews', label: 'Reviews', to: '/restaurant/reviews' },
-    { icon: 'settings', label: 'Settings', to: '/restaurant/settings' },
+    { icon: 'dashboard', label: 'Dashboard', to: ROUTES.RESTAURANT_DASHBOARD },
+    { icon: 'shopping_bag', label: 'Orders', to: ROUTES.RESTAURANT_ORDERS, badge: '12' },
+    { icon: 'menu_book', label: 'Menu Management', to: ROUTES.RESTAURANT_MENU },
+    { icon: 'storefront', label: 'Profile', to: ROUTES.RESTAURANT_PROFILE },
+    { icon: 'bar_chart', label: 'Analytics', to: ROUTES.RESTAURANT_ANALYTICS },
+    { icon: 'reviews', label: 'Reviews', to: ROUTES.RESTAURANT_REVIEWS },
+    { icon: 'settings', label: 'Settings', to: ROUTES.RESTAURANT_SETTINGS },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -95,7 +96,7 @@ const RestaurantSidebar = ({
             
             {/* Logout */}
             <Link
-              to="/login"
+              to={ROUTES.LOGIN}
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
               <span className="material-symbols-outlined text-xl">logout</span>

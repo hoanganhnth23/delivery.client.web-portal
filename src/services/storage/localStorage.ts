@@ -63,6 +63,7 @@ export const TokenStorage = {
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.USER_INFO);
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_RESTAURANT_ID);
   },
 
   /**
@@ -70,6 +71,30 @@ export const TokenStorage = {
    */
   hasToken(): boolean {
     return !!this.getAccessToken();
+  },
+
+  /**
+   * Lưu restaurant ID hiện tại
+   */
+  setCurrentRestaurantId(restaurantId: number): void {
+    if (restaurantId) {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_RESTAURANT_ID, restaurantId.toString());
+    }
+  },
+
+  /**
+   * Lấy restaurant ID hiện tại
+   */
+  getCurrentRestaurantId(): number | null {
+    const id = localStorage.getItem(STORAGE_KEYS.CURRENT_RESTAURANT_ID);
+    return id ? parseInt(id, 10) : null;
+  },
+
+  /**
+   * Xóa restaurant ID
+   */
+  clearRestaurantId(): void {
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_RESTAURANT_ID);
   },
 };
 

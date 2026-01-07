@@ -4,6 +4,7 @@
  */
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ROUTES } from '@/utils/constants';
 
 const AdminDashboard = () => {
   const [darkMode] = useState(false);
@@ -71,32 +72,32 @@ const AdminDashboard = () => {
 
               {/* Navigation Links */}
               <nav className="flex flex-col gap-2">
-                <Link to="/admin/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary group transition-all hover:bg-primary/20">
+                <Link to={ROUTES.ADMIN_DASHBOARD} className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/10 text-primary group transition-all hover:bg-primary/20">
                   <span className="material-symbols-outlined icon-filled">dashboard</span>
                   <span className="text-sm font-bold">Dashboard</span>
                 </Link>
-                <Link to="/admin/restaurants" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <Link to={ROUTES.ADMIN_RESTAURANTS} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   <span className="material-symbols-outlined">storefront</span>
                   <span className="text-sm font-medium">Restaurants</span>
                 </Link>
-                <Link to="/admin/menus" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <Link to={ROUTES.ADMIN_MENUS} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   <span className="material-symbols-outlined">restaurant_menu</span>
                   <span className="text-sm font-medium">Menus</span>
                 </Link>
-                <Link to="/admin/categories" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <Link to={ROUTES.ADMIN_CATEGORIES} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   <span className="material-symbols-outlined">category</span>
                   <span className="text-sm font-medium">Categories</span>
                 </Link>
-                <Link to="/admin/users" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <Link to={ROUTES.ADMIN_USERS} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   <span className="material-symbols-outlined">group</span>
                   <span className="text-sm font-medium">Users</span>
                 </Link>
                 <div className="h-px bg-border-light dark:bg-border-dark my-2 mx-4"></div>
-                <Link to="/admin/settings" className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                <Link to={ROUTES.ADMIN_SETTINGS} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   <span className="material-symbols-outlined">settings</span>
                   <span className="text-sm font-medium">Settings</span>
                 </Link>
-                <Link to="/login" className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                <Link to={ROUTES.LOGIN} className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
                   <span className="material-symbols-outlined">logout</span>
                   <span className="text-sm font-medium">Logout</span>
                 </Link>
@@ -199,7 +200,7 @@ const AdminDashboard = () => {
               <div className="xl:col-span-2 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">Pending Restaurant Requests</h2>
-                  <Link to="/admin/restaurants" className="text-sm font-semibold text-primary hover:text-orange-600 transition-colors flex items-center gap-1">
+                  <Link to={ROUTES.ADMIN_RESTAURANTS} className="text-sm font-semibold text-primary hover:text-orange-600 transition-colors flex items-center gap-1">
                     View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
                   </Link>
                 </div>

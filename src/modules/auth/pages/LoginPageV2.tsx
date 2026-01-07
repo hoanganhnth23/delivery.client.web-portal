@@ -6,6 +6,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useRestaurant } from '@/modules/restaurant/hooks/useRestaurant';
+import { ROUTES } from '@/utils/constants';
 
 // ============================================
 // LOCAL TYPES
@@ -25,6 +27,7 @@ interface LoginErrors {
 const LoginPageV2 = () => {
     const navigate = useNavigate();
     const { login, loading } = useAuth();
+    const { getMyRestaurants } = useRestaurant();
 
     const [formData, setFormData] = useState<LoginFormData>({
         email: '',
@@ -60,17 +63,20 @@ const LoginPageV2 = () => {
                 ...formData,
                 role: 'SHOP_OWNER', // Trang này dành cho SHOP_OWNER
             };
-            
+
             console.log("Shop Owner login credentials:", credentials);
             const result = await login(credentials);
-            
+
             // ✅ UI component tự xử lý navigation
             if (result.success) {
+                // Load restaurant data ngay sau khi login thành công
+                await getMyRestaurants();
+                
                 // Redirect based on role
-                if (result.data?.user.role === 'restaurant') {
-                    navigate('/restaurant/dashboard');
+                if (result.data?.user.role === 'admin') {
+                    navigate(ROUTES.ADMIN_DASHBOARD);
                 } else {
-                    navigate('/dashboard');
+                    navigate(ROUTES.RESTAURANT_DASHBOARD); // Mặc định chuyển đến restaurant dashboard
                 }
             } else {
                 setErrors({ general: result.message || 'Login failed' });
@@ -260,7 +266,7 @@ const LoginPageV2 = () => {
                         <p className="text-[#9c7a49] dark:text-gray-400 text-base font-normal">
                             Don't have an account?{' '}
                             <Link
-                                to="/register"
+                                to={ROUTES.REGISTER}
                                 className="text-[#f49d25] hover:text-[#e38b14] font-bold hover:underline transition-all"
                             >
                                 Sign Up

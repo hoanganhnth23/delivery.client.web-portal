@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { API_BASE_URL, RESPONSE_CODES, HTTP_STATUS } from '@/utils/constants';
+import { API_BASE_URL, RESPONSE_CODES, HTTP_STATUS, ROUTES } from '@/utils/constants';
 import { TokenStorage } from '@/services/storage/localStorage';
 import { API_ENDPOINTS } from './endpoints';
 
@@ -174,7 +174,7 @@ apiClient.interceptors.response.use(
 
         // Redirect về login page
         if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+          window.location.href = ROUTES.LOGIN;
         }
 
         return Promise.reject(refreshError);

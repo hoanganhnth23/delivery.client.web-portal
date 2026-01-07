@@ -4,9 +4,10 @@
  * Theo pattern: Context API + Custom Hook với useMemo & useCallback
  */
 
-import { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useMemo, useCallback, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as restaurantService from '../services/restaurantService';
+import TokenStorage from '@/services/storage/localStorage';
 import type { CreateRestaurantRequest } from '../services/restaurantService';
 import type {
   Restaurant,
@@ -14,6 +15,7 @@ import type {
   RestaurantListActionResult,
   DeleteActionResult,
 } from '@/types/api.types';
+import { ROUTES } from '@/utils/constants';
 
 // ============================================
 // LOCAL TYPES
@@ -59,6 +61,17 @@ export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Auto-load restaurant khi app khởi động (nếu đã login)
+  useEffect(() => {
+    const hasToken = TokenStorage.hasToken();
+    const savedRestaurantId = TokenStorage.getCurrentRestaurantId();
+    
+    // Chỉ load nếu có token và có saved restaurant ID
+    if (hasToken && savedRestaurantId && !currentRestaurant) {
+      getMyRestaurants();
+    }
+  }, []);
+
   /**
    * Tạo nhà hàng mới
    */
@@ -79,7 +92,7 @@ export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
         
         // Navigation logic (Hybrid)
         if (!options.skipRedirect) {
-          navigate('/restaurant/dashboard');
+          navigate(ROUTES.RESTAURANT_DASHBOARD);
         }
         
         return { success: true, data: response.data };
@@ -118,7 +131,7 @@ export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
         setCurrentRestaurant(response.data);
         
         if (!options.skipRedirect) {
-          navigate('/restaurant/dashboard');
+          navigate(ROUTES.RESTAURANT_DASHBOARD);
         }
         
         return { success: true, data: response.data };
@@ -156,7 +169,7 @@ export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
         }
         
         if (!options.skipRedirect) {
-          navigate('/restaurant/dashboard');
+          navigate(ROUTES.RESTAURANT_DASHBOARD);
         }
         
         return { success: true };
@@ -263,10 +276,28 @@ export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
       
       if (response.status === 1) {
         setRestaurants(response.data);
-        // Set currentRestaurant là nhà hàng đầu tiên nếu có
-        if (response.data.length > 0) {
-          setCurrentRestaurant(response.data[0]);
+        
+        // Load restaurant từ localStorage trước
+        const savedRestaurantId = TokenStorage.getCurrentRestaurantId();
+        
+        if (savedRestaurantId && response.data.length > 0) {
+          // Tìm restaurant theo saved ID
+          const savedRestaurant = response.data.find(r => r.id === savedRestaurantId);
+          if (savedRestaurant) {
+            setCurrentRestaurant(savedRestaurant);
+          } else {
+            // Nếu không tìm thấy, chọn restaurant đầu tiên và save ID mới
+            const firstRestaurant = response.data[0];
+            setCurrentRestaurant(firstRestaurant);
+            TokenStorage.setCurrentRestaurantId(firstRestaurant.id);
+          }
+        } else if (response.data.length > 0) {
+          // Chưa có saved ID, chọn restaurant đầu tiên và save
+          const firstRestaurant = response.data[0];
+          setCurrentRestaurant(firstRestaurant);
+          TokenStorage.setCurrentRestaurantId(firstRestaurant.id);
         }
+        
         return { success: true, data: response.data };
       } else {
         setError(response.message);
@@ -278,6 +309,18 @@ export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
       return { success: false, message };
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Helper function để set currentRestaurant và save ID vào localStorage
+   */
+  const setCurrentRestaurantWithSave = useCallback((restaurant: Restaurant | null) => {
+    setCurrentRestaurant(restaurant);
+    if (restaurant) {
+      TokenStorage.setCurrentRestaurantId(restaurant.id);
+    } else {
+      TokenStorage.clearRestaurantId();
     }
   }, []);
 
@@ -297,7 +340,7 @@ export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
     searchRestaurants,
     getMyRestaurants,
     // Setters
-    setCurrentRestaurant,
+    setCurrentRestaurant: setCurrentRestaurantWithSave,
     setError
   }), [
     restaurants,
@@ -310,7 +353,8 @@ export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
     getRestaurantById,
     getAllRestaurants,
     searchRestaurants,
-    getMyRestaurants
+    getMyRestaurants,
+    setCurrentRestaurantWithSave
   ]);
 
   return (

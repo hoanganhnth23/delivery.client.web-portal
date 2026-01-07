@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/hooks/useAuth';
+import { ROUTES } from '@/utils/constants';
 
 const HomePage = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -180,7 +181,7 @@ const HomePage = () => {
                   </div>
                 ) : (
                   <Link
-                    to="/login"
+                    to={ROUTES.LOGIN}
                     className="hidden sm:flex items-center justify-center h-10 px-6 rounded-full bg-primary hover:bg-primary-dark text-white text-sm font-bold transition-colors shadow-md shadow-orange-200 dark:shadow-none"
                   >
                     Login
