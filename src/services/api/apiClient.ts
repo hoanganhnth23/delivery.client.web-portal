@@ -28,7 +28,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
       prom.resolve(token!);
     }
   });
-  
+
   failedQueue = [];
 };
 
@@ -45,7 +45,7 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = TokenStorage.getAccessToken();
-    
+
     // Thêm Bearer token nếu có
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -148,10 +148,14 @@ apiClient.interceptors.response.use(
           { refreshToken }
         );
 
-        const { accessToken } = response.data.data;
+        const { accessToken, refreshToken: refreshToken1 } = response.data.data;
 
         // Lưu token mới
         TokenStorage.setAccessToken(accessToken);
+        if (refreshToken1) {
+          TokenStorage.setRefreshToken(refreshToken1);
+        }
+
 
         // Process queue - retry tất cả requests đang chờ
         processQueue(null, accessToken);
@@ -162,10 +166,10 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         // Refresh token thất bại -> logout
         console.error('❌ Refresh Token Failed:', refreshError);
-        
+
         // Process queue với error - reject tất cả requests
         processQueue(refreshError, null);
-        
+
         TokenStorage.clearAll();
 
         // Redirect về login page
@@ -205,13 +209,13 @@ export const handleResponse = <T = unknown>(response: AxiosResponse): T => {
 export const handleError = (error: unknown): never => {
   let errorMessage = 'Có lỗi xảy ra';
   let errorStatus = 0;
-  
+
   if (axios.isAxiosError(error)) {
     if (error.response) {
       // Server responded with error
       errorStatus = error.response.status;
       errorMessage = (error.response.data as { message?: string })?.message || error.message;
-      
+
       // Log chi tiết error để debug
       console.error('API Error Details:', {
         status: errorStatus,
