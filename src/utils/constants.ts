@@ -70,6 +70,7 @@ export const ROUTES = {
   RESTAURANT_PROFILE: '/restaurant/profile',
   RESTAURANT_MENU: '/restaurant/menu',
   RESTAURANT_ORDERS: '/restaurant/orders',
+  RESTAURANT_CHAT: '/restaurant/chat',
   RESTAURANT_ANALYTICS: '/restaurant/analytics',
   RESTAURANT_REVIEWS: '/restaurant/reviews',
   RESTAURANT_SETTINGS: '/restaurant/settings',

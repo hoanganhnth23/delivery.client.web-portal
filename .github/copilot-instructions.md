@@ -45,6 +45,7 @@ src/
   - ✅ `navigate(ROUTES.RESTAURANT_DASHBOARD)` or `<Link to={ROUTES.LOGIN}>`
   - ❌ `navigate('/restaurant/dashboard')` or `<Link to="/login">`
   - Benefits: Single source of truth, type-safe, easy refactoring, prevents typos
+- Always use api end point from services/api/endpoints  for making API calls - NEVER hardcode URLs
 
 ## Response Format (BaseResponse)
 Backend **BẮT BUỘC** trả về:
@@ -210,7 +211,79 @@ window.location.href = '/admin/dashboard';
 ### Available Routes:
 See `src/utils/constants.ts` for complete list including:
 - Public: `HOME`, `LOGIN`, `REGISTER`, `ADMIN_LOGIN`
-- Restaurant: `RESTAURANT_DASHBOARD`, `RESTAURANT_MENU`, `RESTAURANT_PROFILE`, etc.
+- Restaurant: `RESTAURANT_DASHBOARD`, `RESTAURANT_MENU`, `RESTAURANT_PROFILE`, `RESTAURANT_CHAT`, etc.
 - Admin: `ADMIN_DASHBOARD`, `ADMIN_RESTAURANTS`, `ADMIN_USERS`, etc.
 
+---
+
+## 🔥 Firebase Real-time Chat
+
+### Configuration:
+- **File:** `src/config/firebase.ts`
+- **Project:** delivery-233fb
+- **Region:** asia-southeast1
+
+### Chat Service:
+- **Location:** `src/modules/chat/services/firebaseChatService.ts`
+- **Hook:** `src/modules/chat/hooks/useChat.tsx`
+- **Provider:** `ChatProvider` - wrap in App.tsx
+
+### Firestore Collections:
+
+#### conversations
+```typescript
+{
+  userId: string;
+  userEmail: string;
+  userName: string;
+  restaurantId: number | null;
+  status: 'active' | 'closed';
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  unreadCount: number;
+  lastMessage: {...}
+}
+```
+
+#### messages
+```typescript
+{
+  conversationId: string;
+  content: string;
+  type: 'text' | 'image';
+  sender: 'user' | 'restaurant' | 'support';
+  timestamp: Timestamp;
+  isRead: boolean;
+}
+```
+
+### Real-time Functions:
+- `subscribeToConversations(userId, callback)` - User conversations
+- `subscribeToRestaurantConversations(restaurantId, callback)` - Restaurant conversations
+- `subscribeToMessages(conversationId, callback)` - Messages in conversation
+- `sendMessage(conversationId, content, sender, type)` - Send message
+- `createConversation(userId, userEmail, userName, restaurantId)` - Create conversation
+- `closeConversation(conversationId, closedBy, reason)` - Close conversation
+- `markMessageAsRead(messageId)` - Mark as read
+
+### Usage Pattern:
+```typescript
+const { conversations, messages, sendMessage } = useChat();
+
+// Subscribe tự động qua useEffect trong ChatProvider
+// Gửi message
+await sendMessage('Hello!');
+
+// UI tự động update qua onSnapshot callback
+```
+
+### Components:
+- **ChatWidget** - Floating chat bubble (ShopeeFood style)
+- **RestaurantChatPage** - Full chat page cho restaurant
+- **ChatConversationList** - Danh sách conversations
+- **ChatMessageArea** - Khu vực messages
+
+**Docs:** See `FIREBASE_CHAT_SETUP.md` for detailed setup instructions.
+
 **Happy Coding! 🚀**
+

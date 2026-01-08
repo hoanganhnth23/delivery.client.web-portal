@@ -92,12 +92,11 @@ export type DeleteActionResult = ActionResult<DeleteData>;
 // ============================================
 // AUTH TYPES (for future use)
 // ============================================
-
 export interface User {
   id: number;
   email: string;
   name: string;
-  role: 'admin' | 'restaurant' | 'user';
+  role: string;
   createdAt?: string;
 }
 
