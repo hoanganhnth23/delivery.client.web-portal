@@ -21,6 +21,7 @@ export interface Conversation {
   userAvatar?: string;
   restaurantId?: number;
   restaurantName?: string;
+  isSupportChat?: boolean; // true = chat với CSKH, false/undefined = chat với user
   status: 'active' | 'closed';
   createdAt: string;
   updatedAt: string;

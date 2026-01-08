@@ -11,12 +11,12 @@ import ChatConversationList from '@/modules/chat/components/ChatConversationList
 import ChatMessageArea from '@/modules/chat/components/ChatMessageArea';
 
 const AdminChatPage = () => {
-  const { getConversations, conversations } = useChat();
+  const { getSupportConversations, conversations } = useChat();
 
-  // Load tất cả conversations khi component mount
+  // Load tất cả support conversations (CSKH) khi component mount
   useEffect(() => {
-    getConversations();
-  }, [getConversations]);
+    getSupportConversations();
+  }, [getSupportConversations]);
 
   return (
     <div className="flex min-h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
@@ -82,9 +82,9 @@ const AdminChatPage = () => {
         <header className="px-8 py-5 bg-white dark:bg-gray-900 border-b border-border-light dark:border-border-dark">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Chat Support</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Chat Support (CSKH)</h1>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                Quản lý {conversations.length} cuộc hội thoại
+                {conversations.length} yêu cầu hỗ trợ từ nhà hàng
               </p>
             </div>
             <div className="flex items-center gap-4">

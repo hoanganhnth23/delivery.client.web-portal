@@ -189,6 +189,32 @@ export const authService = {
   },
 
   /**
+   * Lấy profile của user hiện tại từ backend
+   * Endpoint: GET /api/users/profile (với accessToken trong header)
+   */
+  async getProfile(): Promise<User> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.USER.GET_PROFILE);
+      const profileData = handleResponse(response) as any;
+      
+      // Convert response data to User type
+      const user: User = {
+        id: profileData.id || profileData.userId,
+        email: profileData.email,
+        name: profileData.fullName || profileData.email.split('@')[0],
+        role: profileData.role as 'admin' | 'restaurant' | 'user',
+      };
+
+      // Cập nhật localStorage với thông tin mới nhất
+      TokenStorage.setUserInfo(user);
+      
+      return user;
+    } catch (error) {
+      throw handleError(error);
+    }
+  },
+
+  /**
    * Decode JWT token để lấy user info
    * JWT payload format:
    * {

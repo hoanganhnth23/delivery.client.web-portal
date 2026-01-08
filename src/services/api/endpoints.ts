@@ -17,7 +17,7 @@ export const API_ENDPOINTS = {
 
   // ==================== USER SERVICE (port 8082) ====================
   USER: {
-    GET_PROFILE: '/api/users/profile',
+    GET_PROFILE: '/api/users',
     UPDATE_PROFILE: '/api/users/profile',
     GET_BY_ID: (id: number) => `/api/users/${id}`,
     CREATE: '/api/users',

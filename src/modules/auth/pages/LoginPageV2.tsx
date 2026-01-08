@@ -70,12 +70,13 @@ const LoginPageV2 = () => {
             // ✅ UI component tự xử lý navigation
             if (result.success) {
                 // Load restaurant data ngay sau khi login thành công
-                await getMyRestaurants();
-                
+
+
                 // Redirect based on role
-                if (result.data?.user.role === 'admin') {
+                if (result.data?.user.role === USER_ROLES.ADMIN) {
                     navigate(ROUTES.ADMIN_DASHBOARD);
                 } else {
+                    await getMyRestaurants();
                     navigate(ROUTES.RESTAURANT_DASHBOARD); // Mặc định chuyển đến restaurant dashboard
                 }
             } else {

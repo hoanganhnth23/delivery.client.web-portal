@@ -13,6 +13,7 @@ import { USER_ROLES } from '@/utils/constants';
 const ChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [messageText, setMessageText] = useState('');
+    const [isCreatingSupport, setIsCreatingSupport] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const { user } = useAuth();
@@ -25,6 +26,8 @@ const ChatWidget = () => {
         sendMessage,
         getRestaurantConversations,
         selectConversation,
+        createOrSelectSupportConversation,
+        closeConversation,
     } = useChat();
 
     // Chỉ hiển thị cho restaurant owner
@@ -81,6 +84,48 @@ const ChatWidget = () => {
         });
     };
 
+    // Tạo hoặc chọn support conversation (CSKH) - chỉ cho phép 1 conversation active
+    const handleContactSupport = async () => {
+        if (!user || !currentRestaurant) return;
+        
+        setIsCreatingSupport(true);
+        try {
+            const result = await createOrSelectSupportConversation(
+                user.id.toString(),
+                user.email,
+                currentRestaurant.name,
+                currentRestaurant.id
+            );
+            
+            if (result.success) {
+                // Conversation đã được chọn hoặc tạo mới - useChat hook tự động set currentConversation
+                console.log(result.message);
+            }
+        } catch (error) {
+            console.error('Failed to create/select support conversation:', error);
+        } finally {
+            setIsCreatingSupport(false);
+        }
+    };
+
+    // Đóng conversation hiện tại
+    const handleCloseConversation = async () => {
+        if (!currentConversation) return;
+        
+        const confirmClose = window.confirm('Bạn có chắc muốn đóng cuộc hội thoại này không?');
+        if (!confirmClose) return;
+
+        try {
+            const result = await closeConversation('Đã hoàn thành hỗ trợ');
+            if (result.success) {
+                console.log('Conversation closed successfully');
+                // Conversation sẽ tự động update status qua Firebase listener
+            }
+        } catch (error) {
+            console.error('Failed to close conversation:', error);
+        }
+    };
+
     // Không hiển thị nếu không phải restaurant owner
     if (!isRestaurantOwner) {
         return null;
@@ -94,8 +139,22 @@ const ChatWidget = () => {
                     {/* Conversation List - Bên trái */}
                     <div className="w-[280px] border-r border-border-light dark:border-border-dark flex flex-col bg-white dark:bg-gray-900">
                         <div className="px-4 py-3 border-b border-border-light dark:border-border-dark bg-primary">
-                            <h4 className="font-bold text-white text-sm">Tin nhắn</h4>
-                            <p className="text-xs text-white/80">{conversations.length} cuộc hội thoại</p>
+                            <div className="flex items-center justify-between mb-2">
+                                <div>
+                                    <h4 className="font-bold text-white text-sm">Tin nhắn</h4>
+                                    <p className="text-xs text-white/80">{conversations.length} cuộc hội thoại</p>
+                                </div>
+                                <button
+                                    onClick={handleContactSupport}
+                                    disabled={isCreatingSupport}
+                                    className="text-white hover:bg-white/20 p-1.5 rounded-lg transition-colors disabled:opacity-50"
+                                    title="Chat với CSKH"
+                                >
+                                    <span className="material-symbols-outlined text-xl">
+                                        {isCreatingSupport ? 'progress_activity' : 'support_agent'}
+                                    </span>
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex-1 overflow-y-auto">
@@ -117,15 +176,30 @@ const ChatWidget = () => {
                                             }`}
                                     >
                                         <div className="flex items-center gap-3 mb-2">
-                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                                                {conv.userName.charAt(0).toUpperCase()}
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
+                                                conv.isSupportChat 
+                                                    ? 'bg-gradient-to-br from-blue-500 to-purple-500' 
+                                                    : 'bg-gradient-to-br from-primary to-orange-400'
+                                            }`}>
+                                                {conv.isSupportChat ? (
+                                                    <span className="material-symbols-outlined text-lg">support_agent</span>
+                                                ) : (
+                                                    conv.userName.charAt(0).toUpperCase()
+                                                )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                                    {conv.userName}
-                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                                        {conv.isSupportChat ? 'Hỗ trợ CSKH' : conv.userName}
+                                                    </p>
+                                                    {conv.isSupportChat && (
+                                                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 font-medium">
+                                                            CSKH
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                                    {conv.userEmail}
+                                                    {conv.isSupportChat ? 'Chăm sóc khách hàng' : conv.userEmail}
                                                 </p>
                                             </div>
                                             {conv.unreadCount > 0 && (
@@ -173,14 +247,27 @@ const ChatWidget = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => setIsOpen(false)}
-                                        className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
-                                    >
-                                        <span className="material-symbols-outlined text-gray-600 dark:text-gray-400 text-xl">
-                                            close
-                                        </span>
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        {/* Nút đóng conversation - chỉ hiện khi conversation đang active */}
+                                        {currentConversation.status === 'active' && (
+                                            <button
+                                                onClick={handleCloseConversation}
+                                                className="px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-1"
+                                                title="Đóng cuộc hội thoại"
+                                            >
+                                                <span className="material-symbols-outlined text-base">block</span>
+                                                <span>Đóng chat</span>
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => setIsOpen(false)}
+                                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-gray-600 dark:text-gray-400 text-xl">
+                                                close
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Messages */}

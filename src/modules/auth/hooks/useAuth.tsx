@@ -67,13 +67,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Khởi tạo: Check user đã login chưa
+  // Khởi tạo: Check user đã login chưa + Get profile từ backend
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       try {
+        // 1. Kiểm tra localStorage có token không
         if (authService.isAuthenticated()) {
-          const currentUser = authService.getCurrentUser();
-          setUser(currentUser);
+          // 2. Restore user từ localStorage trước (để UI không bị trắng)
+          const cachedUser = authService.getCurrentUser();
+          if (cachedUser) {
+            setUser(cachedUser);
+          }
+
+          // 3. Gọi API get profile để lấy thông tin mới nhất
+          try {
+            const freshUser = await authService.getProfile();
+            setUser(freshUser); // Cập nhật user với data mới nhất
+          } catch (profileError) {
+            console.error('Failed to fetch fresh profile:', profileError);
+            // Nếu get profile thất bại (token hết hạn, server lỗi)
+            // Vẫn giữ cachedUser để user có thể sử dụng app
+            // Hoặc có thể logout nếu muốn strict hơn
+          }
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
@@ -102,14 +117,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       console.log("Login credentials:", credentials);
+      
+      // 1. Đăng nhập - Lưu tokens vào localStorage
       const result = await authService.login(credentials);
-      setUser(result.user);
+      
+      // 2. Get profile để lấy thông tin user đầy đủ từ backend
+      const freshUser = await authService.getProfile();
+      setUser(freshUser); // Set user với data đầy đủ từ getProfile
 
       // ✅ Chỉ trả về kết quả, KHÔNG navigate
       return { 
         success: true, 
         data: {
-          user: result.user,
+          user: freshUser, // Trả về user data đầy đủ
           accessToken: result.accessToken,
           refreshToken: result.refreshToken,
         }

@@ -28,7 +28,8 @@ export const createConversation = async (
   userId: string,
   userEmail: string,
   userName: string,
-  restaurantId?: number
+  restaurantId?: number,
+  isSupportChat?: boolean
 ): Promise<string> => {
   const conversationData = {
     userId,
@@ -36,6 +37,7 @@ export const createConversation = async (
     userName,
     restaurantId: restaurantId || null,
     restaurantName: null,
+    isSupportChat: isSupportChat || false,
     status: 'active',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -140,6 +142,7 @@ export const subscribeToConversations = (
         userAvatar: data.userAvatar,
         restaurantId: data.restaurantId,
         restaurantName: data.restaurantName,
+        isSupportChat: data.isSupportChat || false,
         status: data.status,
         createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
         updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString(),
@@ -182,6 +185,49 @@ export const subscribeToRestaurantConversations = (
         userAvatar: data.userAvatar,
         restaurantId: data.restaurantId,
         restaurantName: data.restaurantName,
+        isSupportChat: data.isSupportChat || false,
+        status: data.status,
+        createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+        updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString(),
+        unreadCount: data.unreadCount || 0,
+        closedAt: data.closedAt?.toDate().toISOString() || null,
+        closedBy: data.closedBy || null,
+        closeReason: data.closeReason || null,
+        lastMessage: data.lastMessage ? {
+          ...data.lastMessage,
+          timestamp: data.lastMessage.timestamp?.toDate().toISOString() || new Date().toISOString(),
+        } : undefined,
+      });
+    });
+    callback(conversations);
+  });
+};
+
+/**
+ * Lắng nghe tất cả support conversations cho Admin real-time
+ */
+export const subscribeToSupportConversations = (
+  callback: (conversations: Conversation[]) => void
+): Unsubscribe => {
+  const q = query(
+    collection(db, 'conversations'),
+    where('isSupportChat', '==', true),
+    orderBy('updatedAt', 'desc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const conversations: Conversation[] = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      conversations.push({
+        id: doc.id,
+        userId: data.userId,
+        userEmail: data.userEmail,
+        userName: data.userName,
+        userAvatar: data.userAvatar,
+        restaurantId: data.restaurantId,
+        restaurantName: data.restaurantName,
+        isSupportChat: data.isSupportChat || false,
         status: data.status,
         createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
         updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString(),
@@ -291,4 +337,48 @@ export const getMessages = async (conversationId: string): Promise<Message[]> =>
   });
 
   return messages;
+};
+
+/**
+ * Kiểm tra xem restaurant đã có support conversation active chưa
+ */
+export const getActiveSupportConversation = async (restaurantId: number): Promise<Conversation | null> => {
+  const q = query(
+    collection(db, 'conversations'),
+    where('restaurantId', '==', restaurantId),
+    // where('isSupportChat', '==', true),
+    where('status', '==', 'active')
+  );
+
+  const snapshot = await getDocs(q);
+  
+  if (snapshot.empty) {
+    return null;
+  }
+
+  // Lấy conversation đầu tiên (mới nhất)
+  const doc = snapshot.docs[0];
+  const data = doc.data();
+  
+  return {
+    id: doc.id,
+    userId: data.userId,
+    userEmail: data.userEmail,
+    userName: data.userName,
+    userAvatar: data.userAvatar,
+    restaurantId: data.restaurantId,
+    restaurantName: data.restaurantName,
+    isSupportChat: data.isSupportChat || false,
+    status: data.status,
+    createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+    updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString(),
+    unreadCount: data.unreadCount || 0,
+    closedAt: data.closedAt?.toDate().toISOString() || null,
+    closedBy: data.closedBy || null,
+    closeReason: data.closeReason || null,
+    lastMessage: data.lastMessage ? {
+      ...data.lastMessage,
+      timestamp: data.lastMessage.timestamp?.toDate().toISOString() || new Date().toISOString(),
+    } : undefined,
+  };
 };
