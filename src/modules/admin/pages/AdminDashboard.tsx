@@ -92,6 +92,10 @@ const AdminDashboard = () => {
                   <span className="material-symbols-outlined">group</span>
                   <span className="text-sm font-medium">Users</span>
                 </Link>
+                <Link to={ROUTES.ADMIN_CHAT} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                  <span className="material-symbols-outlined">chat_bubble</span>
+                  <span className="text-sm font-medium">Chat Support</span>
+                </Link>
                 <div className="h-px bg-border-light dark:bg-border-dark my-2 mx-4"></div>
                 <Link to={ROUTES.ADMIN_SETTINGS} className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                   <span className="material-symbols-outlined">settings</span>

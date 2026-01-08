@@ -14,9 +14,12 @@ import RestaurantOrders from './modules/restaurant/pages/RestaurantOrders'
 import RestaurantChatPage from './modules/chat/pages/RestaurantChatPage'
 import MenuManagement from './modules/restaurant/pages/MenuManagement'
 import AdminDashboard from './modules/admin/pages/AdminDashboard'
+import AdminChatPage from './modules/admin/pages/AdminChatPage'
 import ChatWidget from './modules/chat/components/ChatWidget'
+import UnauthorizedPage from './pages/UnauthorizedPage'
 import PrivateRoute from './routes/PrivateRoute'
-import { ROUTES } from './utils/constants'
+import RoleRoute from './routes/RoleRoute'
+import { ROUTES, USER_ROLES } from './utils/constants'
 import './App.css'
 
 // Temporary Dashboard Component
@@ -50,8 +53,23 @@ export default function App() {
                 <Route path={ROUTES.RESTAURANT_ORDERS} element={<RestaurantOrders />} />
                 <Route path={ROUTES.RESTAURANT_CHAT} element={<RestaurantChatPage />} />
 
-                {/* Admin Routes */}
-                <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboard />} />
+                {/* Admin Routes - Bảo vệ bằng RoleRoute */}
+                <Route
+                  path={ROUTES.ADMIN_DASHBOARD}
+                  element={
+                    <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
+                      <AdminDashboard />
+                    </RoleRoute>
+                  }
+                />
+                <Route
+                  path={ROUTES.ADMIN_CHAT}
+                  element={
+                    <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
+                      <AdminChatPage />
+                    </RoleRoute>
+                  }
+                />
 
                 {/* Protected Routes */}
                 <Route
@@ -63,7 +81,8 @@ export default function App() {
                   }
                 />
 
-                {/* 404 Route */}
+                {/* Error Routes */}
+                <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
                 <Route path="*" element={<div>404 - Page Not Found</div>} />
               </Routes>
 
