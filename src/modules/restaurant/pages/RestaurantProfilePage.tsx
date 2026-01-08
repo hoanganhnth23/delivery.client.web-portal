@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useRestaurant } from '../hooks/useRestaurant';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
+import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import type { CreateRestaurantRequest } from '../services/restaurantService';
 
 interface FormData {
@@ -222,42 +223,20 @@ const RestaurantProfilePage = () => {
         restaurantImage={currentRestaurant?.image}
       />
 
-      <main className="flex flex-1 flex-col overflow-y-auto">
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-card-light/90 dark:bg-card-dark/90 px-8 backdrop-blur-md transition-colors duration-200">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">Restaurant Profile</h2>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex h-10 w-64 items-center rounded-full bg-gray-100 dark:bg-white/5 px-4 focus-within:ring-2 focus-within:ring-primary/50 transition-all">
-              <span className="material-symbols-outlined text-gray-400">search</span>
-              <input 
-                className="flex-1 border-none bg-transparent px-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-0 placeholder:text-gray-400" 
-                placeholder="Search..." 
-                type="text"
-              />
-            </div>
+      <main className="flex flex-1 flex-col overflow-hidden">
+        <RestaurantHeader
+          title="Restaurant Profile"
+          subtitle="Quản lý thông tin nhà hàng"
+          showSearch={false}
+          actions={
             <div className="flex items-center gap-3 rounded-full bg-green-100 dark:bg-green-900/30 px-4 py-1.5 border border-green-200 dark:border-green-800">
               <div className="size-2 rounded-full bg-green-500 animate-pulse"></div>
               <span className="text-sm font-bold text-green-700 dark:text-green-400">Open for Business</span>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="relative flex size-10 items-center justify-center rounded-full bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
-                <span className="material-symbols-outlined text-gray-600 dark:text-gray-300">notifications</span>
-                <span className="absolute top-2 right-2 size-2.5 rounded-full bg-red-500 border-2 border-white dark:border-card-dark"></span>
-              </button>
-              <div 
-                className="h-10 w-10 overflow-hidden rounded-full border-2 border-gray-100 dark:border-gray-700 bg-gray-200"
-                style={{ 
-                  backgroundImage: `url('${formData.image}')`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center'
-                }}
-              />
-            </div>
-          </div>
-        </header>
+          }
+        />
 
-        <div className="p-8">
+        <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-5xl mx-auto">
             {/* Breadcrumb */}
             <div className="mb-6 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">

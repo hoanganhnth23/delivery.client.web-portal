@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { useOrder } from '../hooks/useOrder';
 import { useRestaurant } from '../hooks/useRestaurant';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
-import PageHeader from '@/components/layout/PageHeader';
+import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import type { Order } from '@/types/api.types';
 
 const RestaurantOrders = () => {
@@ -90,8 +90,9 @@ const RestaurantOrders = () => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <PageHeader
-          title={`Quản lý đơn hàng - ${filteredOrders.length} đơn`}
+        <RestaurantHeader
+          title="Quản lý đơn hàng"
+          subtitle={`${filteredOrders.length} đơn hàng`}
           showSearch={false}
         />
 

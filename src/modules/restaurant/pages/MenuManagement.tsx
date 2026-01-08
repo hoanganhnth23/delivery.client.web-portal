@@ -7,6 +7,7 @@ import { useMenu } from '../hooks/useMenu';
 import { useRestaurant } from '../hooks/useRestaurant';
 import MenuItemForm from '../components/MenuItemForm';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
+import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import type { MenuItem } from '@/types/api.types';
 
 const MenuManagement = () => {
@@ -24,11 +25,18 @@ const MenuManagement = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load menu items khi component mount
   useEffect(() => {
     getMyMenuItems();
   }, [getMyMenuItems]);
+
+  // Filter menu items theo search
+  const filteredMenuItems = menuItems.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const categories = [
     { id: 'all', name: 'All Items', count: menuItems.length },
@@ -77,33 +85,28 @@ const MenuManagement = () => {
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col h-screen overflow-y-auto">
-          {/* Desktop Header / Top Bar */}
-          <header className="hidden lg:flex items-center justify-between px-8 py-5 bg-background-light dark:bg-background-dark/50 backdrop-blur-sm sticky top-0 z-10 border-b border-border-light dark:border-border-dark">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Menu Management</h2>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
-                <input
-                  className="pl-10 pr-4 py-2.5 w-64 rounded-full bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm text-gray-700 dark:text-gray-200 shadow-sm transition-all"
-                  placeholder="Search menu items..."
-                  type="text"
-                />
-              </div>
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white dark:bg-surface-dark border border-border-light dark:border-border-dark text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors shadow-sm">
-                <span className="material-symbols-outlined text-lg">upload</span>
-                Import
-              </button>
-              <button 
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <RestaurantHeader
+            title="Menu Management"
+            subtitle={`${filteredMenuItems.length} món ăn`}
+            showSearch={true}
+            searchPlaceholder="Tìm kiếm món ăn..."
+            onSearch={setSearchQuery}
+            actions={
+              <button
                 onClick={handleCreate}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-primary text-white text-sm font-semibold hover:bg-orange-600 transition-colors shadow-md shadow-orange-200 dark:shadow-none">
-                <span className="material-symbols-outlined text-lg">add</span>
-                Add New Item
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold transition-colors shadow-sm"
+              >
+                <span className="material-symbols-outlined">add</span>
+                Thêm món
               </button>
-            </div>
-          </header>
+            }
+          />
 
-          <div className="px-4 lg:px-8 pb-8 flex flex-col gap-6 max-w-[1600px] mx-auto w-full">
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="px-4 lg:px-8 py-6 flex flex-col gap-6 max-w-[1600px] mx-auto w-full">
             {/* Filter Toolbar */}
             <div className="mt-6 bg-surface-light dark:bg-surface-dark rounded-2xl border border-border-light dark:border-border-dark shadow-sm p-4">
               <div className="flex flex-col md:flex-row md:items-center gap-4">
@@ -273,6 +276,7 @@ const MenuManagement = () => {
                 <a className="hover:text-primary transition-colors" href="#">Contact</a>
               </div>
             </div>
+          </div>
           </div>
         </main>
 

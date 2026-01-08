@@ -26,7 +26,7 @@ const RestaurantSidebar = ({
 
   const menuItems: MenuItem[] = [
     { icon: 'dashboard', label: 'Dashboard', to: ROUTES.RESTAURANT_DASHBOARD },
-    { icon: 'shopping_bag', label: 'Orders', to: ROUTES.RESTAURANT_ORDERS, badge: '12' },
+    { icon: 'shopping_bag', label: 'Orders', to: ROUTES.RESTAURANT_ORDERS,  },
     { icon: 'menu_book', label: 'Menu Management', to: ROUTES.RESTAURANT_MENU },
     { icon: 'storefront', label: 'Profile', to: ROUTES.RESTAURANT_PROFILE },
     { icon: 'bar_chart', label: 'Analytics', to: ROUTES.RESTAURANT_ANALYTICS },
