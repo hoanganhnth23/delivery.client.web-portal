@@ -56,7 +56,7 @@ const ChatMessageArea = () => {
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-border-light dark:border-border-dark flex items-center justify-between bg-surface-light dark:bg-surface-dark">
+      <div className="px-6 py-4 border-b border-border-light dark:border-border-dark flex items-center justify-between bg-white dark:bg-gray-900">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-orange-400 flex items-center justify-center text-white font-bold text-lg">
             {currentConversation.userName.charAt(0).toUpperCase()}
