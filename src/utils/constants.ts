@@ -72,9 +72,13 @@ export const ROUTES = {
   RESTAURANT_MENU: '/restaurant/menu',
   RESTAURANT_ORDERS: '/restaurant/orders',
   RESTAURANT_CHAT: '/restaurant/chat',
+  RESTAURANT_LIVESTREAM: '/restaurant/livestream',
   RESTAURANT_ANALYTICS: '/restaurant/analytics',
   RESTAURANT_REVIEWS: '/restaurant/reviews',
   RESTAURANT_SETTINGS: '/restaurant/settings',
+  
+  // Livestream routes
+  LIVESTREAM_VIEWER: '/livestream/:livestreamId',
   
   // Restaurant routes
   RESTAURANTS: '/restaurants',

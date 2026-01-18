@@ -120,45 +120,45 @@ export const closeConversation = async (
 /**
  * Lắng nghe conversations real-time
  */
-export const subscribeToConversations = (
-  userId: string,
-  callback: (conversations: Conversation[]) => void
-): Unsubscribe => {
-  const q = query(
-    collection(db, 'conversations'),
-    where('userId', '==', userId),
-    orderBy('updatedAt', 'desc')
-  );
+// export const subscribeToConversations = (
+//   userId: string,
+//   callback: (conversations: Conversation[]) => void
+// ): Unsubscribe => {
+//   const q = query(
+//     collection(db, 'conversations'),
+//     where('userId', '==', userId),
+//     orderBy('updatedAt', 'desc')
+//   );
 
-  return onSnapshot(q, (snapshot) => {
-    const conversations: Conversation[] = [];
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      conversations.push({
-        id: doc.id,
-        userId: data.userId,
-        userEmail: data.userEmail,
-        userName: data.userName,
-        userAvatar: data.userAvatar,
-        restaurantId: data.restaurantId,
-        restaurantName: data.restaurantName,
-        isSupportChat: data.isSupportChat || false,
-        status: data.status,
-        createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
-        updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString(),
-        unreadCount: data.unreadCount || 0,
-        closedAt: data.closedAt?.toDate().toISOString() || null,
-        closedBy: data.closedBy || null,
-        closeReason: data.closeReason || null,
-        lastMessage: data.lastMessage ? {
-          ...data.lastMessage,
-          timestamp: data.lastMessage.timestamp?.toDate().toISOString() || new Date().toISOString(),
-        } : undefined,
-      });
-    });
-    callback(conversations);
-  });
-};
+//   return onSnapshot(q, (snapshot) => {
+//     const conversations: Conversation[] = [];
+//     snapshot.forEach((doc) => {
+//       const data = doc.data();
+//       conversations.push({
+//         id: doc.id,
+//         userId: data.userId,
+//         userEmail: data.userEmail,
+//         userName: data.userName,
+//         userAvatar: data.userAvatar,
+//         restaurantId: data.restaurantId,
+//         restaurantName: data.restaurantName,
+//         isSupportChat: data.isSupportChat || false,
+//         status: data.status,
+//         createdAt: data.createdAt?.toDate().toISOString() || new Date().toISOString(),
+//         updatedAt: data.updatedAt?.toDate().toISOString() || new Date().toISOString(),
+//         unreadCount: data.unreadCount || 0,
+//         closedAt: data.closedAt?.toDate().toISOString() || null,
+//         closedBy: data.closedBy || null,
+//         closeReason: data.closeReason || null,
+//         lastMessage: data.lastMessage ? {
+//           ...data.lastMessage,
+//           timestamp: data.lastMessage.timestamp?.toDate().toISOString() || new Date().toISOString(),
+//         } : undefined,
+//       });
+//     });
+//     callback(conversations);
+//   });
+// };
 
 /**
  * Lắng nghe conversations của restaurant real-time

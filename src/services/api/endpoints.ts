@@ -91,6 +91,16 @@ export const API_ENDPOINTS = {
   TRACKING: {
     WS_URL: 'ws://localhost:8090/ws/shipper-locations',
   },
+
+  // ==================== LIVESTREAM SERVICE ====================
+  LIVESTREAM: {
+    CREATE: '/api/livestreams',
+    START: (id: String) => `/api/livestreams/${id}/start`,
+    JOINT : (id: String) => `/api/livestreams/${id}/join`,
+    END: (id: String) => `/api/livestreams/${id}/end`,
+    GET_BY_ID: (id: String) => `/api/livestreams/${id}`,
+    GET_ALL: '/api/livestreams',
+  },
 } as const;
 
 export default API_ENDPOINTS;

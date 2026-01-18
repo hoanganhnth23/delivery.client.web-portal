@@ -28,6 +28,7 @@ const RestaurantSidebar = ({
     { icon: 'dashboard', label: 'Dashboard', to: ROUTES.RESTAURANT_DASHBOARD },
     { icon: 'shopping_bag', label: 'Orders', to: ROUTES.RESTAURANT_ORDERS,  },
     { icon: 'menu_book', label: 'Menu Management', to: ROUTES.RESTAURANT_MENU },
+    { icon: 'videocam', label: 'Livestream', to: ROUTES.RESTAURANT_LIVESTREAM },
     { icon: 'chat_bubble', label: 'Messages', to: ROUTES.RESTAURANT_CHAT },
     { icon: 'storefront', label: 'Profile', to: ROUTES.RESTAURANT_PROFILE },
     { icon: 'bar_chart', label: 'Analytics', to: ROUTES.RESTAURANT_ANALYTICS },

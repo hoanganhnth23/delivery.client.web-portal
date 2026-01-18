@@ -4,6 +4,8 @@ import { RestaurantProvider } from './modules/restaurant/hooks/useRestaurant'
 import { MenuProvider } from './modules/restaurant/hooks/useMenu'
 import { OrderProvider } from './modules/restaurant/hooks/useOrder'
 import { ChatProvider } from './modules/chat/hooks/useChat'
+import { LivestreamProvider } from './modules/livestream/hooks/useLivestream'
+import { ViewerProvider } from './modules/livestream/hooks/useViewerLivestream'
 import LoginPage from './modules/auth/pages/LoginPageV2'
 import AdminLoginPage from './modules/auth/pages/AdminLoginPage'
 import RegisterPage from './modules/auth/pages/RegisterPageV2'
@@ -13,6 +15,8 @@ import RestaurantProfilePage from './modules/restaurant/pages/RestaurantProfileP
 import RestaurantOrders from './modules/restaurant/pages/RestaurantOrders'
 import RestaurantChatPage from './modules/chat/pages/RestaurantChatPage'
 import MenuManagement from './modules/restaurant/pages/MenuManagement'
+import LivestreamPage from './modules/livestream/pages/LivestreamPage'
+import ViewerLivestreamPage from './modules/livestream/pages/ViewerLivestreamPage'
 import AdminDashboard from './modules/admin/pages/AdminDashboard'
 import AdminChatPage from './modules/admin/pages/AdminChatPage'
 import ChatWidget from './modules/chat/components/ChatWidget'
@@ -39,21 +43,27 @@ export default function App() {
         <MenuProvider>
           <OrderProvider>
             <ChatProvider>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<HomePage />} />
-                <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-                <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
-                <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
-                
-                {/* Restaurant Routes */}
-                <Route path={ROUTES.RESTAURANT_DASHBOARD} element={<RestaurantDashboard />} />
-                <Route path={ROUTES.RESTAURANT_PROFILE} element={<RestaurantProfilePage />} />
-                <Route path={ROUTES.RESTAURANT_MENU} element={<MenuManagement />} />
-                <Route path={ROUTES.RESTAURANT_ORDERS} element={<RestaurantOrders />} />
-                <Route path={ROUTES.RESTAURANT_CHAT} element={<RestaurantChatPage />} />
+              <LivestreamProvider>
+                <ViewerProvider>
+                  <Routes>
+                    {/* Public Routes */}
+                    <Route path="/" element={<HomePage />} />
+                    <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+                    <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
+                    <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+                    
+                    {/* Livestream Viewer Route - Public */}
+                    <Route path={ROUTES.LIVESTREAM_VIEWER} element={<ViewerLivestreamPage />} />
+                    
+                    {/* Restaurant Routes */}
+                  <Route path={ROUTES.RESTAURANT_DASHBOARD} element={<RestaurantDashboard />} />
+                  <Route path={ROUTES.RESTAURANT_PROFILE} element={<RestaurantProfilePage />} />
+                  <Route path={ROUTES.RESTAURANT_MENU} element={<MenuManagement />} />
+                  <Route path={ROUTES.RESTAURANT_ORDERS} element={<RestaurantOrders />} />
+                  <Route path={ROUTES.RESTAURANT_CHAT} element={<RestaurantChatPage />} />
+                  <Route path={ROUTES.RESTAURANT_LIVESTREAM} element={<LivestreamPage />} />
 
-                {/* Admin Routes - Bảo vệ bằng RoleRoute */}
+                  {/* Admin Routes - Bảo vệ bằng RoleRoute */}
                 <Route
                   path={ROUTES.ADMIN_DASHBOARD}
                   element={
@@ -81,18 +91,19 @@ export default function App() {
                   }
                 />
 
-                {/* Error Routes */}
-                <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
-                <Route path="*" element={<div>404 - Page Not Found</div>} />
-              </Routes>
+              {/* Error Routes */}
+              <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
+              <Route path="*" element={<div>404 - Page Not Found</div>} />
+            </Routes>
 
-              {/* Floating Chat Widget - Hiện trên tất cả trang */}
-              <ChatWidget />
-            </ChatProvider>
-          </OrderProvider>
-        </MenuProvider>
-      </RestaurantProvider>
-    </AuthProvider>
+            {/* Floating Chat Widget - Hiện trên tất cả trang */}
+            <ChatWidget />
+          </ViewerProvider>
+        </LivestreamProvider>
+      </ChatProvider>
+    </OrderProvider>
+  </MenuProvider>
+</RestaurantProvider>
+</AuthProvider>
   )
 }
-
