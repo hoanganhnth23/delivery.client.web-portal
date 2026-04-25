@@ -44,6 +44,7 @@ interface LivestreamContextValue {
   loadExistingLivestream: (livestreamId: string) => void;
   previewCamera: () => Promise<void>;
   startLive: () => Promise<void>;
+  joinLive: () => Promise<void>;
   endLive: () => Promise<void>;
   cleanup: () => Promise<void>;
   resetContext: () => void;
@@ -241,7 +242,19 @@ export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
       }
 
       // 1. Gọi backend để bắt đầu và lấy Agora token
-      const data = await livestreamApi.startLivestream(livestreamData.livestreamId);
+      let data;
+      try {
+        data = await livestreamApi.startLivestream(livestreamData.livestreamId);
+      } catch (err: any) {
+        // If backend says it is already LIVE, gracefully fall back to joinLive
+        if (err.message && err.message.toUpperCase().includes('LIVE')) {
+           setLoading(false);
+           await joinLive();
+           return;
+        }
+        throw err;
+      }
+      
       const { token, uid, channelName } = data;
 
       // 2. Tạo Agora client (mode: 'live', role: 'host')
@@ -408,11 +421,12 @@ export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
       loadExistingLivestream,
       previewCamera,
       startLive,
+      joinLive,
       endLive,
       cleanup,
       resetContext,
     }),
-    [livestreamData, loading, error, createRoom, loadExistingLivestream, previewCamera, startLive, endLive, cleanup, resetContext]
+    [livestreamData, loading, error, createRoom, loadExistingLivestream, previewCamera, startLive, joinLive, endLive, cleanup, resetContext]
   );
 
   return (

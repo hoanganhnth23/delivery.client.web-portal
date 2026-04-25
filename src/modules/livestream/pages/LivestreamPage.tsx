@@ -25,9 +25,11 @@ const LivestreamPage = () => {
     createRoom,
     previewCamera,
     startLive,
+    joinLive,
     endLive,
     loadExistingLivestream,
     resetContext,
+    loading,
   } = useLivestream();
   const status = livestreamData.status;
 
@@ -59,6 +61,19 @@ const LivestreamPage = () => {
       loadExistingLivestream(existingLivestreamId);
     }
   }, [existingLivestreamId, loadExistingLivestream]);
+
+  // Auto-join if we open an already LIVE stream but haven't initialized Agora client yet
+  useEffect(() => {
+    if (livestreamData.livestreamId && status === 'LIVE' && !videoTrack && !loading) {
+      // Small timeout to let state settle
+      const timer = setTimeout(() => {
+         joinLive().catch(err => {
+            console.error('Auto join failed:', err);
+         });
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [livestreamData.livestreamId, status, videoTrack, joinLive, loading]);
 
   useEffect(() => {
     if (livestreamData.title) setTitle(livestreamData.title);
@@ -120,7 +135,11 @@ const LivestreamPage = () => {
   };
 
   const handleEndLive = async () => {
-    try { await endLive(); }
+    try { 
+      await endLive(); 
+      alert('✅ Đã kết thúc livestream thành công!');
+      navigate(ROUTES.RESTAURANT_LIVESTREAM_MANAGEMENT);
+    }
     catch (err) { alert('❌ Lỗi: ' + (err as Error).message); }
   };
 
@@ -135,6 +154,14 @@ const LivestreamPage = () => {
     if (audioTrack) {
       await audioTrack.setMuted(!isMicMuted);
       setIsMicMuted(!isMicMuted);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (livestreamData.livestreamId) {
+      const url = `${window.location.origin}/livestream/${livestreamData.livestreamId}`;
+      navigator.clipboard.writeText(url);
+      alert('✅ Đã sao chép link người xem vào bộ nhớ tạm!\n' + url);
     }
   };
 
@@ -163,12 +190,22 @@ const LivestreamPage = () => {
               {title || 'Live Stream'}
             </span>
             <div className="flex items-center gap-3">
+              {livestreamData.livestreamId && (
+                <button
+                  onClick={handleCopyLink}
+                  className="px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold rounded-full hover:bg-white/20 transition-all flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-sm">share</span>
+                  Share Link
+                </button>
+              )}
               <span className="flex items-center gap-1.5 px-3 py-1 bg-red-500 text-white rounded-full text-xs font-bold animate-pulse">
                 <span className="w-2 h-2 bg-white rounded-full"></span> LIVE
               </span>
               <button
                 onClick={handleEndLive}
-                className="px-4 py-2 bg-red-500/80 backdrop-blur-md border border-red-500/20 text-white text-xs font-bold rounded-full hover:bg-red-500 transition-all"
+                disabled={loading}
+                className={`px-4 py-2 backdrop-blur-md border border-red-500/20 text-white text-xs font-bold rounded-full transition-all ${loading ? 'bg-red-400 opacity-50 cursor-not-allowed' : 'bg-red-500/80 hover:bg-red-500'}`}
               >
                 End Stream
               </button>
@@ -249,10 +286,21 @@ const LivestreamPage = () => {
             <h1 className="text-4xl font-extrabold text-[#1c160d] tracking-tight">Set the Stage.</h1>
             <p className="text-[#9c7a49] mt-1 text-base">Configure your stream before going live to your audience.</p>
           </div>
-          <button className="flex items-center gap-2 px-6 py-3 bg-[#f49d25] text-white rounded-full font-semibold shadow-lg shadow-orange-200 hover:bg-orange-500 transition-all text-sm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
-            Schedule Stream
-          </button>
+          <div className="flex items-center gap-3">
+            {livestreamData.livestreamId && (
+              <button
+                onClick={handleCopyLink}
+                className="px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-full font-semibold shadow-sm hover:bg-gray-50 transition-all text-sm flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-sm">share</span>
+                Copy Viewer Link
+              </button>
+            )}
+            <button className="flex items-center gap-2 px-6 py-3 bg-[#f49d25] text-white rounded-full font-semibold shadow-lg shadow-orange-200 hover:bg-orange-500 transition-all text-sm">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
+              Schedule Stream
+            </button>
+          </div>
         </div>
 
         {/* Main Content */}
@@ -424,12 +472,15 @@ const LivestreamPage = () => {
                   </div>
                 </div>
                 <div className="mt-5 flex flex-col gap-3">
-                  {status === 'LOADING' ? (
-                    <div className="w-full py-4 bg-gray-100 rounded-2xl animate-pulse" />
+                  {status === 'LOADING' || loading ? (
+                    <div className="w-full py-4 bg-gray-100 rounded-2xl animate-pulse flex items-center justify-center text-gray-500 font-semibold text-sm">
+                       Đang xử lý...
+                    </div>
                   ) : status === 'IDLE' || status === 'ENDED' || !livestreamData.livestreamId ? (
                     <button
                       onClick={handleCreateRoom}
-                      className="w-full py-4 bg-[#f49d25] text-white font-bold rounded-2xl shadow-md shadow-orange-200 hover:bg-orange-500 transition-all active:scale-95 flex items-center justify-center gap-2"
+                      disabled={loading || !title.trim()}
+                      className="w-full py-4 bg-[#f49d25] text-white font-bold rounded-2xl shadow-md shadow-orange-200 hover:bg-orange-500 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#fff3" /><path d="M10 8l6 4-6 4V8z" /></svg>
                       Tạo Phòng Live
@@ -437,14 +488,16 @@ const LivestreamPage = () => {
                   ) : status === 'CREATED' && !videoTrack ? (
                     <button
                       onClick={() => previewCamera().catch(console.error)}
-                      className="w-full py-4 bg-indigo-500 text-white font-bold rounded-2xl hover:bg-indigo-600 transition-all active:scale-95"
+                      disabled={loading}
+                      className="w-full py-4 bg-indigo-500 text-white font-bold rounded-2xl hover:bg-indigo-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Kiểm tra Camera
                     </button>
                   ) : status === 'CREATED' ? (
                     <button
                       onClick={handleStartLive}
-                      className="w-full py-4 bg-[#f49d25] text-white font-bold rounded-2xl shadow-md shadow-orange-200 hover:bg-orange-500 transition-all active:scale-95 flex items-center justify-center gap-2 animate-pulse"
+                      disabled={loading}
+                      className="w-full py-4 bg-[#f49d25] text-white font-bold rounded-2xl shadow-md shadow-orange-200 hover:bg-orange-500 transition-all active:scale-95 flex items-center justify-center gap-2 animate-pulse disabled:opacity-50 disabled:animate-none disabled:cursor-not-allowed"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="#fff3" /><path d="M10 8l6 4-6 4V8z" /></svg>
                       Go Live Now
