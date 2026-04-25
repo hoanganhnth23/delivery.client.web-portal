@@ -82,6 +82,17 @@ apiClient.interceptors.response.use(
 
     // Kiểm tra BaseResponse format từ backend
     // Backend trả về: { status: 1, message: "...", data: {...} }
+    const isBaseResponse = response.data && typeof response.data === 'object' && ('status' in response.data || 'code' in response.data);
+
+    if (!isBaseResponse) {
+      if (response.status >= 200 && response.status < 300) {
+        return response;
+      }
+      const error = new Error('API Error') as Error & { response: AxiosResponse };
+      error.response = response;
+      return Promise.reject(error);
+    }
+
     const { status, code, message } = response.data;
 
     // Backend dùng "status" thay vì "code"

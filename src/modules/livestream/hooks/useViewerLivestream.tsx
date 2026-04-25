@@ -79,22 +79,25 @@ export const ViewerProvider = ({ children }: ViewerProviderProps) => {
         await client.subscribe(user, mediaType);
         console.log('✅ Subscribed to user:', user.uid, mediaType);
 
-        // Update remote users list
+        // Update remote users list (dùng splice hoặc new array để trigger render)
         setRemoteUsers(prev => {
           const exists = prev.find(u => u.uid === user.uid);
           if (!exists) {
             return [...prev, user];
           }
-          return prev;
+          return [...prev]; // force re-render
         });
 
         // Auto-play remote video
         if (mediaType === 'video') {
           const remoteVideoTrack = user.videoTrack;
-          const videoElement = document.getElementById(`remote-video-${user.uid}`);
-          if (remoteVideoTrack && videoElement) {
-            remoteVideoTrack.play(videoElement as HTMLElement);
-          }
+          // Chờ React render DOM div id=remote-video-... trước khi play
+          setTimeout(() => {
+            const videoElement = document.getElementById(`remote-video-${user.uid}`);
+            if (remoteVideoTrack && videoElement) {
+              remoteVideoTrack.play(videoElement as HTMLElement);
+            }
+          }, 200);
         }
 
         // Auto-play remote audio

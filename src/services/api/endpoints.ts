@@ -100,6 +100,7 @@ export const API_ENDPOINTS = {
     END: (id: String) => `/api/livestreams/${id}/end`,
     GET_BY_ID: (id: String) => `/api/livestreams/${id}`,
     GET_ALL: '/api/livestreams',
+    GET_BY_SELLER: (sellerId: number) => `/api/livestreams/seller/${sellerId}`,
   },
 } as const;
 

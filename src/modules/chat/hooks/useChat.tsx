@@ -3,7 +3,7 @@
  * Custom hook quản lý chat state và actions với Firebase real-time
  */
 
-import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
 import type { Conversation, Message, ChatActionResult } from '@/types/chat.types';
 import * as firebaseChatService from '../services/firebaseChatService';
 import { useAuth } from '@/modules/auth/hooks/useAuth';

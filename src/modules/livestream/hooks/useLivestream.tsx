@@ -4,10 +4,10 @@
  * Pattern: Context API + Custom Hook
  */
 import { createContext, useContext, useState, useMemo, useCallback, useRef, ReactNode, useEffect } from 'react';
-import AgoraRTC, { 
-  IAgoraRTCClient, 
-  ICameraVideoTrack, 
-  IMicrophoneAudioTrack 
+import AgoraRTC, {
+  IAgoraRTCClient,
+  ICameraVideoTrack,
+  IMicrophoneAudioTrack
 } from 'agora-rtc-sdk-ng';
 import { livestreamApi, CreateLivestreamRequest, StreamProvider } from '../services/livestreamApi';
 
@@ -15,13 +15,16 @@ import { livestreamApi, CreateLivestreamRequest, StreamProvider } from '../servi
 export { StreamProvider };
 
 // ==================== TYPES ====================
-export type LivestreamStatus = 'IDLE' | 'CREATED' | 'LIVE' | 'ENDED';
+export type LivestreamStatus = 'IDLE' | 'LOADING' | 'CREATED' | 'LIVE' | 'ENDED';
 
 interface LivestreamData {
   livestreamId: string | null;
   channelName: string | null;
+  title: string | null;
+  description: string | null;
   token: string | null;
   uid: number | null;
+  status: LivestreamStatus;
 }
 
 interface LivestreamContextValue {
@@ -30,18 +33,20 @@ interface LivestreamContextValue {
   livestreamData: LivestreamData;
   loading: boolean;
   error: string | null;
-  
+
   // Agora refs
   agoraClient: IAgoraRTCClient | null;
   videoTrack: ICameraVideoTrack | null;
   audioTrack: IMicrophoneAudioTrack | null;
-  
+
   // Actions
   createRoom: (request: CreateLivestreamRequest) => Promise<void>;
+  loadExistingLivestream: (livestreamId: string) => void;
   previewCamera: () => Promise<void>;
   startLive: () => Promise<void>;
   endLive: () => Promise<void>;
   cleanup: () => Promise<void>;
+  resetContext: () => void;
 }
 
 interface LivestreamProviderProps {
@@ -54,12 +59,14 @@ const LivestreamContext = createContext<LivestreamContextValue | null>(null);
 // ==================== PROVIDER ====================
 export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
   // States
-  const [status, setStatus] = useState<LivestreamStatus>('IDLE');
   const [livestreamData, setLivestreamData] = useState<LivestreamData>({
     livestreamId: null,
     channelName: null,
+    title: null,
+    description: null,
     token: null,
     uid: null,
+    status: 'IDLE',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,21 +89,50 @@ export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
     try {
       setLoading(true);
       setError(null);
+      setLivestreamData(prev => ({ ...prev, status: 'LOADING' }));
 
       const data = await livestreamApi.createLivestream(request);
-      
+
       setLivestreamData({
         livestreamId: data.id,
         channelName: data.channelName,
+        title: request.title,
+        description: request.description || null,
         token: null,
         uid: null,
+        status: data.status || 'CREATED',
       });
-      setStatus('CREATED');
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
       console.error('Error creating livestream:', err);
       throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /**
+   * Load existing livestream (khi mở livestream đã tạo từ danh sách)
+   */
+  const loadExistingLivestream = useCallback(async (livestreamId: string): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      setLivestreamData(prev => ({ ...prev, status: 'LOADING' }));
+      // Lấy chi tiết livestream từ server để lấy status và channelName
+      const detail = await livestreamApi.getLivestreamDetail(livestreamId);
+      setLivestreamData({
+        livestreamId,
+        channelName: detail.channelName,
+        title: detail.title,
+        description: detail.description || null,
+        token: null,
+        uid: null,
+        status: detail.status || 'CREATED',
+      });
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -132,7 +168,70 @@ export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
   /**
    * Bắt đầu livestream (join Agora channel)
    */
+  // Join lại livestream đang LIVE (không gọi startLivestream API)
+  const joinLive = useCallback(async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!livestreamData.livestreamId) {
+        throw new Error('Không có livestream để join');
+      }
+
+      // 1. Gọi backend để lấy lại token, uid, channelName (dùng joinLivestream, không phải startLivestream)
+      const data = await livestreamApi.joinLivestream(livestreamData.livestreamId);
+      const { token, uid, channelName } = data;
+
+      // 2. Tạo Agora client (mode: 'live', role: 'host')
+      const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+      agoraClientRef.current = client;
+
+      // 3. Set role là 'host'
+      await client.setClientRole('host');
+
+      // 4. Join channel
+      await client.join(VITE_AGORA_APP_ID, channelName, token, uid);
+      console.log('✅ Re-joined Agora channel:', channelName);
+
+      // 5. Nếu chưa có tracks thì tạo mới
+      if (!videoTrackRef.current) {
+        videoTrackRef.current = await AgoraRTC.createCameraVideoTrack();
+      }
+      if (!audioTrackRef.current) {
+        audioTrackRef.current = await AgoraRTC.createMicrophoneAudioTrack();
+      }
+
+      // 6. Publish tracks
+      await client.publish([videoTrackRef.current, audioTrackRef.current]);
+      console.log('✅ Published audio + video tracks');
+
+      // 7. Update state
+      setLivestreamData(prev => ({
+        ...prev,
+        token,
+        uid,
+        status: 'LIVE',
+      }));
+    } catch (err) {
+      const errorMessage = (err as Error).message;
+      setError(errorMessage);
+      console.error('Error re-joining live:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [livestreamData.livestreamId, VITE_AGORA_APP_ID]);
+
+  /**
+   * Bắt đầu livestream (join Agora channel)
+   * Nếu đã LIVE thì chỉ join lại, không gọi API start lại
+   */
   const startLive = useCallback(async (): Promise<void> => {
+    if (livestreamData.status === 'LIVE') {
+      // Nếu đã LIVE thì chỉ join lại
+      await joinLive();
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -173,8 +272,8 @@ export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
         ...prev,
         token,
         uid,
+        status: 'LIVE',
       }));
-      setStatus('LIVE');
     } catch (err) {
       const errorMessage = (err as Error).message;
       setError(errorMessage);
@@ -183,7 +282,7 @@ export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
     } finally {
       setLoading(false);
     }
-  }, [livestreamData.livestreamId, VITE_AGORA_APP_ID]);
+  }, [status, livestreamData.livestreamId, VITE_AGORA_APP_ID, joinLive]);
 
   /**
    * Kết thúc livestream
@@ -220,7 +319,10 @@ export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
       await livestreamApi.endLivestream(livestreamData.livestreamId);
 
       // 5. Reset state
-      setStatus('ENDED');
+      setLivestreamData(prev => ({
+        ...prev,
+        status: 'ENDED',
+      }));
       agoraClientRef.current = null;
       videoTrackRef.current = null;
       audioTrackRef.current = null;
@@ -269,6 +371,22 @@ export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
     }
   }, []);
 
+  /**
+   * Reset context (clear old stream data)
+   */
+  const resetContext = useCallback(() => {
+    setLivestreamData({
+      livestreamId: null,
+      channelName: null,
+      title: null,
+      description: null,
+      token: null,
+      uid: null,
+      status: 'IDLE',
+    });
+    setError(null);
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -279,7 +397,7 @@ export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
   // ==================== CONTEXT VALUE ====================
   const value = useMemo<LivestreamContextValue>(
     () => ({
-      status,
+      status: livestreamData.status,
       livestreamData,
       loading,
       error,
@@ -287,12 +405,14 @@ export const LivestreamProvider = ({ children }: LivestreamProviderProps) => {
       videoTrack: videoTrackRef.current,
       audioTrack: audioTrackRef.current,
       createRoom,
+      loadExistingLivestream,
       previewCamera,
       startLive,
       endLive,
       cleanup,
+      resetContext,
     }),
-    [status, livestreamData, loading, error, createRoom, previewCamera, startLive, endLive, cleanup]
+    [livestreamData, loading, error, createRoom, loadExistingLivestream, previewCamera, startLive, endLive, cleanup, resetContext]
   );
 
   return (

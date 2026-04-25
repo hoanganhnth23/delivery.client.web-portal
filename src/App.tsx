@@ -16,6 +16,7 @@ import RestaurantOrders from './modules/restaurant/pages/RestaurantOrders'
 import RestaurantChatPage from './modules/chat/pages/RestaurantChatPage'
 import MenuManagement from './modules/restaurant/pages/MenuManagement'
 import LivestreamPage from './modules/livestream/pages/LivestreamPage'
+import LivestreamManagementPage from './modules/livestream/pages/LivestreamManagementPage'
 import ViewerLivestreamPage from './modules/livestream/pages/ViewerLivestreamPage'
 import AdminDashboard from './modules/admin/pages/AdminDashboard'
 import AdminChatPage from './modules/admin/pages/AdminChatPage'
@@ -62,6 +63,8 @@ export default function App() {
                   <Route path={ROUTES.RESTAURANT_ORDERS} element={<RestaurantOrders />} />
                   <Route path={ROUTES.RESTAURANT_CHAT} element={<RestaurantChatPage />} />
                   <Route path={ROUTES.RESTAURANT_LIVESTREAM} element={<LivestreamPage />} />
+                  <Route path={ROUTES.RESTAURANT_LIVESTREAM_DETAIL} element={<LivestreamPage />} />
+                  <Route path={ROUTES.RESTAURANT_LIVESTREAM_MANAGEMENT} element={<LivestreamManagementPage />} />
 
                   {/* Admin Routes - Bảo vệ bằng RoleRoute */}
                 <Route
