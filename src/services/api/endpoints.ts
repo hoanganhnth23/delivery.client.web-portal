@@ -102,6 +102,19 @@ export const API_ENDPOINTS = {
     GET_ALL: '/api/livestreams',
     GET_BY_SELLER: (sellerId: number) => `/api/livestreams/seller/${sellerId}`,
   },
+
+  // ==================== SETTLEMENT SERVICE (port 8095) ====================
+  SETTLEMENT: {
+    GET_RESTAURANT_BALANCE: (entityId: number) => `/api/settlement/balances/restaurant/${entityId}`,
+    GET_SHIPPER_BALANCE: (entityId: number) => `/api/settlement/balances/shipper/${entityId}`,
+    GET_RESTAURANT_EARNINGS: (entityId: number) => `/api/settlement/balances/restaurant/${entityId}/earnings`,
+    GET_SHIPPER_EARNINGS: (entityId: number) => `/api/settlement/balances/shipper/${entityId}/earnings`,
+    REQUEST_RESTAURANT_WITHDRAWAL: (entityId: number) => `/api/settlement/balances/restaurant/${entityId}/withdraw`,
+    REQUEST_SHIPPER_WITHDRAWAL: (entityId: number) => `/api/settlement/balances/shipper/${entityId}/withdraw`,
+    GET_RESTAURANT_TRANSACTIONS: (entityId: number) => `/api/settlement/transactions/restaurant/${entityId}`,
+    GET_SHIPPER_TRANSACTIONS: (entityId: number) => `/api/settlement/transactions/shipper/${entityId}`,
+    GET_TRANSACTION_BY_ID: (id: number) => `/api/settlement/transactions/${id}`,
+  },
 } as const;
 
 export default API_ENDPOINTS;

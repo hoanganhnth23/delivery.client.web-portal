@@ -3,6 +3,7 @@ import { AuthProvider } from './modules/auth/hooks/useAuth'
 import { RestaurantProvider } from './modules/restaurant/hooks/useRestaurant'
 import { MenuProvider } from './modules/restaurant/hooks/useMenu'
 import { OrderProvider } from './modules/restaurant/hooks/useOrder'
+import { SettlementProvider } from './modules/restaurant/hooks/useSettlement'
 import { ChatProvider } from './modules/chat/hooks/useChat'
 import { LivestreamProvider } from './modules/livestream/hooks/useLivestream'
 import { ViewerProvider } from './modules/livestream/hooks/useViewerLivestream'
@@ -15,6 +16,7 @@ import RestaurantProfilePage from './modules/restaurant/pages/RestaurantProfileP
 import RestaurantOrders from './modules/restaurant/pages/RestaurantOrders'
 import RestaurantChatPage from './modules/chat/pages/RestaurantChatPage'
 import MenuManagement from './modules/restaurant/pages/MenuManagement'
+import SettlementPage from './modules/restaurant/pages/SettlementPage'
 import LivestreamPage from './modules/livestream/pages/LivestreamPage'
 import LivestreamManagementPage from './modules/livestream/pages/LivestreamManagementPage'
 import ViewerLivestreamPage from './modules/livestream/pages/ViewerLivestreamPage'
@@ -43,67 +45,70 @@ export default function App() {
       <RestaurantProvider>
         <MenuProvider>
           <OrderProvider>
-            <ChatProvider>
-              <LivestreamProvider>
-                <ViewerProvider>
-                  <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<HomePage />} />
-                    <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-                    <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
-                    <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
+            <SettlementProvider>
+              <ChatProvider>
+                <LivestreamProvider>
+                  <ViewerProvider>
+                    <Routes>
+                      {/* Public Routes */}
+                      <Route path="/" element={<HomePage />} />
+                      <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+                      <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
+                      <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
                     
-                    {/* Livestream Viewer Route - Public */}
-                    <Route path={ROUTES.LIVESTREAM_VIEWER} element={<ViewerLivestreamPage />} />
+                      {/* Livestream Viewer Route - Public */}
+                      <Route path={ROUTES.LIVESTREAM_VIEWER} element={<ViewerLivestreamPage />} />
                     
-                    {/* Restaurant Routes */}
-                  <Route path={ROUTES.RESTAURANT_DASHBOARD} element={<RestaurantDashboard />} />
-                  <Route path={ROUTES.RESTAURANT_PROFILE} element={<RestaurantProfilePage />} />
-                  <Route path={ROUTES.RESTAURANT_MENU} element={<MenuManagement />} />
-                  <Route path={ROUTES.RESTAURANT_ORDERS} element={<RestaurantOrders />} />
-                  <Route path={ROUTES.RESTAURANT_CHAT} element={<RestaurantChatPage />} />
-                  <Route path={ROUTES.RESTAURANT_LIVESTREAM} element={<LivestreamPage />} />
-                  <Route path={ROUTES.RESTAURANT_LIVESTREAM_DETAIL} element={<LivestreamPage />} />
-                  <Route path={ROUTES.RESTAURANT_LIVESTREAM_MANAGEMENT} element={<LivestreamManagementPage />} />
+                      {/* Restaurant Routes */}
+                    <Route path={ROUTES.RESTAURANT_DASHBOARD} element={<RestaurantDashboard />} />
+                    <Route path={ROUTES.RESTAURANT_PROFILE} element={<RestaurantProfilePage />} />
+                    <Route path={ROUTES.RESTAURANT_MENU} element={<MenuManagement />} />
+                    <Route path={ROUTES.RESTAURANT_ORDERS} element={<RestaurantOrders />} />
+                    <Route path={ROUTES.RESTAURANT_CHAT} element={<RestaurantChatPage />} />
+                    <Route path={ROUTES.RESTAURANT_SETTLEMENT} element={<SettlementPage />} />
+                    <Route path={ROUTES.RESTAURANT_LIVESTREAM} element={<LivestreamPage />} />
+                    <Route path={ROUTES.RESTAURANT_LIVESTREAM_DETAIL} element={<LivestreamPage />} />
+                    <Route path={ROUTES.RESTAURANT_LIVESTREAM_MANAGEMENT} element={<LivestreamManagementPage />} />
 
-                  {/* Admin Routes - Bảo vệ bằng RoleRoute */}
-                <Route
-                  path={ROUTES.ADMIN_DASHBOARD}
-                  element={
-                    <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
-                      <AdminDashboard />
-                    </RoleRoute>
-                  }
-                />
-                <Route
-                  path={ROUTES.ADMIN_CHAT}
-                  element={
-                    <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
-                      <AdminChatPage />
-                    </RoleRoute>
-                  }
-                />
+                    {/* Admin Routes - Bảo vệ bằng RoleRoute */}
+                  <Route
+                    path={ROUTES.ADMIN_DASHBOARD}
+                    element={
+                      <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
+                        <AdminDashboard />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.ADMIN_CHAT}
+                    element={
+                      <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
+                        <AdminChatPage />
+                      </RoleRoute>
+                    }
+                  />
 
-                {/* Protected Routes */}
-                <Route
-                  path={ROUTES.DASHBOARD}
-                  element={
-                    <PrivateRoute>
-                      <Dashboard />
-                    </PrivateRoute>
-                  }
-                />
+                  {/* Protected Routes */}
+                  <Route
+                    path={ROUTES.DASHBOARD}
+                    element={
+                      <PrivateRoute>
+                        <Dashboard />
+                      </PrivateRoute>
+                    }
+                  />
 
-              {/* Error Routes */}
-              <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
-              <Route path="*" element={<div>404 - Page Not Found</div>} />
-            </Routes>
+                {/* Error Routes */}
+                <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
+                <Route path="*" element={<div>404 - Page Not Found</div>} />
+              </Routes>
 
-            {/* Floating Chat Widget - Hiện trên tất cả trang */}
-            <ChatWidget />
-          </ViewerProvider>
-        </LivestreamProvider>
-      </ChatProvider>
+              {/* Floating Chat Widget - Hiện trên tất cả trang */}
+              <ChatWidget />
+            </ViewerProvider>
+          </LivestreamProvider>
+        </ChatProvider>
+      </SettlementProvider>
     </OrderProvider>
   </MenuProvider>
 </RestaurantProvider>

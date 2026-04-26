@@ -78,6 +78,7 @@ export const ROUTES = {
   RESTAURANT_ANALYTICS: '/restaurant/analytics',
   RESTAURANT_REVIEWS: '/restaurant/reviews',
   RESTAURANT_SETTINGS: '/restaurant/settings',
+  RESTAURANT_SETTLEMENT: '/restaurant/settlement',
   
   // Livestream routes
   LIVESTREAM_VIEWER: '/livestream/:livestreamId',
@@ -128,6 +129,10 @@ export const TOAST_MESSAGES = {
   MENU_CREATED: 'Tạo món ăn thành công!',
   MENU_UPDATED: 'Cập nhật món ăn thành công!',
   MENU_DELETED: 'Xóa món ăn thành công!',
+  
+  // Settlement
+  WITHDRAWAL_SUCCESS: 'Yêu cầu rút tiền đã được gửi!',
+  WITHDRAWAL_ERROR: 'Yêu cầu rút tiền thất bại.',
   
   // Errors
   NETWORK_ERROR: 'Lỗi kết nối mạng. Vui lòng thử lại.',

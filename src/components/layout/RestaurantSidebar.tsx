@@ -31,6 +31,7 @@ const RestaurantSidebar = ({
     { icon: 'videocam', label: 'Livestream', to: ROUTES.RESTAURANT_LIVESTREAM_MANAGEMENT },
     { icon: 'chat_bubble', label: 'Messages', to: ROUTES.RESTAURANT_CHAT },
     { icon: 'storefront', label: 'Profile', to: ROUTES.RESTAURANT_PROFILE },
+    { icon: 'account_balance_wallet', label: 'Thu nhập', to: ROUTES.RESTAURANT_SETTLEMENT },
     { icon: 'bar_chart', label: 'Analytics', to: ROUTES.RESTAURANT_ANALYTICS },
     { icon: 'reviews', label: 'Reviews', to: ROUTES.RESTAURANT_REVIEWS },
     { icon: 'settings', label: 'Settings', to: ROUTES.RESTAURANT_SETTINGS },
