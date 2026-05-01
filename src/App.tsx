@@ -21,6 +21,8 @@ import LivestreamPage from './modules/livestream/pages/LivestreamPage'
 import LivestreamManagementPage from './modules/livestream/pages/LivestreamManagementPage'
 import ViewerLivestreamPage from './modules/livestream/pages/ViewerLivestreamPage'
 import AdminDashboard from './modules/admin/pages/AdminDashboard'
+import AdminOrdersPage from './modules/admin/pages/AdminOrdersPage'
+import AdminWithdrawalsPage from './modules/admin/pages/AdminWithdrawalsPage'
 import AdminChatPage from './modules/admin/pages/AdminChatPage'
 import ChatWidget from './modules/chat/components/ChatWidget'
 import UnauthorizedPage from './pages/UnauthorizedPage'
@@ -76,6 +78,22 @@ export default function App() {
                     element={
                       <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
                         <AdminDashboard />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.ADMIN_ORDERS}
+                    element={
+                      <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
+                        <AdminOrdersPage />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.ADMIN_WITHDRAWALS}
+                    element={
+                      <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
+                        <AdminWithdrawalsPage />
                       </RoleRoute>
                     }
                   />

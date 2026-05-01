@@ -51,8 +51,10 @@ export const API_ENDPOINTS = {
     CREATE: '/api/orders',
     GET_BY_ID: (id: number) => `/api/orders/${id}`,
     GET_ALL: '/api/orders',
+    GET_ALL_ADMIN: '/api/orders/all',
+    GET_BY_STATUS: (status: string) => `/api/orders/status/${status}`,
     GET_BY_USER: (userId: number) => `/api/orders/user/${userId}`,
-    GET_MY_ORDERS: '/api/orders/my-restaurant-orders', // Lấy orders của nhà hàng hiện tại
+    GET_MY_ORDERS: '/api/orders/my-restaurant-orders',
     UPDATE_STATUS: (id: number) => `/api/orders/${id}/status`,
     CANCEL: (id: number) => `/api/orders/${id}/cancel`,
   },
@@ -101,6 +103,11 @@ export const API_ENDPOINTS = {
     GET_BY_ID: (id: String) => `/api/livestreams/${id}`,
     GET_ALL: '/api/livestreams',
     GET_BY_SELLER: (sellerId: number) => `/api/livestreams/seller/${sellerId}`,
+    // Product endpoints
+    PIN_PRODUCT: (id: string) => `/api/livestreams/${id}/products/pin`,
+    UNPIN_PRODUCT: (id: string, productId: number) => `/api/livestreams/${id}/products/${productId}/pin`,
+    GET_PRODUCTS: (id: string) => `/api/livestreams/${id}/products`,
+    GET_PINNED_PRODUCTS: (id: string) => `/api/livestreams/${id}/products/pinned`,
   },
 
   // ==================== SETTLEMENT SERVICE (port 8095) ====================
@@ -114,6 +121,16 @@ export const API_ENDPOINTS = {
     GET_RESTAURANT_TRANSACTIONS: (entityId: number) => `/api/settlement/transactions/restaurant/${entityId}`,
     GET_SHIPPER_TRANSACTIONS: (entityId: number) => `/api/settlement/transactions/shipper/${entityId}`,
     GET_TRANSACTION_BY_ID: (id: number) => `/api/settlement/transactions/${id}`,
+    // Admin endpoints
+    ADMIN: {
+      GET_ALL_BALANCES: '/api/settlement/admin/balances',
+      GET_ALL_TRANSACTIONS: '/api/settlement/admin/transactions',
+      GET_PENDING_WITHDRAWALS: '/api/settlement/admin/transactions/pending',
+      APPROVE_WITHDRAWAL: (id: number) => `/api/settlement/admin/transactions/${id}/approve`,
+      REJECT_WITHDRAWAL: (id: number) => `/api/settlement/admin/transactions/${id}/reject`,
+      GET_REVENUE: '/api/settlement/admin/revenue',
+      REVERSE_TRANSACTION: (id: number) => `/api/settlement/admin/transactions/${id}/reverse`,
+    },
   },
 } as const;
 

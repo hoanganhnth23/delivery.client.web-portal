@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { getMenuItemsByRestaurant } from '@/modules/restaurant/services/menuService';
 import { livestreamRealtimeService, LiveProductPin } from '../services/livestreamRealtimeService';
+import apiClient, { handleResponse } from '@/services/api/apiClient';
+import { API_ENDPOINTS } from '@/services/api/endpoints';
 import type { MenuItem } from '@/types/api.types';
 
 interface LiveProductListProps {
@@ -13,6 +15,7 @@ const LiveProductList: React.FC<LiveProductListProps> = ({ restaurantId, livestr
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [pinnedId, setPinnedId] = useState<number | null>(null);
+  const [pinLoading, setPinLoading] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -36,7 +39,24 @@ const LiveProductList: React.FC<LiveProductListProps> = ({ restaurantId, livestr
   );
 
   const handlePin = async (product: MenuItem) => {
+    if (!livestreamId) {
+      alert('Livestream chưa sẵn sàng');
+      return;
+    }
+
+    setPinLoading(product.id);
     try {
+      // 1. Call backend API to persist the pin
+      await apiClient.post(API_ENDPOINTS.LIVESTREAM.PIN_PRODUCT(livestreamId), {
+        productId: product.id,
+        priceAtLive: product.price,
+        productName: product.name,
+        productImage: product.image,
+        restaurantId: restaurantId,
+        restaurantName: '', // Will be set by context if available
+      });
+
+      // 2. Update Firebase Firestore for real-time viewer notification
       const pinData: LiveProductPin = {
         productId: product.id,
         productName: product.name,
@@ -46,9 +66,14 @@ const LiveProductList: React.FC<LiveProductListProps> = ({ restaurantId, livestr
         updatedAt: new Date(),
       };
       await livestreamRealtimeService.pinProduct(livestreamId, pinData);
+
       setPinnedId(product.id);
+      console.log('✅ Product pinned via API + Firebase:', product.name);
     } catch (err) {
       console.error('Failed to pin product:', err);
+      alert('❌ Ghim sản phẩm thất bại: ' + (err as Error).message);
+    } finally {
+      setPinLoading(null);
     }
   };
 
@@ -104,13 +129,14 @@ const LiveProductList: React.FC<LiveProductListProps> = ({ restaurantId, livestr
               </div>
               <button
                 onClick={() => handlePin(product)}
-                className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all ${
+                disabled={pinLoading === product.id}
+                className={`px-3 py-1 text-[10px] font-bold rounded-full transition-all disabled:opacity-50 ${
                   pinnedId === product.id
                     ? 'bg-primary text-white'
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                {pinnedId === product.id ? 'Đang ghim' : 'Ghim'}
+                {pinLoading === product.id ? '...' : pinnedId === product.id ? 'Đang ghim' : 'Ghim'}
               </button>
             </div>
           ))

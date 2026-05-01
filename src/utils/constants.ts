@@ -67,6 +67,8 @@ export const ROUTES = {
   ADMIN_USERS: '/admin/users',
   ADMIN_CHAT: '/admin/chat',
   ADMIN_SETTINGS: '/admin/settings',
+  ADMIN_ORDERS: '/admin/orders',
+  ADMIN_WITHDRAWALS: '/admin/withdrawals',
   RESTAURANT_DASHBOARD: '/restaurant/dashboard', // Shop Owner dashboard
   RESTAURANT_PROFILE: '/restaurant/profile',
   RESTAURANT_MENU: '/restaurant/menu',
