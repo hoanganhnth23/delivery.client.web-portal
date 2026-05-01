@@ -11,11 +11,15 @@ import { useSettlement } from '../hooks/useSettlement';
 
 const SettlementPage = () => {
   const { currentRestaurant } = useRestaurant();
-  const { balance, earnings, transactions, loading, error, fetchAll, withdraw, clearError } = useSettlement();
+  const { balance, earnings, transactions, loading, error, fetchAll, withdraw, deposit, clearError } = useSettlement();
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawDescription, setWithdrawDescription] = useState('');
   const [withdrawLoading, setWithdrawLoading] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [depositLoading, setDepositLoading] = useState(false);
+  const [paymentProvider, setPaymentProvider] = useState<'FAKE' | 'VNPAY'>('FAKE');
   const [activeTab, setActiveTab] = useState<'all' | 'credit' | 'debit'>('all');
 
   useEffect(() => {
@@ -33,6 +37,22 @@ const SettlementPage = () => {
       setShowWithdrawModal(false);
       setWithdrawAmount('');
       setWithdrawDescription('');
+    }
+  };
+
+  const handleDeposit = async () => {
+    if (!currentRestaurant?.id || !depositAmount) return;
+    const amount = parseFloat(depositAmount);
+    if (isNaN(amount) || amount < 10000) return;
+    setDepositLoading(true);
+    const result = await deposit(currentRestaurant.id, amount, paymentProvider);
+    setDepositLoading(false);
+    if (result) {
+      if (paymentProvider !== 'FAKE' && result.paymentUrl) {
+        window.open(result.paymentUrl, '_blank');
+      }
+      setShowDepositModal(false);
+      setDepositAmount('');
     }
   };
 
@@ -82,13 +102,22 @@ const SettlementPage = () => {
           title="Thu nhập"
           subtitle="Quản lý thu nhập, số dư và rút tiền"
           actions={
-            <button
-              onClick={() => setShowWithdrawModal(true)}
-              className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-primary/90 hover:shadow transition-all"
-            >
-              <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
-              Rút tiền
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDepositModal(true)}
+                className="flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-violet-700 hover:shadow transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">add_card</span>
+                Nạp tiền
+              </button>
+              <button
+                onClick={() => setShowWithdrawModal(true)}
+                className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-primary/90 hover:shadow transition-all"
+              >
+                <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                Rút tiền
+              </button>
+            </div>
           }
         />
 
@@ -343,6 +372,106 @@ const SettlementPage = () => {
                   <>
                     <span className="material-symbols-outlined text-[18px]">send</span>
                     Xác nhận rút tiền
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deposit Modal */}
+      {showDepositModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">Nạp tiền</h2>
+              <button
+                onClick={() => setShowDepositModal(false)}
+                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {/* Current balance info */}
+            <div className="mb-6 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 p-4">
+              <p className="text-xs font-medium text-violet-600 dark:text-violet-400 mb-1">Số dư hiện tại</p>
+              <p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300">
+                {formatCurrency(balance?.availableBalance)}
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Số tiền nạp <span className="text-red-500">*</span>
+                  <span className="text-xs text-gray-400 ml-1">(tối thiểu 10,000₫)</span>
+                </label>
+                <input
+                  type="number"
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  placeholder="Nhập số tiền..."
+                  min={10000}
+                  className="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm font-medium text-gray-900 dark:text-white placeholder-gray-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all"
+                />
+              </div>
+
+              {/* Quick amounts */}
+              <div className="flex gap-2">
+                {[100000, 200000, 500000, 1000000].map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setDepositAmount(String(v))}
+                    className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 py-2 text-xs font-semibold text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors"
+                  >
+                    {formatCurrency(v)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Payment provider */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Phương thức thanh toán
+                </label>
+                <div className="flex gap-3">
+                  {([['FAKE', '🎭 Demo (Tự động)'], ['VNPAY', '🏦 VNPay']] as const).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => setPaymentProvider(key as 'FAKE' | 'VNPAY')}
+                      className={`flex-1 rounded-xl border-2 py-3 text-sm font-bold transition-all ${
+                        paymentProvider === key
+                          ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowDepositModal(false)}
+                className="flex-1 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-3 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDeposit}
+                disabled={!depositAmount || parseFloat(depositAmount) < 10000 || depositLoading}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-violet-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-violet-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {depositLoading ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[18px]">payment</span>
+                    Nạp tiền
                   </>
                 )}
               </button>

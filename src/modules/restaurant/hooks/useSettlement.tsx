@@ -9,8 +9,11 @@ import {
   getRestaurantEarnings,
   getRestaurantTransactions,
   requestRestaurantWithdrawal,
+  createPayment,
+  confirmFakePayment,
   type BalanceResponse,
   type TransactionResponse,
+  type PaymentOrderResponse,
 } from '../services/settlementService';
 
 // ============================================
@@ -31,6 +34,7 @@ interface SettlementContextType extends SettlementState {
   fetchTransactions: (entityId: number) => Promise<void>;
   fetchAll: (entityId: number) => Promise<void>;
   withdraw: (entityId: number, amount: number, description?: string) => Promise<boolean>;
+  deposit: (entityId: number, amount: number, provider?: string) => Promise<PaymentOrderResponse | null>;
   clearError: () => void;
 }
 
@@ -108,11 +112,38 @@ export const SettlementProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [fetchAll]);
 
+  const deposit = useCallback(async (entityId: number, amount: number, provider: string = 'FAKE') => {
+    setLoading(true);
+    try {
+      const paymentOrder = await createPayment({
+        entityId,
+        entityType: 'RESTAURANT',
+        amount,
+        provider,
+        purpose: 'DEPOSIT_TOPUP',
+      });
+
+      if (provider === 'FAKE' && paymentOrder.paymentRef) {
+        // Auto-confirm fake payment
+        const confirmed = await confirmFakePayment(paymentOrder.paymentRef);
+        await fetchAll(entityId);
+        setState((s) => ({ ...s, loading: false }));
+        return confirmed;
+      }
+
+      setState((s) => ({ ...s, loading: false }));
+      return paymentOrder; // Client mở paymentUrl
+    } catch (err: any) {
+      setError(err?.message || 'Nạp tiền thất bại');
+      return null;
+    }
+  }, [fetchAll]);
+
   const clearError = useCallback(() => setState((s) => ({ ...s, error: null })), []);
 
   return (
     <SettlementContext.Provider
-      value={{ ...state, fetchBalance, fetchEarnings, fetchTransactions, fetchAll, withdraw, clearError }}
+      value={{ ...state, fetchBalance, fetchEarnings, fetchTransactions, fetchAll, withdraw, deposit, clearError }}
     >
       {children}
     </SettlementContext.Provider>

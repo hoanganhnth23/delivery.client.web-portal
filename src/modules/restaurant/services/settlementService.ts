@@ -41,6 +41,35 @@ export interface WithdrawalRequest {
   description?: string;
 }
 
+// ═══ Payment Gateway Types ═══
+
+export interface CreatePaymentRequest {
+  entityId: number;
+  entityType?: string;
+  amount: number;
+  provider?: string;  // 'VNPAY' | 'FAKE' | 'MOMO'
+  purpose?: string;   // 'DEPOSIT_TOPUP'
+  returnUrl?: string;
+  ipAddress?: string;
+}
+
+export interface PaymentOrderResponse {
+  id: number;
+  paymentRef: string;
+  entityId: number;
+  entityType: string;
+  provider: string;
+  amount: number;
+  currency: string;
+  purpose: string;
+  status: string;        // 'PENDING' | 'SUCCESS' | 'FAILED' | 'EXPIRED'
+  paymentUrl: string;
+  providerTransactionId: string | null;
+  settlementTransactionId: number | null;
+  createdAt: string;
+  expiredAt: string;
+}
+
 // ============================================
 // API FUNCTIONS
 // ============================================
@@ -106,6 +135,58 @@ export const getTransactionById = async (id: number): Promise<TransactionRespons
   try {
     const response = await apiClient.get(API_ENDPOINTS.SETTLEMENT.GET_TRANSACTION_BY_ID(id));
     return handleResponse<TransactionResponse>(response);
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
+// ═══════════════════════════════════════════
+// Payment Gateway
+// ═══════════════════════════════════════════
+
+/**
+ * Tạo giao dịch thanh toán qua cổng bên thứ ba
+ */
+export const createPayment = async (data: CreatePaymentRequest): Promise<PaymentOrderResponse> => {
+  try {
+    const response = await apiClient.post('/api/settlement/payments/create', data);
+    return handleResponse<PaymentOrderResponse>(response);
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
+/**
+ * Fake confirm (dev/test)
+ */
+export const confirmFakePayment = async (paymentRef: string): Promise<PaymentOrderResponse> => {
+  try {
+    const response = await apiClient.get(`/api/settlement/payments/fake-confirm/${paymentRef}`);
+    return handleResponse<PaymentOrderResponse>(response);
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
+/**
+ * Query trạng thái thanh toán
+ */
+export const getPaymentByRef = async (paymentRef: string): Promise<PaymentOrderResponse> => {
+  try {
+    const response = await apiClient.get(`/api/settlement/payments/ref/${paymentRef}`);
+    return handleResponse<PaymentOrderResponse>(response);
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
+/**
+ * Danh sách provider khả dụng
+ */
+export const getAvailableProviders = async (): Promise<string[]> => {
+  try {
+    const response = await apiClient.get('/api/settlement/payments/providers');
+    return handleResponse<string[]>(response);
   } catch (error) {
     throw handleError(error);
   }
