@@ -52,6 +52,11 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                   <span className={`text-sm ${isActive(ROUTES.ADMIN_WITHDRAWALS) ? 'font-bold' : 'font-medium'}`}>Duyệt rút tiền</span>
                 </Link>
 
+                <Link to={ROUTES.ADMIN_SHIPPERS} className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive(ROUTES.ADMIN_SHIPPERS) ? 'bg-primary/10 text-primary group hover:bg-primary/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'}`}>
+                  <span className={`material-symbols-outlined ${isActive(ROUTES.ADMIN_SHIPPERS) ? 'icon-filled' : ''}`}>local_shipping</span>
+                  <span className={`text-sm ${isActive(ROUTES.ADMIN_SHIPPERS) ? 'font-bold' : 'font-medium'}`}>Quản lý Shipper</span>
+                </Link>
+
                 <Link to={ROUTES.ADMIN_RESTAURANTS} className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive(ROUTES.ADMIN_RESTAURANTS) ? 'bg-primary/10 text-primary group hover:bg-primary/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'}`}>
                   <span className={`material-symbols-outlined ${isActive(ROUTES.ADMIN_RESTAURANTS) ? 'icon-filled' : ''}`}>storefront</span>
                   <span className={`text-sm ${isActive(ROUTES.ADMIN_RESTAURANTS) ? 'font-bold' : 'font-medium'}`}>Nhà hàng</span>

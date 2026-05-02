@@ -12,6 +12,8 @@ const AdminDashboard = () => {
   const [revenue, setRevenue] = useState<number>(0);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [orderCount, setOrderCount] = useState<number>(0);
+  const [restaurantCount, setRestaurantCount] = useState<number>(0);
+  const [shipperCount, setShipperCount] = useState<number>(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -30,6 +32,14 @@ const AdminDashboard = () => {
       // Load orders
       const orders = await adminService.fetchAllOrders();
       setOrderCount(orders?.length || 0);
+
+      // Load restaurants
+      const restaurants = await adminService.fetchAllRestaurants();
+      setRestaurantCount(restaurants?.length || 0);
+
+      // Load shippers
+      const shippers = await adminService.fetchAllShippers();
+      setShipperCount(shippers?.length || 0);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     }
@@ -76,7 +86,7 @@ const AdminDashboard = () => {
             <span className="text-xs font-semibold px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">+12%</span>
           </div>
           <p className="text-gray-500 dark:text-gray-400 text-sm font-medium mb-1">Total Restaurants</p>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">1,240</h3>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{restaurantCount.toLocaleString()}</h3>
         </div>
 
         {/* Stat Card 2 */}

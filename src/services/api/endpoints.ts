@@ -71,8 +71,22 @@ export const API_ENDPOINTS = {
     CREATE: '/api/shippers',
     GET_BY_ID: (id: number) => `/api/shippers/${id}`,
     GET_ALL: '/api/shippers',
+    GET_ONLINE: '/api/shippers/online',
     UPDATE: (id: number) => `/api/shippers/${id}`,
     UPDATE_BALANCE: (id: number) => `/api/shippers/${id}/balance`,
+  },
+
+  // ==================== AUTH ADMIN ====================
+  AUTH_ADMIN: {
+    GET_ALL_ACCOUNTS: '/api/auth/admin/accounts',
+    BLOCK_ACCOUNT: (id: number) => `/api/auth/admin/accounts/${id}/block`,
+    UNBLOCK_ACCOUNT: (id: number) => `/api/auth/admin/accounts/${id}/unblock`,
+  },
+
+  // ==================== USER ADMIN ====================
+  USER_ADMIN: {
+    GET_STATISTICS: '/api/users/admin/statistics',
+    GET_ALL_USERS: '/api/users/admin/all',
   },
 
   // ==================== NOTIFICATION SERVICE (port 8087) ====================

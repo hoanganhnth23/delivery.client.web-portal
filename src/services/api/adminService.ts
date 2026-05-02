@@ -28,6 +28,34 @@ export interface AdminTransaction {
   createdAt: string;
 }
 
+export interface AdminShipper {
+  id: number;
+  userId: number;
+  fullName: string;
+  phone: string;
+  vehicleType: string;
+  licensePlate: string;
+  isOnline: boolean;
+  isBlocked: boolean;
+  rating: number;
+  totalDeliveries: number;
+  createdAt: string;
+}
+
+export interface UserStatistics {
+  totalUsers: number;
+  totalShippers: number;
+  totalRestaurants: number;
+  newUsersToday: number;
+}
+
+export interface AdminRestaurant {
+  id: number;
+  name: string;
+  address: string;
+  createdAt: string;
+}
+
 class AdminService {
   /**
    * Fetch all orders
@@ -96,6 +124,82 @@ class AdminService {
     try {
       const response = await apiClient.get(API_ENDPOINTS.SETTLEMENT.ADMIN.GET_REVENUE);
       return handleResponse<number>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // ==================== SHIPPER MANAGEMENT ====================
+
+  /**
+   * Fetch all shippers
+   */
+  async fetchAllShippers(): Promise<AdminShipper[]> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.SHIPPER.GET_ALL);
+      return handleResponse<AdminShipper[]>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Fetch online shippers
+   */
+  async fetchOnlineShippers(): Promise<AdminShipper[]> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.SHIPPER.GET_ONLINE);
+      return handleResponse<AdminShipper[]>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Block a shipper account (via Auth Service)
+   */
+  async blockShipper(authAccountId: number, reason: string): Promise<void> {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.AUTH_ADMIN.BLOCK_ACCOUNT(authAccountId), { reason });
+      return handleResponse<void>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Unblock a shipper account (via Auth Service)
+   */
+  async unblockShipper(authAccountId: number): Promise<void> {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.AUTH_ADMIN.UNBLOCK_ACCOUNT(authAccountId));
+      return handleResponse<void>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  // ==================== DASHBOARD STATISTICS ====================
+
+  /**
+   * Fetch user statistics (totals by role)
+   */
+  async fetchUserStatistics(): Promise<UserStatistics> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.USER_ADMIN.GET_STATISTICS);
+      return handleResponse<UserStatistics>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Fetch all restaurants (for count)
+   */
+  async fetchAllRestaurants(): Promise<AdminRestaurant[]> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.GET_ALL);
+      return handleResponse<AdminRestaurant[]>(response);
     } catch (error) {
       return handleError(error);
     }

@@ -69,6 +69,7 @@ export const ROUTES = {
   ADMIN_SETTINGS: '/admin/settings',
   ADMIN_ORDERS: '/admin/orders',
   ADMIN_WITHDRAWALS: '/admin/withdrawals',
+  ADMIN_SHIPPERS: '/admin/shippers',
   RESTAURANT_DASHBOARD: '/restaurant/dashboard', // Shop Owner dashboard
   RESTAURANT_PROFILE: '/restaurant/profile',
   RESTAURANT_MENU: '/restaurant/menu',
