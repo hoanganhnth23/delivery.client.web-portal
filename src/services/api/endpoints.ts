@@ -63,6 +63,7 @@ export const API_ENDPOINTS = {
     GET_MY_ORDERS: '/api/orders/my-restaurant-orders',
     UPDATE_STATUS: (id: number) => `/api/orders/${id}/status`,
     CANCEL: (id: number) => `/api/orders/${id}/cancel`,
+    ASSIGN_SHIPPER: (orderId: number, shipperId: number) => `/api/orders/${orderId}/assign-shipper/${shipperId}`,
   },
 
   // ==================== DELIVERY SERVICE (port 8085) ====================

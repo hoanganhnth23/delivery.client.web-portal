@@ -267,6 +267,30 @@ class AdminService {
       return handleError(error);
     }
   }
+
+  /**
+   * Manual assign shipper to an order
+   */
+  async assignShipper(orderId: number, shipperId: number): Promise<AdminOrder> {
+    try {
+      const response = await apiClient.put(API_ENDPOINTS.ORDER.ASSIGN_SHIPPER(orderId, shipperId));
+      return handleResponse<AdminOrder>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Cancel an order by admin
+   */
+  async cancelOrder(orderId: number, reason: string): Promise<AdminOrder> {
+    try {
+      const response = await apiClient.put(API_ENDPOINTS.ORDER.CANCEL(orderId), { reason });
+      return handleResponse<AdminOrder>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
 }
 
 export interface AdminCoupon {
