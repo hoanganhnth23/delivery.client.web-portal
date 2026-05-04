@@ -83,3 +83,27 @@ export const getMyRestaurants = async (): Promise<RestaurantListResponse> => {
   const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.GET_MY_RESTAURANTS);
   return response.data;
 };
+
+/**
+ * Lấy danh sách đánh giá của nhà hàng
+ */
+export const getRestaurantRatings = async (restaurantId: number): Promise<any> => {
+  const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.GET_RATINGS(restaurantId));
+  return response.data;
+};
+
+/**
+ * Lấy danh sách coupons của nhà hàng (Merchant)
+ */
+export const getMerchantCoupons = async (): Promise<any> => {
+  const response = await apiClient.get(API_ENDPOINTS.PROMOTION.GET_MERCHANT_VOUCHERS);
+  return response.data;
+};
+
+/**
+ * Tạo coupon mới cho nhà hàng
+ */
+export const createMerchantCoupon = async (data: any): Promise<any> => {
+  const response = await apiClient.post(API_ENDPOINTS.PROMOTION.CREATE_MERCHANT, data);
+  return response.data;
+};

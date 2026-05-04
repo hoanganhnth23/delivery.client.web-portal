@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getMenuItemsByRestaurant } from '@/modules/restaurant/services/menuService';
 import { livestreamRealtimeService, LiveProductPin } from '../services/livestreamRealtimeService';
-import apiClient, { handleResponse } from '@/services/api/apiClient';
+import apiClient from '@/services/api/apiClient';
 import { API_ENDPOINTS } from '@/services/api/endpoints';
 import type { MenuItem } from '@/types/api.types';
 

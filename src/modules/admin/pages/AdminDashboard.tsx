@@ -13,7 +13,7 @@ const AdminDashboard = () => {
   const [pendingCount, setPendingCount] = useState<number>(0);
   const [orderCount, setOrderCount] = useState<number>(0);
   const [restaurantCount, setRestaurantCount] = useState<number>(0);
-  const [shipperCount, setShipperCount] = useState<number>(0);
+
 
   useEffect(() => {
     loadDashboardData();
@@ -38,8 +38,6 @@ const AdminDashboard = () => {
       setRestaurantCount(restaurants?.length || 0);
 
       // Load shippers
-      const shippers = await adminService.fetchAllShippers();
-      setShipperCount(shippers?.length || 0);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     }

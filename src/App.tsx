@@ -17,6 +17,7 @@ import RestaurantOrders from './modules/restaurant/pages/RestaurantOrders'
 import RestaurantChatPage from './modules/chat/pages/RestaurantChatPage'
 import MenuManagement from './modules/restaurant/pages/MenuManagement'
 import SettlementPage from './modules/restaurant/pages/SettlementPage'
+import RestaurantReviewsPage from './modules/restaurant/pages/RestaurantReviewsPage'
 import LivestreamPage from './modules/livestream/pages/LivestreamPage'
 import LivestreamManagementPage from './modules/livestream/pages/LivestreamManagementPage'
 import ViewerLivestreamPage from './modules/livestream/pages/ViewerLivestreamPage'
@@ -24,7 +25,10 @@ import AdminDashboard from './modules/admin/pages/AdminDashboard'
 import AdminOrdersPage from './modules/admin/pages/AdminOrdersPage'
 import AdminWithdrawalsPage from './modules/admin/pages/AdminWithdrawalsPage'
 import AdminShippersPage from './modules/admin/pages/AdminShippersPage'
+import AdminRatingsPage from './modules/admin/pages/AdminRatingsPage'
+import AdminCouponsPage from './modules/admin/pages/AdminCouponsPage'
 import AdminChatPage from './modules/admin/pages/AdminChatPage'
+import CouponManagementPage from './modules/restaurant/pages/CouponManagementPage'
 import ChatWidget from './modules/chat/components/ChatWidget'
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import PrivateRoute from './routes/PrivateRoute'
@@ -69,6 +73,8 @@ export default function App() {
                     <Route path={ROUTES.RESTAURANT_ORDERS} element={<RestaurantOrders />} />
                     <Route path={ROUTES.RESTAURANT_CHAT} element={<RestaurantChatPage />} />
                     <Route path={ROUTES.RESTAURANT_SETTLEMENT} element={<SettlementPage />} />
+                    <Route path={ROUTES.RESTAURANT_REVIEWS} element={<RestaurantReviewsPage />} />
+                    <Route path={ROUTES.RESTAURANT_COUPONS} element={<CouponManagementPage />} />
                     <Route path={ROUTES.RESTAURANT_LIVESTREAM} element={<LivestreamPage />} />
                     <Route path={ROUTES.RESTAURANT_LIVESTREAM_DETAIL} element={<LivestreamPage />} />
                     <Route path={ROUTES.RESTAURANT_LIVESTREAM_MANAGEMENT} element={<LivestreamManagementPage />} />
@@ -103,6 +109,22 @@ export default function App() {
                     element={
                       <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
                         <AdminShippersPage />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.ADMIN_RATINGS}
+                    element={
+                      <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
+                        <AdminRatingsPage />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.ADMIN_COUPONS}
+                    element={
+                      <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
+                        <AdminCouponsPage />
                       </RoleRoute>
                     }
                   />

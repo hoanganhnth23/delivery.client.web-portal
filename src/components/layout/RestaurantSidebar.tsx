@@ -34,6 +34,7 @@ const RestaurantSidebar = ({
     { icon: 'account_balance_wallet', label: 'Thu nhập', to: ROUTES.RESTAURANT_SETTLEMENT },
     { icon: 'bar_chart', label: 'Analytics', to: ROUTES.RESTAURANT_ANALYTICS },
     { icon: 'reviews', label: 'Reviews', to: ROUTES.RESTAURANT_REVIEWS },
+    { icon: 'sell', label: 'Khuyến mãi', to: ROUTES.RESTAURANT_COUPONS },
     { icon: 'settings', label: 'Settings', to: ROUTES.RESTAURANT_SETTINGS },
   ];
 

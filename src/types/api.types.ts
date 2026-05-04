@@ -44,6 +44,8 @@ export interface Restaurant {
   description: string;
   createdAt?: string;
   updatedAt?: string;
+  rating?: number;
+  ratingCount?: number;
 }
 
 // Specific Response Types

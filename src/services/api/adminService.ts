@@ -204,6 +204,96 @@ class AdminService {
       return handleError(error);
     }
   }
+
+  // ==================== RATING MANAGEMENT ====================
+
+  /**
+   * Fetch all ratings for admin moderation
+   */
+  async fetchAllRatings(): Promise<AdminRating[]> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.ADMIN_GET_ALL_RATINGS);
+      return handleResponse<AdminRating[]>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Update rating status (Approve/Reject)
+   */
+  async updateRatingStatus(ratingId: number, status: 'APPROVED' | 'REJECTED'): Promise<AdminRating> {
+    try {
+      const response = await apiClient.put(API_ENDPOINTS.RESTAURANT.ADMIN_UPDATE_RATING_STATUS(ratingId), null, {
+        params: { status }
+      });
+      return handleResponse<AdminRating>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+  /**
+   * Fetch all system coupons
+   */
+  async fetchAllCoupons(): Promise<AdminCoupon[]> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.PROMOTION.ADMIN_GET_ALL);
+      return handleResponse<AdminCoupon[]>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Create a new platform coupon
+   */
+  async createCoupon(data: any): Promise<AdminCoupon> {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.PROMOTION.CREATE_PLATFORM, data);
+      return handleResponse<AdminCoupon>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Delete a coupon
+   */
+  async deleteCoupon(id: number): Promise<void> {
+    try {
+      const response = await apiClient.delete(API_ENDPOINTS.PROMOTION.DELETE(id));
+      return handleResponse<void>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+}
+
+export interface AdminCoupon {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  rewardType: string;
+  discountValue: number;
+  maxDiscountValue: number;
+  totalQuantity: number;
+  usedQuantity: number;
+  startTime: string;
+  endTime: string;
+  minOrderValue: number;
+  active: boolean;
+}
+
+export interface AdminRating {
+  id: number;
+  restaurantId: number;
+  customerId: number;
+  orderId: number;
+  rating: number;
+  comment: string;
+  status: string;
+  createdAt: string;
 }
 
 export default new AdminService();

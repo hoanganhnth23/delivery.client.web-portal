@@ -32,6 +32,12 @@ export const API_ENDPOINTS = {
     GET_ALL: '/api/restaurants',
     SEARCH: '/api/restaurants/search', // ?keyword=xxx
     GET_MY_RESTAURANTS: '/api/restaurants/my-restaurants', // Lấy nhà hàng của user hiện tại
+    // Ratings
+    GET_RATINGS: (restaurantId: number) => `/api/restaurants/${restaurantId}/ratings`,
+    SUBMIT_RATING: (restaurantId: number) => `/api/restaurants/${restaurantId}/ratings`,
+    GET_MY_RATINGS: '/api/restaurants/me/ratings',
+    ADMIN_GET_ALL_RATINGS: '/api/restaurants/admin/ratings',
+    ADMIN_UPDATE_RATING_STATUS: (id: number) => `/api/restaurants/admin/ratings/${id}/status`,
   },
 
   // Menu Items (Restaurant Service)
@@ -145,6 +151,18 @@ export const API_ENDPOINTS = {
       GET_REVENUE: '/api/settlement/admin/revenue',
       REVERSE_TRANSACTION: (id: number) => `/api/settlement/admin/transactions/${id}/reverse`,
     },
+  },
+
+  // ==================== PROMOTION SERVICE ====================
+  PROMOTION: {
+    CREATE_PLATFORM: '/api/promotions/platform',
+    CREATE_MERCHANT: '/api/promotions/merchant',
+    COLLECT: (code: string) => `/api/promotions/collect/${code}`,
+    CALCULATE: '/api/promotions/calculate',
+    RESERVE: '/api/promotions/reserve',
+    GET_MERCHANT_VOUCHERS: '/api/promotions/merchant',
+    ADMIN_GET_ALL: '/api/promotions/admin',
+    DELETE: (id: number) => `/api/promotions/${id}`,
   },
 } as const;
 
