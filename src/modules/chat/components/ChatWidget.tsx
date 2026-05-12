@@ -4,7 +4,7 @@
  * Auto-load conversation gần nhất còn hoạt động và messages của nó
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useChat } from '../hooks/useChat';
 import { useAuth } from '@/modules/auth/hooks/useAuth';
 import { useRestaurant } from '@/modules/restaurant/hooks/useRestaurant';
@@ -15,6 +15,56 @@ const ChatWidget = () => {
     const [messageText, setMessageText] = useState('');
     const [isCreatingSupport, setIsCreatingSupport] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Drag-and-drop state
+    const [position, setPosition] = useState({ x: 24, y: 80 }); // offset from right/bottom
+    const [isDragging, setIsDragging] = useState(false);
+    const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number } | null>(null);
+    const hasDraggedRef = useRef(false);
+
+    const handleDragStart = useCallback((clientX: number, clientY: number) => {
+        setIsDragging(true);
+        hasDraggedRef.current = false;
+        dragRef.current = {
+            startX: clientX,
+            startY: clientY,
+            startPosX: position.x,
+            startPosY: position.y,
+        };
+    }, [position]);
+
+    const handleDragMove = useCallback((clientX: number, clientY: number) => {
+        if (!isDragging || !dragRef.current) return;
+        const dx = dragRef.current.startX - clientX;
+        const dy = dragRef.current.startY - clientY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) hasDraggedRef.current = true;
+        const newX = Math.max(0, Math.min(window.innerWidth - 60, dragRef.current.startPosX + dx));
+        const newY = Math.max(0, Math.min(window.innerHeight - 60, dragRef.current.startPosY + dy));
+        setPosition({ x: newX, y: newY });
+    }, [isDragging]);
+
+    const handleDragEnd = useCallback(() => {
+        setIsDragging(false);
+        dragRef.current = null;
+    }, []);
+
+    useEffect(() => {
+        if (!isDragging) return;
+        const onMouseMove = (e: MouseEvent) => handleDragMove(e.clientX, e.clientY);
+        const onMouseUp = () => handleDragEnd();
+        const onTouchMove = (e: TouchEvent) => handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
+        const onTouchEnd = () => handleDragEnd();
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+        window.addEventListener('touchmove', onTouchMove);
+        window.addEventListener('touchend', onTouchEnd);
+        return () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+            window.removeEventListener('touchmove', onTouchMove);
+            window.removeEventListener('touchend', onTouchEnd);
+        };
+    }, [isDragging, handleDragMove, handleDragEnd]);
 
     const { user } = useAuth();
     const { currentRestaurant } = useRestaurant();
@@ -132,7 +182,10 @@ const ChatWidget = () => {
     }
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
+        <div
+            className="fixed z-50 flex flex-col items-end gap-4 pointer-events-none"
+            style={{ right: `${position.x}px`, bottom: `${position.y}px` }}
+        >
             {/* Expanded Chat Window */}
             {isOpen && (
                 <div className="pointer-events-auto w-[700px] h-[650px] bg-surface-light dark:bg-surface-dark rounded-xl shadow-2xl flex overflow-hidden border border-border-light dark:border-border-dark transition-all duration-300 origin-bottom-right">
@@ -369,24 +422,30 @@ const ChatWidget = () => {
                 </div>
             )}
 
-            {/* Collapsed Widget Trigger (FAB) */}
-            <div className="pointer-events-auto relative group cursor-pointer">
+            {/* Collapsed Widget Trigger (FAB) — Draggable */}
+            <div className="pointer-events-auto relative group">
                 {unreadCount > 0 && (
                     <div className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white dark:border-gray-900 z-10 animate-bounce px-1">
                         {unreadCount > 99 ? '99+' : unreadCount}
                     </div>
                 )}
                 <button
-                    onClick={handleOpenChat}
-                    className="w-14 h-14 bg-primary hover:bg-primary-hover text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                    onMouseDown={(e) => { e.preventDefault(); handleDragStart(e.clientX, e.clientY); }}
+                    onTouchStart={(e) => handleDragStart(e.touches[0].clientX, e.touches[0].clientY)}
+                    onClick={(e) => { if (hasDraggedRef.current) { e.preventDefault(); return; } handleOpenChat(); }}
+                    className={`w-14 h-14 bg-primary hover:bg-primary-hover text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 ${
+                        isDragging ? 'cursor-grabbing scale-110 shadow-2xl' : 'cursor-grab hover:scale-110'
+                    }`}
                 >
-                    <span className="material-symbols-outlined text-3xl">chat_bubble</span>
+                    <span className="material-symbols-outlined text-3xl">{isDragging ? 'drag_indicator' : 'chat_bubble'}</span>
                 </button>
 
                 {/* Tooltip */}
-                <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                    Tin nhắn khách hàng ({unreadCount > 0 ? `${unreadCount} mới` : 'không có mới'})
-                </div>
+                {!isDragging && (
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-3 px-3 py-1.5 bg-black/80 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                        Tin nhắn khách hàng ({unreadCount > 0 ? `${unreadCount} mới` : 'không có mới'})
+                    </div>
+                )}
             </div>
         </div>
     );

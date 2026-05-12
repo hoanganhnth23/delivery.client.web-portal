@@ -291,6 +291,97 @@ class AdminService {
       return handleError(error);
     }
   }
+
+  // ==================== DASHBOARD STATISTICS ====================
+
+  /**
+   * Fetch admin dashboard statistics
+   */
+  async fetchAdminDashboard(period: string = 'month', year?: number): Promise<AdminDashboardResponse> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.DASHBOARD.ADMIN(period, year));
+      return handleResponse<AdminDashboardResponse>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Fetch restaurant dashboard statistics
+   */
+  async fetchRestaurantDashboard(restaurantId: number, period: string = 'month', year?: number): Promise<RestaurantDashboardResponse> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.DASHBOARD.RESTAURANT(restaurantId, period, year));
+      return handleResponse<RestaurantDashboardResponse>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
+  /**
+   * Fetch my restaurant dashboard statistics
+   */
+  async fetchMyRestaurantDashboard(period: string = 'month', year?: number, restaurantId?: number): Promise<RestaurantDashboardResponse> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.DASHBOARD.MY_RESTAURANT(period, year, restaurantId));
+      return handleResponse<RestaurantDashboardResponse>(response);
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+}
+
+// ==================== DASHBOARD TYPES ====================
+
+export interface TimeSeriesPoint {
+  label: string;
+  orderCount: number;
+  revenue: number;
+}
+
+export interface OrderStatusBreakdown {
+  status: string;
+  count: number;
+}
+
+export interface OverviewStats {
+  totalOrders: number;
+  totalRevenue: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  pendingOrders: number;
+  processingOrders: number;
+  avgOrderValue: number;
+  deliveryRate: number;
+}
+
+export interface TopRestaurant {
+  restaurantId: number;
+  restaurantName: string;
+  orderCount: number;
+  revenue: number;
+}
+
+export interface TopMenuItem {
+  itemName: string;
+  quantity: number;
+  revenue: number;
+}
+
+export interface AdminDashboardResponse {
+  overview: OverviewStats;
+  revenueTimeSeries: TimeSeriesPoint[];
+  orderTimeSeries: TimeSeriesPoint[];
+  statusBreakdown: OrderStatusBreakdown[];
+  topRestaurants: TopRestaurant[];
+}
+
+export interface RestaurantDashboardResponse {
+  overview: OverviewStats;
+  revenueTimeSeries: TimeSeriesPoint[];
+  orderTimeSeries: TimeSeriesPoint[];
+  statusBreakdown: OrderStatusBreakdown[];
+  topMenuItems: TopMenuItem[];
 }
 
 export interface AdminCoupon {

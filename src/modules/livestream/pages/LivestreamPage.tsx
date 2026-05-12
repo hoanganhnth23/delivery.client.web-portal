@@ -22,6 +22,7 @@ const LivestreamPage = () => {
     livestreamData,
     videoTrack,
     audioTrack,
+    agoraClient,
     createRoom,
     previewCamera,
     startLive,
@@ -43,6 +44,9 @@ const LivestreamPage = () => {
   const [pinnedProduct, setPinnedProduct] = useState<LiveProductPin | null>(null);
   const [tags, setTags] = useState<string[]>(['#LiveFood']);
   const [tagInput, setTagInput] = useState('');
+  const [viewerCount, setViewerCount] = useState(0);
+  const [likeAnimations, setLikeAnimations] = useState<{ id: number; x: number; emoji: string }[]>([]);
+  const likeAnimIdRef = useRef(0);
 
   const localVideoRef = useRef<HTMLDivElement>(null);
 
@@ -105,10 +109,60 @@ const LivestreamPage = () => {
         livestreamData.livestreamId,
         (meta) => {
           if (meta?.pinnedProduct) setPinnedProduct(meta.pinnedProduct);
+          else setPinnedProduct(null);
         }
       );
       return () => unsubscribe();
     }
+  }, [livestreamData.livestreamId, status]);
+
+  // Track viewer count via Agora user events
+  useEffect(() => {
+    if (!agoraClient || status !== 'LIVE') return;
+
+    const onUserJoined = () => setViewerCount(prev => prev + 1);
+    const onUserLeft = () => setViewerCount(prev => Math.max(0, prev - 1));
+
+    agoraClient.on('user-joined', onUserJoined);
+    agoraClient.on('user-left', onUserLeft);
+
+    // Initialize with current remote users count
+    setViewerCount(agoraClient.remoteUsers?.length || 0);
+
+    return () => {
+      agoraClient.off('user-joined', onUserJoined);
+      agoraClient.off('user-left', onUserLeft);
+    };
+  }, [agoraClient, status]);
+
+  // Subscribe to likes from Firebase for floating heart animations
+  useEffect(() => {
+    if (!livestreamData.livestreamId || status !== 'LIVE') return;
+    const { subscribeToLikes } = livestreamRealtimeService;
+    if (!subscribeToLikes) return;
+    let prevCount = 0;
+    const unsubscribe = subscribeToLikes(livestreamData.livestreamId, (likes) => {
+      const newCount = likes.length;
+      if (newCount > prevCount) {
+        // New likes detected — spawn floating hearts
+        const diff = Math.min(newCount - prevCount, 5); // max 5 at once
+        for (let i = 0; i < diff; i++) {
+          const heartEmojis = ['❤️', '🧡', '💛', '💖', '💗', '💜'];
+          const animId = likeAnimIdRef.current++;
+          setLikeAnimations(prev => [...prev, {
+            id: animId,
+            x: 20 + Math.random() * 60, // 20%-80% from right
+            emoji: heartEmojis[Math.floor(Math.random() * heartEmojis.length)],
+          }]);
+          // Remove after animation
+          setTimeout(() => {
+            setLikeAnimations(prev => prev.filter(a => a.id !== animId));
+          }, 2500);
+        }
+      }
+      prevCount = newCount;
+    });
+    return () => unsubscribe();
   }, [livestreamData.livestreamId, status]);
 
   const handleCreateRoom = async () => {
@@ -199,6 +253,11 @@ const LivestreamPage = () => {
                   Share Link
                 </button>
               )}
+              {/* Viewer count badge */}
+              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/10 text-white rounded-full text-xs font-semibold">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                {viewerCount.toLocaleString()}
+              </span>
               <span className="flex items-center gap-1.5 px-3 py-1 bg-red-500 text-white rounded-full text-xs font-bold animate-pulse">
                 <span className="w-2 h-2 bg-white rounded-full"></span> LIVE
               </span>
@@ -237,6 +296,31 @@ const LivestreamPage = () => {
               {currentRestaurant?.name || 'Your Restaurant'}
             </p>
           </div>
+
+          {/* Floating heart animations (TikTok-style) */}
+          {likeAnimations.map(anim => (
+            <div
+              key={anim.id}
+              className="absolute pointer-events-none"
+              style={{
+                right: `${anim.x}px`,
+                bottom: '120px',
+                animation: 'floatHeart 2.5s ease-out forwards',
+                fontSize: '28px',
+                zIndex: 30,
+              }}
+            >
+              {anim.emoji}
+            </div>
+          ))}
+          <style>{`
+            @keyframes floatHeart {
+              0% { transform: translateY(0) scale(0.5); opacity: 0; }
+              10% { transform: translateY(-20px) scale(1.1); opacity: 1; }
+              50% { transform: translateY(-150px) scale(1) translateX(${Math.random() > 0.5 ? '' : '-'}20px); opacity: 0.8; }
+              100% { transform: translateY(-350px) scale(0.6) translateX(${Math.random() > 0.5 ? '' : '-'}40px); opacity: 0; }
+            }
+          `}</style>
         </div>
 
         {/* RIGHT PANEL: Chat + Products */}

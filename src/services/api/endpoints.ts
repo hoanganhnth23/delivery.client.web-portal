@@ -166,6 +166,16 @@ export const API_ENDPOINTS = {
     ADMIN_GET_ALL: '/api/promotions/admin',
     DELETE: (id: number) => `/api/promotions/${id}`,
   },
+
+  // ==================== DASHBOARD STATISTICS ====================
+  DASHBOARD: {
+    ADMIN: (period: string = 'month', year?: number) =>
+      `/api/dashboard/admin?period=${period}${year ? `&year=${year}` : ''}`,
+    RESTAURANT: (restaurantId: number, period: string = 'month', year?: number) =>
+      `/api/dashboard/restaurant/${restaurantId}?period=${period}${year ? `&year=${year}` : ''}`,
+    MY_RESTAURANT: (period: string = 'month', year?: number, restaurantId?: number) =>
+      `/api/dashboard/my-restaurant?period=${period}${year ? `&year=${year}` : ''}${restaurantId ? `&restaurantId=${restaurantId}` : ''}`,
+  },
 } as const;
 
 export default API_ENDPOINTS;

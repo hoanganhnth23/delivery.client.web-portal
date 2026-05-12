@@ -6,6 +6,7 @@ import { useRef, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useViewerLivestream } from '../hooks/useViewerLivestream';
 import PinnedProductCard from '../components/PinnedProductCard';
+import LivestreamChat from '../components/LivestreamChat';
 import { livestreamRealtimeService, LiveProductPin } from '../services/livestreamRealtimeService';
 
 const ViewerLivestreamPage = () => {
@@ -22,12 +23,8 @@ const ViewerLivestreamPage = () => {
 
   const [pinnedProduct, setPinnedProduct] = useState<LiveProductPin | null>(null);
   const [likeCount, setLikeCount] = useState(0);
-  const [messages, setMessages] = useState<{ id: string; user: string; initials: string; color: string; text: string; starred?: boolean }[]>([
-    { id: '1', user: 'JohnDoe88', initials: 'JD', color: '#f49d25', text: 'That crust looks incredible! 😁' },
-    { id: '2', user: 'SarahA', initials: 'SA', color: '#22c55e', text: "Just ordered two for delivery! Can't wait.", starred: true },
-    { id: '3', user: 'MikeT', initials: 'MT', color: '#8b5cf6', text: 'What wood are you using for the smoke?' },
-  ]);
-  const [chatInput, setChatInput] = useState('');
+  const [likeAnimations, setLikeAnimations] = useState<{ id: number; x: number; emoji: string }[]>([]);
+  const likeAnimIdRef = useRef(0);
 
   const remoteVideoContainerRef = useRef<HTMLDivElement>(null);
 
@@ -39,10 +36,37 @@ const ViewerLivestreamPage = () => {
     if (livestreamId && status === 'WATCHING') {
       const unsubscribe = livestreamRealtimeService.subscribeToMetadata(livestreamId, (meta) => {
         if (meta?.pinnedProduct) setPinnedProduct(meta.pinnedProduct);
+        else setPinnedProduct(null);
         if (meta?.likeCount) setLikeCount(meta.likeCount);
       });
       return () => unsubscribe();
     }
+  }, [livestreamId, status]);
+
+  // Subscribe to likes for floating heart animations
+  useEffect(() => {
+    if (!livestreamId || status !== 'WATCHING') return;
+    let prevCount = 0;
+    const unsubscribe = livestreamRealtimeService.subscribeToLikes(livestreamId, (likes) => {
+      const newCount = likes.length;
+      if (newCount > prevCount) {
+        const diff = Math.min(newCount - prevCount, 5);
+        for (let i = 0; i < diff; i++) {
+          const heartEmojis = ['❤️', '🧡', '💛', '💖', '💗', '💜'];
+          const animId = likeAnimIdRef.current++;
+          setLikeAnimations(prev => [...prev, {
+            id: animId,
+            x: 20 + Math.random() * 60,
+            emoji: heartEmojis[Math.floor(Math.random() * heartEmojis.length)],
+          }]);
+          setTimeout(() => {
+            setLikeAnimations(prev => prev.filter(a => a.id !== animId));
+          }, 2500);
+        }
+      }
+      prevCount = newCount;
+    });
+    return () => unsubscribe();
   }, [livestreamId, status]);
 
   useEffect(() => {
@@ -71,20 +95,6 @@ const ViewerLivestreamPage = () => {
   const handleLike = () => {
     setLikeCount(prev => prev + 1);
     if (livestreamId) livestreamRealtimeService.sendLike(livestreamId);
-  };
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim()) return;
-    const newMsg = {
-      id: Date.now().toString(),
-      user: 'Bạn',
-      initials: 'BN',
-      color: '#f49d25',
-      text: chatInput.trim(),
-    };
-    setMessages(prev => [...prev, newMsg]);
-    setChatInput('');
   };
 
   return (
@@ -144,6 +154,31 @@ const ViewerLivestreamPage = () => {
             <p className="text-white text-xs font-semibold">{viewerCount.toLocaleString() || '4,281'} watching</p>
           </div>
         </div>
+
+        {/* Floating heart animations (TikTok-style) */}
+        {likeAnimations.map(anim => (
+          <div
+            key={anim.id}
+            className="absolute pointer-events-none"
+            style={{
+              right: `${anim.x}px`,
+              bottom: '120px',
+              animation: 'floatHeart 2.5s ease-out forwards',
+              fontSize: '28px',
+              zIndex: 30,
+            }}
+          >
+            {anim.emoji}
+          </div>
+        ))}
+        <style>{`
+          @keyframes floatHeart {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            10% { transform: translateY(-20px) scale(1.1); opacity: 1; }
+            50% { transform: translateY(-150px) scale(1) translateX(20px); opacity: 0.8; }
+            100% { transform: translateY(-350px) scale(0.6) translateX(-20px); opacity: 0; }
+          }
+        `}</style>
       </div>
 
       {/* RIGHT: Chat Panel */}
@@ -155,72 +190,27 @@ const ViewerLivestreamPage = () => {
           </div>
         )}
 
-        {/* Demo pinned product or empty */}
-        {!pinnedProduct && (
-          <div className="p-3 border-b border-gray-100 bg-gray-50">
-            <div className="flex items-center gap-3 bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
-              <div className="w-14 h-14 rounded-xl overflow-hidden bg-orange-100 shrink-0 flex items-center justify-center">
-                <span className="text-2xl">🥩</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs font-bold text-white bg-red-500 px-2 py-0.5 rounded-full">Live Now</span>
-                </div>
-                <p className="text-sm font-bold text-gray-800 truncate">Signature Fired Ribeye</p>
-                <p className="text-xs text-gray-500 truncate">Limited portions available...</p>
-                <button className="mt-1.5 w-full py-1.5 bg-[#f49d25] text-white text-xs font-bold rounded-full hover:bg-orange-500 transition-all">
-                  Order Now
-                </button>
-              </div>
-            </div>
+        {/* Real-time Chat via Firebase */}
+        {livestreamId && (
+          <div className="flex-1 flex flex-col min-h-0">
+            <LivestreamChat livestreamId={livestreamId} role="viewer" />
           </div>
         )}
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map(msg => (
-            <div key={msg.id} className="flex items-start gap-2.5">
-              <div
-                className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-bold"
-                style={{ background: msg.color }}
-              >
-                {msg.initials}
-              </div>
-              <div className="flex-1 min-w-0 bg-gray-50 rounded-2xl rounded-tl-none px-3 py-2.5">
-                <div className="flex items-center gap-1 mb-1">
-                  <span className="text-xs font-bold" style={{ color: msg.color }}>{msg.user}</span>
-                  {msg.starred && (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="#f49d25"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                  )}
-                </div>
-                <p className="text-sm text-gray-700 leading-snug">{msg.text}</p>
-              </div>
-            </div>
-          ))}
+        {/* Like button */}
+        <div className="px-4 pb-3 flex justify-end">
+          <button
+            type="button"
+            onClick={handleLike}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-orange-50 border border-orange-100 text-orange-500 hover:bg-orange-100 transition-all active:scale-95"
+            title="Thả tim"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={likeCount > 0 ? '#f49d25' : 'none'} stroke="#f49d25" strokeWidth="2">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+            {likeCount > 0 && <span className="text-xs font-bold">{likeCount}</span>}
+          </button>
         </div>
-
-        {/* Chat Input */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-100">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              placeholder="Say something..."
-              className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 placeholder:text-gray-400"
-            />
-            <button
-              type="button"
-              onClick={handleLike}
-              className="w-10 h-10 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-400 hover:bg-orange-100 transition-all active:scale-90"
-              title="Thả tim"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill={likeCount > 0 ? '#f49d25' : 'none'} stroke="#f49d25" strokeWidth="2">
-                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
-              </svg>
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );

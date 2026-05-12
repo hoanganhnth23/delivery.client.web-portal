@@ -1,15 +1,13 @@
 import { 
   collection, 
-  addDoc, 
   query, 
-  where, 
   orderBy, 
   onSnapshot, 
   serverTimestamp,
   doc,
-  updateDoc,
   setDoc,
-  Unsubscribe
+  Unsubscribe,
+  limit,
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
 
@@ -20,6 +18,17 @@ export interface LiveMessage {
   senderName: string;
   senderRole: 'host' | 'viewer';
   content: string;
+  timestamp: any;
+}
+
+// Firestore comment document structure (matches Flutter's LivestreamCommentDto)
+interface FirestoreComment {
+  id: string;
+  livestreamId: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string | null;
+  message: string;
   timestamp: any;
 }
 
@@ -35,35 +44,50 @@ export interface LiveProductPin {
 export const livestreamRealtimeService = {
   /**
    * Gửi tin nhắn trong phòng live
+   * Path: livestreams/{livestreamId}/comments/{autoId}
+   * (Matches Flutter's sub-collection structure)
    */
   async sendMessage(livestreamId: string, message: Omit<LiveMessage, 'id' | 'timestamp'>) {
-    const data = {
-      ...message,
+    const commentId = `web_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    const commentData: FirestoreComment = {
+      id: commentId,
       livestreamId,
+      userId: message.senderId,
+      userName: message.senderName,
+      userAvatar: null,
+      message: message.content,
       timestamp: serverTimestamp(),
     };
-    return await addDoc(collection(db, 'livestream_messages'), data);
+    // Use setDoc with the generated ID to match Flutter's doc(comment.id).set() pattern
+    const docRef = doc(db, 'livestreams', livestreamId, 'comments', commentId);
+    return await setDoc(docRef, commentData);
   },
 
   /**
    * Lắng nghe tin nhắn real-time
+   * Path: livestreams/{livestreamId}/comments (ordered by timestamp ASC)
+   * (Matches Flutter's streamComments query)
    */
   subscribeToMessages(livestreamId: string, callback: (messages: LiveMessage[]) => void): Unsubscribe {
     const q = query(
-      collection(db, 'livestream_messages'),
-      where('livestreamId', '==', livestreamId),
-      orderBy('timestamp', 'asc')
+      collection(db, 'livestreams', livestreamId, 'comments'),
+      orderBy('timestamp', 'asc'),
+      limit(100),
     );
 
     return onSnapshot(q, (snapshot) => {
       const messages: LiveMessage[] = [];
-      snapshot.forEach((doc) => {
-        const data = doc.data();
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data() as FirestoreComment;
         messages.push({
-          id: doc.id,
-          ...data,
+          id: docSnap.id,
+          livestreamId: data.livestreamId,
+          senderId: data.userId,
+          senderName: data.userName,
+          senderRole: 'viewer', // Default; could be enriched later
+          content: data.message,
           timestamp: data.timestamp?.toDate() || new Date(),
-        } as LiveMessage);
+        });
       });
       callback(messages);
     });
@@ -71,11 +95,10 @@ export const livestreamRealtimeService = {
 
   /**
    * Ghim sản phẩm lên livestream
+   * Path: livestreams_metadata/{livestreamId}
    */
   async pinProduct(livestreamId: string, product: LiveProductPin) {
     const liveRef = doc(db, 'livestreams_metadata', livestreamId);
-    // Sử dụng setDoc với { merge: true } thay vì updateDoc
-    // để tránh lỗi "No document to update" nếu document chưa tồn tại
     return await setDoc(liveRef, {
       pinnedProduct: {
         ...product,
@@ -89,6 +112,7 @@ export const livestreamRealtimeService = {
 
   /**
    * Lắng nghe metadata của livestream (ghim sản phẩm, interactions)
+   * Path: livestreams_metadata/{livestreamId}
    */
   subscribeToMetadata(livestreamId: string, callback: (metadata: any) => void): Unsubscribe {
     const docRef = doc(db, 'livestreams_metadata', livestreamId);
@@ -101,9 +125,40 @@ export const livestreamRealtimeService = {
 
   /**
    * Thả tim (Like)
+   * Path: livestreams/{livestreamId}/likes/{autoId}
+   * (Matches Flutter's sendLike structure)
    */
-  async sendLike(_livestreamId: string) {
-    // Increment like count in Firestore
-    // Implement as needed
-  }
+  async sendLike(livestreamId: string) {
+    const likeId = `web_like_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    const likeData = {
+      id: likeId,
+      livestreamId,
+      userId: 'web_user',
+      userName: null,
+      userAvatar: null,
+      timestamp: serverTimestamp(),
+    };
+    const docRef = doc(db, 'livestreams', livestreamId, 'likes', likeId);
+    return await setDoc(docRef, likeData);
+  },
+
+  /**
+   * Lắng nghe likes real-time (for floating heart animations)
+   * Path: livestreams/{livestreamId}/likes
+   */
+  subscribeToLikes(livestreamId: string, callback: (likes: any[]) => void): Unsubscribe {
+    const q = query(
+      collection(db, 'livestreams', livestreamId, 'likes'),
+      orderBy('timestamp', 'desc'),
+      limit(50),
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      const likes: any[] = [];
+      snapshot.forEach((docSnap) => {
+        likes.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      callback(likes);
+    });
+  },
 };
