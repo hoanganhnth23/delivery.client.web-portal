@@ -127,6 +127,7 @@ export const API_ENDPOINTS = {
     // Product endpoints
     PIN_PRODUCT: (id: string) => `/api/livestreams/${id}/products/pin`,
     UNPIN_PRODUCT: (id: string, productId: number) => `/api/livestreams/${id}/products/${productId}/pin`,
+    REMOVE_PRODUCT: (id: string, productId: number) => `/api/livestreams/${id}/products/${productId}`,
     GET_PRODUCTS: (id: string) => `/api/livestreams/${id}/products`,
     GET_PINNED_PRODUCTS: (id: string) => `/api/livestreams/${id}/products/pinned`,
   },

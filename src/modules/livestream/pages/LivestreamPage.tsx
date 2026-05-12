@@ -67,9 +67,9 @@ const LivestreamPage = () => {
     if (livestreamData.livestreamId && status === 'LIVE' && !videoTrack && !loading) {
       // Small timeout to let state settle
       const timer = setTimeout(() => {
-         joinLive().catch(err => {
-            console.error('Auto join failed:', err);
-         });
+        joinLive().catch(err => {
+          console.error('Auto join failed:', err);
+        });
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -135,8 +135,8 @@ const LivestreamPage = () => {
   };
 
   const handleEndLive = async () => {
-    try { 
-      await endLive(); 
+    try {
+      await endLive();
       alert('✅ Đã kết thúc livestream thành công!');
       navigate(ROUTES.RESTAURANT_LIVESTREAM_MANAGEMENT);
     }
@@ -215,11 +215,11 @@ const LivestreamPage = () => {
           {/* Overlay controls inside Active Stream */}
           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/60 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 z-10">
             <button onClick={handleToggleMic} className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all ${isMicMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-white/10 hover:bg-white/20'}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 21v-4M8 21h8"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 10a7 7 0 0014 0M12 21v-4M8 21h8" /></svg>
               {isMicMuted && <div className="absolute w-[2px] h-6 bg-white rotate-45"></div>}
             </button>
             <button onClick={handleToggleCam} className={`w-12 h-12 rounded-full flex items-center justify-center text-white transition-all ${isCamMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-white/10 hover:bg-white/20'}`}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" /></svg>
               {isCamMuted && <div className="absolute w-[2px] h-6 bg-white rotate-45"></div>}
             </button>
           </div>
@@ -262,7 +262,7 @@ const LivestreamPage = () => {
             {activeTab === 'chat' && livestreamData.livestreamId ? (
               <LivestreamChat livestreamId={livestreamData.livestreamId} role="host" />
             ) : activeTab === 'products' && currentRestaurant ? (
-              <LiveProductList restaurantId={currentRestaurant.id} livestreamId={livestreamData.livestreamId || ''} />
+              <LiveProductList restaurantId={currentRestaurant.id} livestreamId={livestreamData.livestreamId || ''} restaurantName={currentRestaurant.name} isLive={true} />
             ) : (
               <div className="h-full flex items-center justify-center text-gray-400 text-sm italic">
                 Đang tải...
@@ -414,6 +414,18 @@ const LivestreamPage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Product Setup Card (only after room is created) */}
+              {livestreamData.livestreamId && currentRestaurant && (
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden" style={{ height: '400px' }}>
+                  <LiveProductList
+                    restaurantId={currentRestaurant.id}
+                    livestreamId={livestreamData.livestreamId}
+                    restaurantName={currentRestaurant.name}
+                    isLive={false}
+                  />
+                </div>
+              )}
             </div>
 
             {/* RIGHT: Preview + Go Live */}
@@ -445,7 +457,7 @@ const LivestreamPage = () => {
                 {/* Controls overlay */}
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
                   <button onClick={handleToggleMic} className={`w-10 h-10 ${isMicMuted ? 'bg-red-500' : 'bg-black/60'} backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10 relative`}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0014 0M12 21v-4M8 21h8"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="2" width="6" height="11" rx="3" /><path d="M5 10a7 7 0 0014 0M12 21v-4M8 21h8" /></svg>
                     {isMicMuted && <div className="absolute w-[2px] h-5 bg-white rotate-45"></div>}
                   </button>
                   <button onClick={handleToggleCam} className={`w-10 h-10 ${isCamMuted ? 'bg-red-500' : 'bg-black/60'} backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-all border border-white/10 relative`}>
@@ -474,7 +486,7 @@ const LivestreamPage = () => {
                 <div className="mt-5 flex flex-col gap-3">
                   {status === 'LOADING' || loading ? (
                     <div className="w-full py-4 bg-gray-100 rounded-2xl animate-pulse flex items-center justify-center text-gray-500 font-semibold text-sm">
-                       Đang xử lý...
+                      Đang xử lý...
                     </div>
                   ) : status === 'IDLE' || status === 'ENDED' || !livestreamData.livestreamId ? (
                     <button

@@ -61,6 +61,31 @@ export interface LivestreamResponse {
   updatedAt: string;
 }
 
+// Request payload cho pin product
+export interface PinProductRequest {
+  productId: number;
+  priceAtLive: number;
+  productName: string;
+  productImage: string;
+  restaurantId: number;
+  restaurantName: string;
+}
+
+// Product response từ backend
+export interface LivestreamProductResponse {
+  id: number;
+  livestreamId: string;
+  productId: number;
+  productName: string;
+  productImage: string;
+  restaurantId: number;
+  restaurantName: string;
+  priceAtLive: number;
+  isPinned: boolean;
+  createdAt: string;
+  pinnedAt?: string;
+}
+
 // ============================================
 // API FUNCTIONS
 // ============================================
@@ -148,6 +173,86 @@ export const livestreamApi = {
         API_ENDPOINTS.LIVESTREAM.GET_BY_SELLER(sellerId)
       );
       return handleResponse<LivestreamResponse[]>(response);
+    } catch (error) {
+      throw handleError(error);
+    }
+  },
+
+  // ============================================
+  // PRODUCT MANAGEMENT
+  // ============================================
+
+  /**
+   * Ghim sản phẩm vào livestream
+   * POST /api/livestreams/{id}/products/pin
+   */
+  async pinProduct(livestreamId: string, request: PinProductRequest): Promise<LivestreamProductResponse> {
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.LIVESTREAM.PIN_PRODUCT(livestreamId),
+        request
+      );
+      return handleResponse<LivestreamProductResponse>(response);
+    } catch (error) {
+      throw handleError(error);
+    }
+  },
+
+  /**
+   * Bỏ ghim sản phẩm
+   * DELETE /api/livestreams/{id}/products/{productId}/pin
+   */
+  async unpinProduct(livestreamId: string, productId: number): Promise<void> {
+    try {
+      const response = await apiClient.delete(
+        API_ENDPOINTS.LIVESTREAM.UNPIN_PRODUCT(livestreamId, productId)
+      );
+      return handleResponse(response);
+    } catch (error) {
+      throw handleError(error);
+    }
+  },
+
+  /**
+   * Xóa hẳn sản phẩm khỏi livestream
+   * DELETE /api/livestreams/{id}/products/{productId}
+   */
+  async removeProduct(livestreamId: string, productId: number): Promise<void> {
+    try {
+      const response = await apiClient.delete(
+        API_ENDPOINTS.LIVESTREAM.REMOVE_PRODUCT(livestreamId, productId)
+      );
+      return handleResponse(response);
+    } catch (error) {
+      throw handleError(error);
+    }
+  },
+
+  /**
+   * Lấy tất cả sản phẩm của livestream
+   * GET /api/livestreams/{id}/products
+   */
+  async getProducts(livestreamId: string): Promise<LivestreamProductResponse[]> {
+    try {
+      const response = await apiClient.get(
+        API_ENDPOINTS.LIVESTREAM.GET_PRODUCTS(livestreamId)
+      );
+      return handleResponse<LivestreamProductResponse[]>(response);
+    } catch (error) {
+      throw handleError(error);
+    }
+  },
+
+  /**
+   * Lấy sản phẩm đang ghim
+   * GET /api/livestreams/{id}/products/pinned
+   */
+  async getPinnedProducts(livestreamId: string): Promise<LivestreamProductResponse[]> {
+    try {
+      const response = await apiClient.get(
+        API_ENDPOINTS.LIVESTREAM.GET_PINNED_PRODUCTS(livestreamId)
+      );
+      return handleResponse<LivestreamProductResponse[]>(response);
     } catch (error) {
       throw handleError(error);
     }

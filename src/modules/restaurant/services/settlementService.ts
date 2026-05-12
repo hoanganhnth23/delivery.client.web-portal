@@ -45,10 +45,11 @@ export interface WithdrawalRequest {
 
 export interface CreatePaymentRequest {
   entityId: number;
-  entityType?: string;
+  entityType: string; // 'SHIPPER' | 'RESTAURANT'
+  orderId?: number;
   amount: number;
   provider?: string;  // 'VNPAY' | 'FAKE' | 'MOMO'
-  purpose?: string;   // 'DEPOSIT_TOPUP'
+  purpose?: string;   // 'DEPOSIT_TOPUP' | 'ORDER_PAYMENT'
   returnUrl?: string;
   ipAddress?: string;
 }

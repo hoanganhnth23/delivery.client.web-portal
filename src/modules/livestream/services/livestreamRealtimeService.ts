@@ -8,6 +8,7 @@ import {
   serverTimestamp,
   doc,
   updateDoc,
+  setDoc,
   Unsubscribe
 } from 'firebase/firestore';
 import { db } from '@/config/firebase';
@@ -73,14 +74,14 @@ export const livestreamRealtimeService = {
    */
   async pinProduct(livestreamId: string, product: LiveProductPin) {
     const liveRef = doc(db, 'livestreams_metadata', livestreamId);
-    return await updateDoc(liveRef, {
+    // Sử dụng setDoc với { merge: true } thay vì updateDoc
+    // để tránh lỗi "No document to update" nếu document chưa tồn tại
+    return await setDoc(liveRef, {
       pinnedProduct: {
         ...product,
         updatedAt: serverTimestamp(),
       }
-    }).catch(async (err) => {
-      // Nếu doc chưa tồn tại thì tạo mới (dùng setDoc)
-      // Nhưng thường thì metadata nên được tạo khi start live
+    }, { merge: true }).catch(async (err) => {
       console.error('Error pinning product:', err);
       throw err;
     });
