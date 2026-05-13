@@ -167,14 +167,14 @@ export const API_ENDPOINTS = {
     DELETE: (id: number) => `/api/promotions/${id}`,
   },
 
-  // ==================== DASHBOARD STATISTICS ====================
+  // ==================== DASHBOARD STATISTICS (analytics-service) ====================
   DASHBOARD: {
     ADMIN: (period: string = 'month', year?: number) =>
-      `/api/dashboard/admin?period=${period}${year ? `&year=${year}` : ''}`,
+      `/api/analytics/dashboard/admin?period=${period}${year ? `&year=${year}` : ''}`,
     RESTAURANT: (restaurantId: number, period: string = 'month', year?: number) =>
-      `/api/dashboard/restaurant/${restaurantId}?period=${period}${year ? `&year=${year}` : ''}`,
+      `/api/analytics/dashboard/restaurant/${restaurantId}?period=${period}${year ? `&year=${year}` : ''}`,
     MY_RESTAURANT: (period: string = 'month', year?: number, restaurantId?: number) =>
-      `/api/dashboard/my-restaurant?period=${period}${year ? `&year=${year}` : ''}${restaurantId ? `&restaurantId=${restaurantId}` : ''}`,
+      `/api/analytics/dashboard/my-restaurant?period=${period}${year ? `&year=${year}` : ''}${restaurantId ? `&restaurantId=${restaurantId}` : ''}`,
   },
 } as const;
 

@@ -207,6 +207,8 @@ const TopItems = ({ items }: { items: { name: string; orders: number; revenue: n
 const RestaurantDashboard = () => {
   const { currentRestaurant } = useRestaurant();
   const [period, setPeriod] = useState<TimePeriod>('month');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(true);
   const [apiData, setApiData] = useState<RestaurantDashboardResponse | null>(null);
 
   const formatCurrency = (amount: number) =>
@@ -216,16 +218,19 @@ const RestaurantDashboard = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
+        setLoading(true);
         const data = await adminService.fetchMyRestaurantDashboard(
-          period, undefined, currentRestaurant?.id ? Number(currentRestaurant.id) : undefined
+          period, selectedYear, currentRestaurant?.id ? Number(currentRestaurant.id) : undefined
         );
         if (data) setApiData(data);
       } catch {
         // fallback to mock
+      } finally {
+        setLoading(false);
       }
     };
     loadData();
-  }, [period, currentRestaurant?.id]);
+  }, [period, selectedYear, currentRestaurant?.id]);
 
   const toChartData = (series: TimeSeriesPoint[] | undefined, extractor: (p: TimeSeriesPoint) => number): ChartDataPoint[] => {
     if (series && series.length > 0) {
@@ -287,10 +292,22 @@ const RestaurantDashboard = () => {
       <main className="flex flex-1 flex-col overflow-hidden">
         <RestaurantHeader
           title="Dashboard"
-          subtitle="Tổng quan doanh thu và hiệu suất"
+          subtitle={`Tổng quan doanh thu và hiệu suất ${selectedYear}`}
           showSearch={false}
           actions={
             <div className="flex items-center gap-2">
+              {/* Year Selector */}
+              {period !== 'year' && (
+                <select
+                  value={selectedYear}
+                  onChange={e => setSelectedYear(Number(e.target.value))}
+                  className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-none outline-none cursor-pointer"
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              )}
               {/* Period Selector */}
               <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 rounded-xl p-0.5">
                 {(['month', 'quarter', 'year'] as TimePeriod[]).map(p => (
@@ -307,6 +324,9 @@ const RestaurantDashboard = () => {
                   </button>
                 ))}
               </div>
+              {loading && (
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              )}
               <div className="flex items-center gap-3 rounded-full bg-green-100 dark:bg-green-900/30 px-4 py-1.5 border border-green-200 dark:border-green-800">
                 <div className="size-2 rounded-full bg-green-500 animate-pulse" />
                 <span className="text-xs font-bold text-green-700 dark:text-green-400">Đang mở cửa</span>

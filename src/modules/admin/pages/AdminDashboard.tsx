@@ -223,53 +223,21 @@ const StatCard = ({ icon, iconBg, label, value, change, changeType = 'up', link 
 
 // ==================== MAIN COMPONENT ====================
 const AdminDashboard = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    revenue: 0, orderCount: 0, restaurantCount: 0, pendingCount: 0, shipperCount: 0, userCount: 0,
-  });
   const [period, setPeriod] = useState<TimePeriod>('month');
-  const [_loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(true);
   const [apiData, setApiData] = useState<AdminDashboardResponse | null>(null);
 
+  // Load data when period or year changes
   useEffect(() => {
     loadDashboardData();
-  }, []);
-
-  // Reload chart data when period changes
-  useEffect(() => {
-    loadChartData();
-  }, [period]);
+  }, [period, selectedYear]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [rev, pending, orders, restaurants, dashboard] = await Promise.all([
-        adminService.fetchPlatformRevenue().catch(() => 0),
-        adminService.fetchPendingWithdrawals().catch(() => []),
-        adminService.fetchAllOrders().catch(() => []),
-        adminService.fetchAllRestaurants().catch(() => []),
-        adminService.fetchAdminDashboard('month').catch(() => null),
-      ]);
-
-      if (dashboard) {
-        setApiData(dashboard);
-        setStats({
-          revenue: dashboard.overview?.totalRevenue || rev || 0,
-          pendingCount: dashboard.overview?.pendingOrders || pending?.length || 0,
-          orderCount: dashboard.overview?.totalOrders || orders?.length || 0,
-          restaurantCount: restaurants?.length || 0,
-          shipperCount: 28,
-          userCount: 1245,
-        });
-      } else {
-        setStats({
-          revenue: rev || 0,
-          pendingCount: pending?.length || 0,
-          orderCount: orders?.length || 0,
-          restaurantCount: restaurants?.length || 0,
-          shipperCount: 28,
-          userCount: 1245,
-        });
-      }
+      const data = await adminService.fetchAdminDashboard(period, selectedYear);
+      if (data) setApiData(data);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -277,17 +245,19 @@ const AdminDashboard = () => {
     }
   };
 
-  const loadChartData = async () => {
-    try {
-      const data = await adminService.fetchAdminDashboard(period);
-      if (data) setApiData(data);
-    } catch {
-      // fallback to mock data
-    }
-  };
-
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+
+  // Stats from API overview
+  const overview = apiData?.overview;
+  const stats: DashboardStats = {
+    revenue: overview?.totalRevenue || 0,
+    orderCount: overview?.totalOrders || 0,
+    restaurantCount: 0, // placeholder — analytics doesn't track this
+    pendingCount: overview?.pendingOrders || 0,
+    shipperCount: 0,
+    userCount: 0,
+  };
 
   // Convert API time series to chart format, fallback to mock
   const toChartData = (series: TimeSeriesPoint[] | undefined, extractor: (p: TimeSeriesPoint) => number): ChartDataPoint[] => {
@@ -344,33 +314,50 @@ const AdminDashboard = () => {
       <div className="flex items-center justify-between mb-6 mt-1">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white">Dashboard Thống kê</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Tổng quan hoạt động nền tảng</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Tổng quan hoạt động nền tảng {selectedYear}</p>
         </div>
-        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
-          {(['month', 'quarter', 'year'] as TimePeriod[]).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                period === p
-                  ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
-              }`}
+        <div className="flex items-center gap-3">
+          {/* Year Selector */}
+          {period !== 'year' && (
+            <select
+              value={selectedYear}
+              onChange={e => setSelectedYear(Number(e.target.value))}
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-none outline-none cursor-pointer"
             >
-              {p === 'month' ? 'Theo tháng' : p === 'quarter' ? 'Theo quý' : 'Theo năm'}
-            </button>
-          ))}
+              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          )}
+          {/* Period Tabs */}
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+            {(['month', 'quarter', 'year'] as TimePeriod[]).map(p => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                  period === p
+                    ? 'bg-white dark:bg-gray-700 text-primary shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                {p === 'month' ? 'Theo tháng' : p === 'quarter' ? 'Theo quý' : 'Theo năm'}
+              </button>
+            ))}
+          </div>
+          {loading && (
+            <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          )}
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-        <StatCard icon="payments" iconBg="#22c55e" label="Doanh thu" value={formatCurrency(stats.revenue)} change="+8.2%" changeType="up" />
-        <StatCard icon="receipt_long" iconBg="#8b5cf6" label="Tổng đơn hàng" value={stats.orderCount} change="+3.1%" changeType="up" link={ROUTES.ADMIN_ORDERS} />
-        <StatCard icon="storefront" iconBg="#f97316" label="Nhà hàng" value={stats.restaurantCount} change="+12%" changeType="up" link={ROUTES.ADMIN_RESTAURANTS} />
-        <StatCard icon="local_shipping" iconBg="#3b82f6" label="Shipper" value={stats.shipperCount} change="+5" changeType="up" />
-        <StatCard icon="group" iconBg="#ec4899" label="Người dùng" value={stats.userCount} change="+142" changeType="up" />
-        <StatCard icon="account_balance_wallet" iconBg="#eab308" label="Rút tiền chờ" value={stats.pendingCount} change={stats.pendingCount > 0 ? 'Cần xử lý' : ''} changeType="neutral" link={ROUTES.ADMIN_WITHDRAWALS} />
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+        <StatCard icon="payments" iconBg="#22c55e" label="Tổng doanh thu" value={formatCurrency(stats.revenue)} change={overview ? `${overview.deliveredOrders} đơn giao` : ''} changeType="up" />
+        <StatCard icon="receipt_long" iconBg="#8b5cf6" label="Tổng đơn hàng" value={stats.orderCount} change={overview ? `${overview.deliveryRate}% thành công` : ''} changeType="up" link={ROUTES.ADMIN_ORDERS} />
+        <StatCard icon="check_circle" iconBg="#f97316" label="Đã giao" value={overview?.deliveredOrders || 0} changeType="up" />
+        <StatCard icon="cancel" iconBg="#ef4444" label="Đã hủy" value={overview?.cancelledOrders || 0} changeType="down" />
+        <StatCard icon="hourglass_top" iconBg="#eab308" label="Đang xử lý" value={stats.pendingCount} change={stats.pendingCount > 0 ? 'Cần xử lý' : ''} changeType="neutral" link={ROUTES.ADMIN_WITHDRAWALS} />
       </div>
 
       {/* Charts Row */}
