@@ -8,6 +8,7 @@ import { useViewerLivestream } from '../hooks/useViewerLivestream';
 import PinnedProductCard from '../components/PinnedProductCard';
 import LivestreamChat from '../components/LivestreamChat';
 import { livestreamRealtimeService, LiveProductPin } from '../services/livestreamRealtimeService';
+import { livestreamApi, LivestreamProductResponse } from '../services/livestreamApi';
 
 const ViewerLivestreamPage = () => {
   const { livestreamId } = useParams<{ livestreamId: string }>();
@@ -26,10 +27,19 @@ const ViewerLivestreamPage = () => {
   const [likeAnimations, setLikeAnimations] = useState<{ id: number; x: number; emoji: string }[]>([]);
   const likeAnimIdRef = useRef(0);
 
+  const [products, setProducts] = useState<LivestreamProductResponse[]>([]);
+  const [isProductsExpanded, setIsProductsExpanded] = useState(false);
+
   const remoteVideoContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (livestreamId && status === 'IDLE') handleJoin();
+
+    if (livestreamId) {
+      livestreamApi.getProducts(livestreamId).then((data) => {
+        if (Array.isArray(data)) setProducts(data);
+      }).catch(console.error);
+    }
   }, [livestreamId]);
 
   useEffect(() => {
@@ -38,6 +48,11 @@ const ViewerLivestreamPage = () => {
         if (meta?.pinnedProduct) setPinnedProduct(meta.pinnedProduct);
         else setPinnedProduct(null);
         if (meta?.likeCount) setLikeCount(meta.likeCount);
+
+        // Always re-fetch the product list to ensure viewer has the latest state
+        livestreamApi.getProducts(livestreamId).then((data) => {
+          if (Array.isArray(data)) setProducts(data);
+        }).catch(console.error);
       });
       return () => unsubscribe();
     }
@@ -116,7 +131,7 @@ const ViewerLivestreamPage = () => {
               ) : (
                 <div className="text-center">
                   <div className="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center mb-4 mx-auto">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" className="opacity-50"><rect x="1" y="6" width="18" height="14" rx="2"/><path d="M19 10l4-2v8l-4-2"/></svg>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" className="opacity-50"><rect x="1" y="6" width="18" height="14" rx="2" /><path d="M19 10l4-2v8l-4-2" /></svg>
                   </div>
                   <p className="text-white/50 text-sm">Đang chờ host phát sóng...</p>
                 </div>
@@ -135,7 +150,7 @@ const ViewerLivestreamPage = () => {
           onClick={handleLeave}
           className="absolute top-5 right-5 w-9 h-9 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/10 hover:bg-white/10 transition-all"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
         </button>
 
         {/* Bottom: Host info + viewer count */}
@@ -150,7 +165,7 @@ const ViewerLivestreamPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md rounded-full px-3 py-1.5 w-fit">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f49d25" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f49d25" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
             <p className="text-white text-xs font-semibold">{viewerCount.toLocaleString() || '4,281'} watching</p>
           </div>
         </div>
@@ -190,6 +205,50 @@ const ViewerLivestreamPage = () => {
           </div>
         )}
 
+        {/* All Products List */}
+        {products.length > 0 && (
+          <div className="border-b border-gray-100 bg-white">
+            <div className="px-4 py-2 border-b border-gray-50 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-800">Sản phẩm trong phiên Live</h3>
+              <span className="text-xs font-semibold text-gray-500">{products.length} món</span>
+            </div>
+            <div className="p-2 space-y-2">
+              {(isProductsExpanded ? products : products.slice(0, 1)).map((product) => (
+                <div key={product.productId} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 hover:border-orange-200 hover:bg-orange-50/30 transition-all">
+                  <img
+                    src={product.productImage || 'https://via.placeholder.com/100'}
+                    alt={product.productName}
+                    className="w-12 h-12 rounded-lg object-cover shadow-sm"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-xs font-bold text-gray-800 truncate">{product.productName}</h4>
+                    <p className="text-xs text-orange-500 font-semibold mt-0.5">{product.priceAtLive.toLocaleString()}đ</p>
+                  </div>
+                  <button
+                    onClick={() => alert('Đã thêm vào giỏ hàng!')}
+                    className="shrink-0 w-8 h-8 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center hover:bg-orange-500 hover:text-white transition-all"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12h14" /></svg>
+                  </button>
+                </div>
+              ))}
+
+              {products.length > 1 && (
+                <button
+                  onClick={() => setIsProductsExpanded(!isProductsExpanded)}
+                  className="w-full mt-1 py-1.5 text-xs font-semibold text-orange-500 flex items-center justify-center gap-1 hover:bg-orange-50 rounded-lg transition-all"
+                >
+                  {isProductsExpanded ? (
+                    <>Thu gọn <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"></polyline></svg></>
+                  ) : (
+                    <>Xem thêm {products.length - 1} sản phẩm <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg></>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Real-time Chat via Firebase */}
         {livestreamId && (
           <div className="flex-1 flex flex-col min-h-0">
@@ -206,7 +265,7 @@ const ViewerLivestreamPage = () => {
             title="Thả tim"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill={likeCount > 0 ? '#f49d25' : 'none'} stroke="#f49d25" strokeWidth="2">
-              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
             </svg>
             {likeCount > 0 && <span className="text-xs font-bold">{likeCount}</span>}
           </button>

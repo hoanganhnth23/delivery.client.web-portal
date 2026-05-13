@@ -23,6 +23,7 @@ const LiveProductList: React.FC<LiveProductListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [activeView, setActiveView] = useState<'added' | 'menu'>('added');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Fetch menu items from restaurant
   useEffect(() => {
@@ -46,7 +47,13 @@ const LiveProductList: React.FC<LiveProductListProps> = ({
     if (!livestreamId) return;
     try {
       const products = await livestreamApi.getProducts(livestreamId);
-      setAddedProducts(products);
+      // Ensure we always have an array and the data is valid
+      if (Array.isArray(products)) {
+        setAddedProducts(products);
+      } else {
+        console.warn('API returned non-array products:', products);
+        setAddedProducts([]);
+      }
     } catch (err) {
       console.error('Failed to fetch livestream products:', err);
     }
@@ -101,12 +108,16 @@ const LiveProductList: React.FC<LiveProductListProps> = ({
   const handleRemoveProduct = async (product: LivestreamProductResponse) => {
     if (!livestreamId) return;
     setActionLoading(product.productId);
+
+    // Optimistically remove from local state first
+    setAddedProducts(prev => prev.filter(p => p.productId !== product.productId));
+
     try {
       await livestreamApi.removeProduct(livestreamId, product.productId);
-      
+
       // Sync to Firebase if it was pinned
       if (isLive && product.isPinned) {
-         const pinData: LiveProductPin = {
+        const pinData: LiveProductPin = {
           productId: product.productId,
           productName: product.productName,
           price: product.priceAtLive,
@@ -117,11 +128,18 @@ const LiveProductList: React.FC<LiveProductListProps> = ({
         await livestreamRealtimeService.pinProduct(livestreamId, pinData);
       }
 
-      await fetchAddedProducts();
+      // We don't necessarily need to re-fetch if the delete was successful, 
+      // but let's do it after a small delay to ensure backend state is synced
+      setTimeout(() => {
+        fetchAddedProducts();
+      }, 500);
+
       console.log('✅ Product removed:', product.productName);
     } catch (err) {
+      // Revert optimistic removal on failure
       console.error('Failed to remove product:', err);
       alert('❌ Xóa sản phẩm thất bại: ' + (err as Error).message);
+      fetchAddedProducts(); // Re-fetch to get correct state
     } finally {
       setActionLoading(null);
     }
@@ -133,7 +151,7 @@ const LiveProductList: React.FC<LiveProductListProps> = ({
     try {
       if (product.isPinned) {
         await livestreamApi.unpinProduct(livestreamId, product.productId);
-        
+
         // Sync unpin to Firebase
         const pinData: LiveProductPin = {
           productId: product.productId,
@@ -190,21 +208,19 @@ const LiveProductList: React.FC<LiveProductListProps> = ({
       <div className="flex border-b border-gray-200 dark:border-gray-700 shrink-0">
         <button
           onClick={() => setActiveView('added')}
-          className={`flex-1 py-2.5 text-xs font-bold tracking-wide transition-all border-b-2 ${
-            activeView === 'added'
-              ? 'border-orange-400 text-orange-500'
-              : 'border-transparent text-gray-400 hover:text-gray-600'
-          }`}
+          className={`flex-1 py-2.5 text-xs font-bold tracking-wide transition-all border-b-2 ${activeView === 'added'
+            ? 'border-orange-400 text-orange-500'
+            : 'border-transparent text-gray-400 hover:text-gray-600'
+            }`}
         >
           Đã thêm ({addedProducts.length})
         </button>
         <button
           onClick={() => setActiveView('menu')}
-          className={`flex-1 py-2.5 text-xs font-bold tracking-wide transition-all border-b-2 ${
-            activeView === 'menu'
-              ? 'border-orange-400 text-orange-500'
-              : 'border-transparent text-gray-400 hover:text-gray-600'
-          }`}
+          className={`flex-1 py-2.5 text-xs font-bold tracking-wide transition-all border-b-2 ${activeView === 'menu'
+            ? 'border-orange-400 text-orange-500'
+            : 'border-transparent text-gray-400 hover:text-gray-600'
+            }`}
         >
           Thực đơn
         </button>
@@ -241,63 +257,76 @@ const LiveProductList: React.FC<LiveProductListProps> = ({
               </p>
             </div>
           ) : (
-            addedProducts.map((product) => (
-              <div
-                key={product.id}
-                className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all ${
-                  product.isPinned
+            <>
+              {(isExpanded ? addedProducts : addedProducts.slice(0, 1)).map((product) => (
+                <div
+                  key={product.productId}
+                  className={`flex items-center gap-3 p-2.5 rounded-lg border transition-all ${product.isPinned
                     ? 'border-orange-300 bg-orange-50/50 shadow-sm'
                     : 'border-gray-100 dark:border-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <img
-                  src={product.productImage || 'https://via.placeholder.com/100'}
-                  alt={product.productName}
-                  className="w-12 h-12 rounded-lg object-cover shadow-sm"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <h4 className="text-xs font-bold text-gray-800 dark:text-white truncate">{product.productName}</h4>
-                    {product.isPinned && (
-                      <span className="text-[9px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full shrink-0">
-                        📌 Đang ghim
-                      </span>
-                    )}
+                    }`}
+                >
+                  <img
+                    src={product.productImage || 'https://via.placeholder.com/100'}
+                    alt={product.productName}
+                    className="w-12 h-12 rounded-lg object-cover shadow-sm"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="text-xs font-bold text-gray-800 dark:text-white truncate">{product.productName}</h4>
+                      {product.isPinned && (
+                        <span className="text-[9px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded-full shrink-0">
+                          📌 Đang ghim
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-orange-500 font-semibold">{product.priceAtLive.toLocaleString()}đ</p>
                   </div>
-                  <p className="text-xs text-orange-500 font-semibold">{product.priceAtLive.toLocaleString()}đ</p>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {/* Pin/Unpin button (only during LIVE) */}
-                  {isLive && (
-                    <button
-                      onClick={() => handleTogglePin(product)}
-                      disabled={actionLoading === product.productId}
-                      className={`p-1.5 rounded-lg transition-all disabled:opacity-50 ${
-                        product.isPinned
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* Pin/Unpin button (only during LIVE) */}
+                    {isLive && (
+                      <button
+                        onClick={() => handleTogglePin(product)}
+                        disabled={actionLoading === product.productId}
+                        className={`p-1.5 rounded-lg transition-all disabled:opacity-50 ${product.isPinned
                           ? 'bg-orange-500 text-white hover:bg-orange-600'
                           : 'bg-gray-100 text-gray-500 hover:bg-orange-50 hover:text-orange-500'
-                      }`}
-                      title={product.isPinned ? 'Bỏ ghim' : 'Ghim sản phẩm'}
+                          }`}
+                        title={product.isPinned ? 'Bỏ ghim' : 'Ghim sản phẩm'}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />
+                        </svg>
+                      </button>
+                    )}
+                    {/* Remove button */}
+                    <button
+                      onClick={() => handleRemoveProduct(product)}
+                      disabled={actionLoading === product.productId}
+                      className="p-1.5 rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all disabled:opacity-50"
+                      title="Xóa khỏi livestream"
                     >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 6L6 18M6 6l12 12" />
                       </svg>
                     </button>
-                  )}
-                  {/* Remove button */}
-                  <button
-                    onClick={() => handleRemoveProduct(product)}
-                    disabled={actionLoading === product.productId}
-                    className="p-1.5 rounded-lg bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all disabled:opacity-50"
-                    title="Xóa khỏi livestream"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 6L6 18M6 6l12 12" />
-                    </svg>
-                  </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+
+              {addedProducts.length > 1 && (
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="w-full mt-2 py-2 bg-orange-50 text-orange-600 rounded-lg text-sm font-semibold hover:bg-orange-100 transition-all flex items-center justify-center gap-1.5"
+                >
+                  {isExpanded ? (
+                    <>Thu gọn <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"></polyline></svg></>
+                  ) : (
+                    <>Xem thêm {addedProducts.length - 1} sản phẩm <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg></>
+                  )}
+                </button>
+              )}
+            </>
           )
         ) : (
           // === MENU PRODUCTS VIEW ===
