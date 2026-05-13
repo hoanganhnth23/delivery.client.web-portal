@@ -10,9 +10,9 @@ import type { OrderResponse, OrderListResponse } from '@/types/api.types';
 /**
  * Lấy danh sách orders của nhà hàng hiện tại
  */
-export const getMyOrders = async (): Promise<OrderListResponse> => {
+export const getMyOrders = async (page = 0, size = 10): Promise<OrderListResponse> => {
   const response = await apiClient.get<OrderListResponse>(
-    API_ENDPOINTS.ORDER.GET_MY_ORDERS
+    `${API_ENDPOINTS.ORDER.GET_MY_ORDERS}?page=${page}&size=${size}`
   );
   return response.data;
 };

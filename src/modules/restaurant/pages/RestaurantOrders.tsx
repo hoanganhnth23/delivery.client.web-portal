@@ -11,15 +11,28 @@ import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import type { Order } from '@/types/api.types';
 
 const RestaurantOrders = () => {
-  const { orders, loading, error, getMyOrders, updateOrderStatus } = useOrder();
+  const { 
+    orders, 
+    loading, 
+    error, 
+    getMyOrders, 
+    updateOrderStatus,
+    totalPages,
+    totalElements,
+    currentPage
+  } = useOrder();
   const { currentRestaurant } = useRestaurant();
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Load orders khi component mount
   useEffect(() => {
-    getMyOrders();
+    getMyOrders(0, 10);
   }, [getMyOrders]);
+
+  const handlePageChange = (newPage: number) => {
+    getMyOrders(newPage, 10);
+  };
 
   // Filter orders theo status
   const filteredOrders = selectedStatus === 'ALL' 
@@ -55,8 +68,8 @@ const RestaurantOrders = () => {
   const handleStatusChange = async (orderId: number, newStatus: string) => {
     const result = await updateOrderStatus(orderId, newStatus);
     if (result.success) {
-      // Refresh orders
-      await getMyOrders();
+      // Refresh orders on the same page
+      await getMyOrders(currentPage, 10);
     }
   };
 
@@ -92,7 +105,7 @@ const RestaurantOrders = () => {
         {/* Header */}
         <RestaurantHeader
           title="Quản lý đơn hàng"
-          subtitle={`${filteredOrders.length} đơn hàng`}
+          subtitle={`${totalElements} đơn hàng`}
           showSearch={false}
         />
 
@@ -156,170 +169,140 @@ const RestaurantOrders = () => {
             {!loading && !error && filteredOrders.length > 0 && (
               <div className="grid grid-cols-1 gap-4">
                 {filteredOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    {/* Order Header */}
-                    <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <span className="material-symbols-outlined text-3xl text-primary">shopping_bag</span>
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  <div key={order.id} className="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-all">
+                    <div className="flex flex-col lg:flex-row justify-between gap-6">
+                      <div className="flex-1 space-y-4">
+                        <div className="flex items-center justify-between lg:justify-start lg:gap-4">
+                          <h4 className="text-lg font-bold text-gray-900 dark:text-white">
                             Đơn hàng #{order.id}
-                          </h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {formatDate(order.createdAt)}
+                          </h4>
+                          <span className={`
+                            px-3 py-1 rounded-full text-xs font-bold
+                            ${order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : ''}
+                            ${order.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
+                            ${order.status === 'PREPARING' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
+                            ${order.status === 'READY' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : ''}
+                            ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
+                            ${order.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : ''}
+                          `}>
+                            {getStatusLabel(order.status)}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex items-start gap-3">
+                            <span className="material-symbols-outlined text-gray-400 mt-1">person</span>
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold">Khách hàng</p>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{order.customerName}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{order.customerPhone}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-start gap-3">
+                            <span className="material-symbols-outlined text-gray-400 mt-1">schedule</span>
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold">Thời gian</p>
+                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(order.createdAt)}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-start gap-3 md:col-span-2">
+                            <span className="material-symbols-outlined text-gray-400 mt-1">location_on</span>
+                            <div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold">Địa chỉ giao hàng</p>
+                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 line-clamp-2">{order.deliveryAddress}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Order Items Summary */}
+                        <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold mb-2">Sản phẩm ({order.items?.length || 0})</p>
+                          <div className="flex flex-wrap gap-2">
+                            {order.items?.map((item, idx) => (
+                              <span key={idx} className="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300">
+                                {item.quantity}x {item.menuItemName}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col justify-between items-end gap-6 border-t lg:border-t-0 lg:border-l border-border-light dark:border-border-dark pt-6 lg:pt-0 lg:pl-6 min-w-[220px]">
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold mb-1">Tổng cộng</p>
+                          <p className="text-2xl font-black text-primary">
+                            {formatCurrency(order.totalPrice)}
                           </p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`
-                          px-3 py-1 rounded-full text-xs font-bold
-                          ${getStatusColor(order.status) === 'yellow' && 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'}
-                          ${getStatusColor(order.status) === 'blue' && 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'}
-                          ${getStatusColor(order.status) === 'purple' && 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'}
-                          ${getStatusColor(order.status) === 'green' && 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'}
-                          ${getStatusColor(order.status) === 'red' && 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}
-                          ${getStatusColor(order.status) === 'orange' && 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'}
-                          ${getStatusColor(order.status) === 'gray' && 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'}
-                        `}>
-                          {getStatusLabel(order.status)}
-                        </span>
-                        <button
-                          onClick={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                        >
-                          <span className="material-symbols-outlined">
-                            {selectedOrder?.id === order.id ? 'expand_less' : 'expand_more'}
-                          </span>
-                        </button>
-                      </div>
-                    </div>
 
-                    {/* Order Summary */}
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Khách hàng</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{order.customerName}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{order.customerPhone}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Địa chỉ giao hàng</p>
-                        <p className="text-sm text-gray-900 dark:text-white">{order.deliveryAddress}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tổng tiền</p>
-                        <p className="text-xl font-bold text-primary">{formatCurrency(order.totalPrice)}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">{order.paymentMethod}</p>
-                      </div>
-                    </div>
-
-                    {/* Order Details (Expandable) */}
-                    {selectedOrder?.id === order.id && (
-                      <div className="border-t border-border-light dark:border-border-dark p-4 bg-gray-50 dark:bg-gray-900/20">
-                        <h4 className="font-bold text-gray-900 dark:text-white mb-3">Chi tiết món ăn</h4>
-                        <div className="space-y-2">
-                          {order.items.map((item) => (
-                            <div key={item.id} className="flex items-center justify-between py-2">
-                              <div className="flex items-center gap-3">
-                                <span className="w-8 h-8 flex items-center justify-center bg-primary/10 text-primary rounded-lg font-bold">
-                                  {item.quantity}x
-                                </span>
-                                <div>
-                                  <p className="font-semibold text-gray-900 dark:text-white">{item.menuItemName}</p>
-                                  {item.notes && (
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">Ghi chú: {item.notes}</p>
-                                  )}
-                                </div>
-                              </div>
-                              <p className="font-semibold text-gray-900 dark:text-white">
-                                {formatCurrency(item.price * item.quantity)}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Pricing Breakdown */}
-                        <div className="mt-4 pt-4 border-t border-border-light dark:border-border-dark space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Tạm tính</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(order.subtotalPrice)}</span>
-                          </div>
-                          {order.discountAmount > 0 && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Giảm giá</span>
-                              <span className="font-semibold text-green-600">-{formatCurrency(order.discountAmount)}</span>
-                            </div>
+                        <div className="flex gap-2 w-full lg:w-auto">
+                          {order.status === 'PENDING' && (
+                            <button
+                              onClick={() => handleStatusChange(order.id, 'CONFIRMED')}
+                              className="flex-1 lg:flex-none px-4 py-2.5 bg-primary hover:bg-orange-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+                            >
+                              <span className="material-symbols-outlined text-lg">check_circle</span>
+                              Xác nhận
+                            </button>
                           )}
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Phí giao hàng</span>
-                            <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(order.shippingFee)}</span>
-                          </div>
-                          <div className="flex justify-between text-lg font-bold pt-2 border-t border-border-light dark:border-border-dark">
-                            <span className="text-gray-900 dark:text-white">Tổng cộng</span>
-                            <span className="text-primary">{formatCurrency(order.totalPrice)}</span>
-                          </div>
+                          {order.status === 'CONFIRMED' && (
+                            <button
+                              onClick={() => handleStatusChange(order.id, 'PREPARING')}
+                              className="flex-1 lg:flex-none px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+                            >
+                              <span className="material-symbols-outlined text-lg">cooking</span>
+                              Chế biến
+                            </button>
+                          )}
+                          {order.status === 'PREPARING' && (
+                            <button
+                              onClick={() => handleStatusChange(order.id, 'READY')}
+                              className="flex-1 lg:flex-none px-4 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+                            >
+                              <span className="material-symbols-outlined text-lg">restaurant</span>
+                              Sẵn sàng
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setSelectedOrder(order)}
+                            className="flex-1 lg:flex-none px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                          >
+                            Chi tiết
+                          </button>
                         </div>
-
-                        {/* Notes */}
-                        {order.notes && (
-                          <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                            <p className="text-sm text-yellow-900 dark:text-yellow-400">
-                              <span className="font-semibold">Ghi chú:</span> {order.notes}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
-                          <div className="mt-4 flex gap-2">
-                            {order.status === 'PENDING' && (
-                              <>
-                                <button
-                                  onClick={() => handleStatusChange(order.id, 'CONFIRMED')}
-                                  className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold transition-colors"
-                                >
-                                  Xác nhận đơn
-                                </button>
-                                <button
-                                  onClick={() => handleStatusChange(order.id, 'CANCELLED')}
-                                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors"
-                                >
-                                  Từ chối
-                                </button>
-                              </>
-                            )}
-                            {order.status === 'CONFIRMED' && (
-                              <button
-                                onClick={() => handleStatusChange(order.id, 'PREPARING')}
-                                className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold transition-colors"
-                              >
-                                Bắt đầu chuẩn bị
-                              </button>
-                            )}
-                            {order.status === 'PREPARING' && (
-                              <button
-                                onClick={() => handleStatusChange(order.id, 'READY')}
-                                className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold transition-colors"
-                              >
-                                Đã chuẩn bị xong
-                              </button>
-                            )}
-                            {order.status === 'READY' && (
-                              <button
-                                onClick={() => handleStatusChange(order.id, 'PICKED_UP')}
-                                className="flex-1 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg font-semibold transition-colors"
-                              >
-                                Đã giao cho shipper
-                              </button>
-                            )}
-                          </div>
-                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Trang <span className="font-bold text-gray-900 dark:text-white">{currentPage + 1}</span> / {totalPages}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 0 || loading}
+                    className="flex items-center gap-1 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">chevron_left</span>
+                    Trước
+                  </button>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage >= totalPages - 1 || loading}
+                    className="flex items-center gap-1 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Tiếp
+                    <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

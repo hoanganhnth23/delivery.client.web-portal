@@ -8,6 +8,8 @@ const AdminOrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   
   // Shipper assignment states
   const [showShipperModal, setShowShipperModal] = useState(false);
@@ -19,18 +21,24 @@ const AdminOrdersPage = () => {
   const statusTabs = ['ALL', 'PENDING', 'CONFIRMED', 'DELIVERING', 'DELIVERED', 'CANCELLED'];
 
   useEffect(() => {
-    loadOrders();
+    setPage(0);
   }, [statusFilter]);
+
+  useEffect(() => {
+    loadOrders();
+  }, [statusFilter, page]);
 
   const loadOrders = async () => {
     setLoading(true);
     try {
       if (statusFilter === 'ALL') {
-        const data = await adminService.fetchAllOrders();
-        setOrders(data || []);
+        const data = await adminService.fetchAllOrders(page, 20);
+        setOrders(data?.content || []);
+        setTotalPages(data?.totalPages || 1);
       } else {
-        const data = await adminService.fetchOrdersByStatus(statusFilter);
-        setOrders(data || []);
+        const data = await adminService.fetchOrdersByStatus(statusFilter, page, 20);
+        setOrders(data?.content || []);
+        setTotalPages(data?.totalPages || 1);
       }
     } catch (error) {
       console.error('Error loading orders:', error);
@@ -232,6 +240,31 @@ const AdminOrdersPage = () => {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-3 border-t border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-800/50">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Trang <span className="font-medium text-gray-900 dark:text-white">{page + 1}</span> / <span className="font-medium text-gray-900 dark:text-white">{totalPages}</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="px-3 py-1 text-sm border border-border-light dark:border-border-dark rounded-md bg-white dark:bg-gray-700 disabled:opacity-50 text-gray-700 dark:text-gray-300"
+                >
+                  Trước
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="px-3 py-1 text-sm border border-border-light dark:border-border-dark rounded-md bg-white dark:bg-gray-700 disabled:opacity-50 text-gray-700 dark:text-gray-300"
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

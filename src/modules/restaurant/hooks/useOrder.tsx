@@ -23,8 +23,13 @@ interface OrderContextValue {
   loading: boolean;
   error: string | null;
   
+  // Pagination
+  totalPages: number;
+  totalElements: number;
+  currentPage: number;
+  
   // Actions
-  getMyOrders: () => Promise<OrderListActionResult>;
+  getMyOrders: (page?: number, size?: number) => Promise<OrderListActionResult>;
   getOrderById: (id: number) => Promise<OrderActionResult>;
   updateOrderStatus: (id: number, status: string) => Promise<OrderActionResult>;
   cancelOrder: (id: number) => Promise<OrderActionResult>;
@@ -47,18 +52,26 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination states
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+
   /**
    * Lấy danh sách orders của nhà hàng hiện tại
    */
-  const getMyOrders = useCallback(async (): Promise<OrderListActionResult> => {
+  const getMyOrders = useCallback(async (page = 0, size = 10): Promise<OrderListActionResult> => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await orderService.getMyOrders();
+      const response = await orderService.getMyOrders(page, size);
       
       if (response.status === 1) {
-        setOrders(response.data);
+        setOrders(response.data.content);
+        setTotalPages(response.data.totalPages);
+        setTotalElements(response.data.totalElements);
+        setCurrentPage(response.data.number);
         return { success: true, data: response.data };
       } else {
         setError(response.message);
@@ -177,6 +190,9 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     currentOrder,
     loading,
     error,
+    totalPages,
+    totalElements,
+    currentPage,
     // Actions
     getMyOrders,
     getOrderById,
@@ -190,6 +206,9 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     currentOrder,
     loading,
     error,
+    totalPages,
+    totalElements,
+    currentPage,
     getMyOrders,
     getOrderById,
     updateOrderStatus,

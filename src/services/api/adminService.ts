@@ -1,6 +1,14 @@
 import apiClient, { handleResponse, handleError } from './apiClient';
 import { API_ENDPOINTS } from './endpoints';
 
+export interface PageResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+}
+
 export interface AdminOrder {
   id: number;
   userId: number;
@@ -60,10 +68,10 @@ class AdminService {
   /**
    * Fetch all orders
    */
-  async fetchAllOrders(): Promise<AdminOrder[]> {
+  async fetchAllOrders(page: number = 0, size: number = 20): Promise<PageResponse<AdminOrder>> {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.ORDER.GET_ALL_ADMIN);
-      return handleResponse<AdminOrder[]>(response);
+      const response = await apiClient.get(API_ENDPOINTS.ORDER.GET_ALL_ADMIN, { params: { page, size } });
+      return handleResponse<PageResponse<AdminOrder>>(response);
     } catch (error) {
       return handleError(error);
     }
@@ -72,10 +80,10 @@ class AdminService {
   /**
    * Fetch orders by status
    */
-  async fetchOrdersByStatus(status: string): Promise<AdminOrder[]> {
+  async fetchOrdersByStatus(status: string, page: number = 0, size: number = 20): Promise<PageResponse<AdminOrder>> {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.ORDER.GET_BY_STATUS(status));
-      return handleResponse<AdminOrder[]>(response);
+      const response = await apiClient.get(API_ENDPOINTS.ORDER.GET_BY_STATUS(status), { params: { page, size } });
+      return handleResponse<PageResponse<AdminOrder>>(response);
     } catch (error) {
       return handleError(error);
     }

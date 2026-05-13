@@ -27,6 +27,17 @@ export interface ActionResult<T = unknown> {
   message?: string;
 }
 
+/**
+ * Pagination Data Structure
+ */
+export interface PageData<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+}
+
 // ============================================
 // RESTAURANT TYPES
 // ============================================
@@ -146,9 +157,9 @@ export interface Order {
 
 // Specific Response Types
 export type OrderResponse = BaseResponse<Order>;
-export type OrderListResponse = BaseResponse<Order[]>;
+export type OrderListResponse = BaseResponse<PageData<Order>>;
 
 // Specific Action Result Types
 export type OrderActionResult = ActionResult<Order>;
-export type OrderListActionResult = ActionResult<Order[]>;
+export type OrderListActionResult = ActionResult<PageData<Order>>;
 
