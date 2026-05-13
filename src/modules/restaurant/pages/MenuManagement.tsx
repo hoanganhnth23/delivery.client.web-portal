@@ -39,11 +39,11 @@ const MenuManagement = () => {
   );
 
   const categories = [
-    { id: 'all', name: 'All Items', count: menuItems.length },
-    { id: 'mains', name: 'Mains', count: menuItems.filter(item => item.name.toLowerCase().includes('burger') || item.name.toLowerCase().includes('pasta')).length },
-    { id: 'beverages', name: 'Beverages', count: 12 },
-    { id: 'sides', name: 'Sides', count: 10 },
-    { id: 'desserts', name: 'Desserts', count: 8 }
+    { id: 'all', name: 'Tất cả', count: menuItems.length },
+    { id: 'mains', name: 'Món chính', count: menuItems.filter(item => item.name.toLowerCase().includes('burger') || item.name.toLowerCase().includes('pasta')).length },
+    { id: 'beverages', name: 'Đồ uống', count: 12 },
+    { id: 'sides', name: 'Món phụ', count: 10 },
+    { id: 'desserts', name: 'Tráng miệng', count: 8 }
   ]
 
   const handleCreate = () => {
@@ -88,7 +88,7 @@ const MenuManagement = () => {
         <main className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
           <RestaurantHeader
-            title="Menu Management"
+            title="Quản lý Menu"
             subtitle={`${filteredMenuItems.length} món ăn`}
             showSearch={true}
             searchPlaceholder="Tìm kiếm món ăn..."
@@ -114,7 +114,7 @@ const MenuManagement = () => {
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
                   <input
                     className="pl-10 pr-4 py-2.5 w-full rounded-lg bg-gray-50 dark:bg-gray-800 border border-transparent focus:border-primary focus:ring-2 focus:ring-primary/20 text-sm text-gray-700 dark:text-gray-200"
-                    placeholder="Search by name, category..."
+                    placeholder="Tìm theo tên, danh mục..."
                     type="text"
                   />
                 </div>
@@ -142,37 +142,37 @@ const MenuManagement = () => {
               <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="material-symbols-outlined text-primary text-2xl">restaurant</span>
-                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Total</span>
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Tổng</span>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">48</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Items</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Tổng món ăn</p>
               </div>
 
               <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="material-symbols-outlined text-green-600 text-2xl">check_circle</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">Active</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">Đang bán</span>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">42</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Active Items</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Đang hoạt động</p>
               </div>
 
               <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="material-symbols-outlined text-gray-500 text-2xl">block</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">Out</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">Hết</span>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">6</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Sold Out</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Đã hết hàng</p>
               </div>
 
               <div className="bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
                 <div className="flex items-center justify-between mb-2">
                   <span className="material-symbols-outlined text-orange-500 text-2xl">warning</span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">Low</span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">Ít</span>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white">2</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Low Stock</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Sắp hết hàng</p>
               </div>
             </div>
 
@@ -197,13 +197,13 @@ const MenuManagement = () => {
             {!loading && !error && menuItems.length === 0 && (
               <div className="text-center py-12">
                 <span className="material-symbols-outlined text-gray-400 text-6xl mb-4">restaurant_menu</span>
-                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No menu items yet</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4">Start by adding your first menu item</p>
+                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">Chưa có món ăn nào</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">Hãy bắt đầu bằng cách thêm món ăn đầu tiên</p>
                 <button
                   onClick={handleCreate}
                   className="px-6 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
                 >
-                  Add Menu Item
+                  Thêm món ăn
                 </button>
               </div>
             )}
@@ -240,7 +240,7 @@ const MenuManagement = () => {
                         onClick={() => handleEdit(item)}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-primary hover:text-white transition-colors text-sm font-medium">
                         <span className="material-symbols-outlined text-lg">edit</span>
-                        Edit
+                        Sửa
                       </button>
                       <button 
                         onClick={() => handleDelete(item.id)}
@@ -260,8 +260,8 @@ const MenuManagement = () => {
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                     <span className="material-symbols-outlined text-4xl text-primary">add_circle</span>
                   </div>
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-1">Add New Dish</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Create a new menu item</p>
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-1">Thêm món mới</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Tạo một món ăn mới cho thực đơn</p>
                 </div>
               </div>
               </div>
@@ -269,11 +269,11 @@ const MenuManagement = () => {
 
             {/* Footer area */}
             <div className="border-t border-border-light dark:border-border-dark pt-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400 pb-4 mt-8">
-              <p>© 2024 Tasty Bites. All rights reserved.</p>
+              <p>© 2026 Tasty Bites. All rights reserved.</p>
               <div className="flex gap-4 mt-2 md:mt-0">
-                <a className="hover:text-primary transition-colors" href="#">Support</a>
-                <a className="hover:text-primary transition-colors" href="#">Documentation</a>
-                <a className="hover:text-primary transition-colors" href="#">Contact</a>
+                <a className="hover:text-primary transition-colors" href="#">Hỗ trợ</a>
+                <a className="hover:text-primary transition-colors" href="#">Tài liệu</a>
+                <a className="hover:text-primary transition-colors" href="#">Liên hệ</a>
               </div>
             </div>
           </div>

@@ -145,7 +145,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             
             {/* Footer area */}
             <div className="border-t border-border-light dark:border-border-dark pt-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400 pb-4 mt-auto">
-              <p>© 2024 ShopeeFood Admin. All rights reserved.</p>
+              <p>© 2026 ShopeeFood Admin. All rights reserved.</p>
               <div className="flex gap-4 mt-2 md:mt-0">
                 <a className="hover:text-primary" href="#">Privacy Policy</a>
                 <a className="hover:text-primary" href="#">Terms of Service</a>

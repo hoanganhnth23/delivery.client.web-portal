@@ -225,13 +225,13 @@ const RestaurantProfilePage = () => {
 
       <main className="flex flex-1 flex-col overflow-hidden">
         <RestaurantHeader
-          title="Restaurant Profile"
+          title="Hồ sơ cửa hàng"
           subtitle="Quản lý thông tin nhà hàng"
           showSearch={false}
           actions={
             <div className="flex items-center gap-3 rounded-full bg-green-100 dark:bg-green-900/30 px-4 py-1.5 border border-green-200 dark:border-green-800">
               <div className="size-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="text-sm font-bold text-green-700 dark:text-green-400">Open for Business</span>
+              <span className="text-sm font-bold text-green-700 dark:text-green-400">Đang mở cửa</span>
             </div>
           }
         />
@@ -240,9 +240,9 @@ const RestaurantProfilePage = () => {
           <div className="max-w-5xl mx-auto">
             {/* Breadcrumb */}
             <div className="mb-6 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-              <a className="hover:text-primary transition-colors" href="#">Home</a>
+              <a className="hover:text-primary transition-colors" href="#">Trang chủ</a>
               <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-              <span className="text-text-primary-light dark:text-text-primary-dark font-medium">Profile Management</span>
+              <span className="text-text-primary-light dark:text-text-primary-dark font-medium">Quản lý hồ sơ</span>
             </div>
 
             {/* Error Display */}
@@ -258,7 +258,7 @@ const RestaurantProfilePage = () => {
               <div className="h-32 w-full bg-gradient-to-r from-orange-100 to-orange-50 dark:from-orange-900/20 dark:to-background-dark relative">
                 <button className="absolute bottom-4 right-4 bg-white/80 dark:bg-black/50 hover:bg-white dark:hover:bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px]">add_a_photo</span>
-                  Change Cover
+                  Đổi ảnh bìa
                 </button>
               </div>
 
@@ -285,13 +285,13 @@ const RestaurantProfilePage = () => {
                       {formData.name || 'Tasty Bites Restaurant'}
                     </h1>
                     <p className="text-text-secondary-light dark:text-text-secondary-dark text-sm">
-                      Update your restaurant details and branding.
+                      Cập nhật thông tin và hình ảnh nhà hàng của bạn.
                     </p>
                   </div>
 
                   <div className="pb-2 hidden sm:block">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold border border-green-200">
-                      <span className="size-1.5 rounded-full bg-green-600"></span> Verified
+                      <span className="size-1.5 rounded-full bg-green-600"></span> Đã xác minh
                     </span>
                   </div>
                 </div>
@@ -302,16 +302,16 @@ const RestaurantProfilePage = () => {
                   <section>
                     <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4 flex items-center gap-2">
                       <span className="material-symbols-outlined text-primary">store</span>
-                      Basic Information
+                      Thông tin cơ bản
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="md:col-span-2">
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                          Restaurant Name
+                          Tên nhà hàng
                         </label>
                         <input
                           className="w-full rounded-xl border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
-                          placeholder="Enter restaurant name"
+                          placeholder="Nhập tên nhà hàng"
                           type="text"
                           name="name"
                           value={formData.name}
@@ -322,23 +322,23 @@ const RestaurantProfilePage = () => {
 
                       <div className="md:col-span-2">
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                          Description
+                          Mô tả
                         </label>
                         <textarea
                           className="w-full rounded-xl border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none"
-                          placeholder="Describe your restaurant (e.g. Best local food in town...)"
+                          placeholder="Mô tả nhà hàng của bạn (ví dụ: Ẩm thực địa phương ngon nhất...)"
                           rows={4}
                           name="description"
                           value={formData.description}
                           onChange={handleChange}
                         />
-                        <p className="text-right text-xs text-gray-400 mt-1">{charCount}/500 characters</p>
+                        <p className="text-right text-xs text-gray-400 mt-1">{charCount}/500 ký tự</p>
                         {formErrors.description && <p className="text-red-500 text-xs mt-1">{formErrors.description}</p>}
                       </div>
 
                       <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                          Cuisine Type
+                          Loại ẩm thực
                         </label>
                         <select
                           className="w-full rounded-xl border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none appearance-none"
@@ -355,7 +355,7 @@ const RestaurantProfilePage = () => {
 
                       <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                          Contact Number
+                          Số điện thoại
                         </label>
                         <input
                           className="w-full rounded-xl border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
@@ -375,12 +375,12 @@ const RestaurantProfilePage = () => {
                   <section>
                     <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark mb-4 flex items-center gap-2">
                       <span className="material-symbols-outlined text-primary">location_on</span>
-                      Location
+                      Địa chỉ
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="md:col-span-2">
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                          Street Address
+                          Địa chỉ đường
                         </label>
                         <input
                           className="w-full rounded-xl border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
@@ -394,7 +394,7 @@ const RestaurantProfilePage = () => {
 
                       <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                          City
+                          Thành phố
                         </label>
                         <input
                           className="w-full rounded-xl border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
@@ -408,7 +408,7 @@ const RestaurantProfilePage = () => {
 
                       <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                          Postal Code
+                          Mã bưu chính
                         </label>
                         <input
                           className="w-full rounded-xl border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/50 px-4 py-3 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
@@ -429,22 +429,22 @@ const RestaurantProfilePage = () => {
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary">schedule</span>
-                        Opening Hours
+                        Giờ mở cửa
                       </h3>
                       <button
                         type="button"
                         onClick={applyToAllDays}
                         className="text-xs font-bold text-primary hover:underline"
                       >
-                        Apply to all days
+                        Áp dụng cho tất cả
                       </button>
                     </div>
 
                     <div className="rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800/20 overflow-hidden">
                       <div className="grid grid-cols-12 gap-4 p-4 bg-gray-100 dark:bg-white/5 border-b border-gray-200 dark:border-zinc-700 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                        <div className="col-span-3">Day</div>
-                        <div className="col-span-2 text-center">Status</div>
-                        <div className="col-span-7">Time Range</div>
+                        <div className="col-span-3">Thứ</div>
+                        <div className="col-span-2 text-center">Trạng thái</div>
+                        <div className="col-span-7">Khung giờ</div>
                       </div>
 
                       {Object.entries(openingHours).map(([day, hours]) => (
@@ -484,7 +484,7 @@ const RestaurantProfilePage = () => {
                         </div>
                       ))}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2 italic">* Unlisted days will follow default settings or show as closed.</p>
+                    <p className="text-xs text-gray-500 mt-2 italic">* Các ngày chưa được liệt kê sẽ theo cài đặt mặc định hoặc hiển thị là đóng cửa.</p>
                   </section>
 
                   {/* Action Buttons */}
@@ -494,14 +494,14 @@ const RestaurantProfilePage = () => {
                       type="button"
                       onClick={handleCancel}
                     >
-                      Cancel
+                      Hủy
                     </button>
                     <button
                       className="px-8 py-2.5 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/30 hover:bg-primary/90 hover:shadow-primary/40 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                       type="submit"
                       disabled={loading}
                     >
-                      {loading ? 'Saving...' : 'Save Changes'}
+                      {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
                     </button>
                   </div>
                 </form>

@@ -1,6 +1,7 @@
 /**
  * RestaurantSidebar Component
  * Sidebar chung cho tất cả các trang Restaurant/Merchant
+ * Đồng bộ UI pattern với AdminLayout sidebar
  */
 
 import { Link, useLocation } from 'react-router-dom';
@@ -26,16 +27,15 @@ const RestaurantSidebar = ({
 
   const menuItems: MenuItem[] = [
     { icon: 'dashboard', label: 'Dashboard', to: ROUTES.RESTAURANT_DASHBOARD },
-    { icon: 'shopping_bag', label: 'Orders', to: ROUTES.RESTAURANT_ORDERS,  },
-    { icon: 'menu_book', label: 'Menu Management', to: ROUTES.RESTAURANT_MENU },
+    { icon: 'shopping_bag', label: 'Đơn hàng', to: ROUTES.RESTAURANT_ORDERS },
+    { icon: 'menu_book', label: 'Quản lý Menu', to: ROUTES.RESTAURANT_MENU },
     { icon: 'videocam', label: 'Livestream', to: ROUTES.RESTAURANT_LIVESTREAM_MANAGEMENT },
-    { icon: 'chat_bubble', label: 'Messages', to: ROUTES.RESTAURANT_CHAT },
-    { icon: 'storefront', label: 'Profile', to: ROUTES.RESTAURANT_PROFILE },
+    { icon: 'chat_bubble', label: 'Tin nhắn', to: ROUTES.RESTAURANT_CHAT },
+    { icon: 'storefront', label: 'Hồ sơ cửa hàng', to: ROUTES.RESTAURANT_PROFILE },
     { icon: 'account_balance_wallet', label: 'Thu nhập', to: ROUTES.RESTAURANT_SETTLEMENT },
-    { icon: 'bar_chart', label: 'Analytics', to: ROUTES.RESTAURANT_ANALYTICS },
-    { icon: 'reviews', label: 'Reviews', to: ROUTES.RESTAURANT_REVIEWS },
+    { icon: 'bar_chart', label: 'Thống kê', to: ROUTES.RESTAURANT_ANALYTICS },
+    { icon: 'reviews', label: 'Đánh giá', to: ROUTES.RESTAURANT_REVIEWS },
     { icon: 'sell', label: 'Khuyến mãi', to: ROUTES.RESTAURANT_COUPONS },
-    { icon: 'settings', label: 'Settings', to: ROUTES.RESTAURANT_SETTINGS },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -55,7 +55,7 @@ const RestaurantSidebar = ({
                 {restaurantName}
               </h1>
               <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider">
-                Merchant Panel
+                Quản lý cửa hàng
               </p>
             </div>
           </div>
@@ -72,16 +72,16 @@ const RestaurantSidebar = ({
                   className={`
                     flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-all
                     ${active 
-                      ? 'bg-primary/10 text-primary group' 
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      ? 'bg-primary/10 text-primary group hover:bg-primary/20' 
+                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
                     }
                   `}
                 >
                   <div className="flex items-center gap-3">
-                    <span className={`material-symbols-outlined text-xl ${active ? 'fill-1' : ''}`}>
+                    <span className={`material-symbols-outlined text-xl ${active ? 'icon-filled' : ''}`}>
                       {item.icon}
                     </span>
-                    <span className={`text-sm ${active ? 'font-bold' : 'font-semibold'}`}>
+                    <span className={`text-sm ${active ? 'font-bold' : 'font-medium'}`}>
                       {item.label}
                     </span>
                   </div>
@@ -97,6 +97,15 @@ const RestaurantSidebar = ({
             
             {/* Divider */}
             <div className="h-px bg-border-light dark:bg-border-dark my-2 mx-4"></div>
+
+            {/* Settings */}
+            <Link
+              to={ROUTES.RESTAURANT_SETTINGS}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive(ROUTES.RESTAURANT_SETTINGS) ? 'bg-primary/10 text-primary group hover:bg-primary/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'}`}
+            >
+              <span className={`material-symbols-outlined ${isActive(ROUTES.RESTAURANT_SETTINGS) ? 'icon-filled' : ''}`}>settings</span>
+              <span className={`text-sm ${isActive(ROUTES.RESTAURANT_SETTINGS) ? 'font-bold' : 'font-medium'}`}>Cài đặt</span>
+            </Link>
             
             {/* Logout */}
             <Link
@@ -104,7 +113,7 @@ const RestaurantSidebar = ({
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
               <span className="material-symbols-outlined text-xl">logout</span>
-              <span className="text-sm font-semibold">Logout</span>
+              <span className="text-sm font-medium">Đăng xuất</span>
             </Link>
           </nav>
         </div>
@@ -114,10 +123,10 @@ const RestaurantSidebar = ({
           <div className="absolute -right-2 -top-2 opacity-20 transform rotate-12">
             <span className="material-symbols-outlined text-6xl">restaurant</span>
           </div>
-          <p className="text-xs font-medium opacity-80 mb-1">Need Help?</p>
-          <p className="font-bold text-sm mb-2">Contact Support</p>
+          <p className="text-xs font-medium opacity-80 mb-1">Cần hỗ trợ?</p>
+          <p className="font-bold text-sm mb-2">Liên hệ hỗ trợ</p>
           <button className="text-xs bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-1.5 rounded-lg font-medium transition-colors">
-            Get Help
+            Hỗ trợ ngay
           </button>
         </div>
       </div>
