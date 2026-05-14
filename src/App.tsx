@@ -27,8 +27,10 @@ import AdminWithdrawalsPage from './modules/admin/pages/AdminWithdrawalsPage'
 import AdminShippersPage from './modules/admin/pages/AdminShippersPage'
 import AdminRatingsPage from './modules/admin/pages/AdminRatingsPage'
 import AdminCouponsPage from './modules/admin/pages/AdminCouponsPage'
+import AdminFlashSalePage from './modules/admin/pages/AdminFlashSalePage'
 import AdminChatPage from './modules/admin/pages/AdminChatPage'
 import CouponManagementPage from './modules/restaurant/pages/CouponManagementPage'
+import RestaurantFlashSalePage from './modules/restaurant/pages/RestaurantFlashSalePage'
 import ChatWidget from './modules/chat/components/ChatWidget'
 import UnauthorizedPage from './pages/UnauthorizedPage'
 import PrivateRoute from './routes/PrivateRoute'
@@ -75,6 +77,7 @@ export default function App() {
                     <Route path={ROUTES.RESTAURANT_SETTLEMENT} element={<SettlementPage />} />
                     <Route path={ROUTES.RESTAURANT_REVIEWS} element={<RestaurantReviewsPage />} />
                     <Route path={ROUTES.RESTAURANT_COUPONS} element={<CouponManagementPage />} />
+                    <Route path={ROUTES.RESTAURANT_FLASH_SALES} element={<RestaurantFlashSalePage />} />
                     <Route path={ROUTES.RESTAURANT_LIVESTREAM} element={<LivestreamPage />} />
                     <Route path={ROUTES.RESTAURANT_LIVESTREAM_DETAIL} element={<LivestreamPage />} />
                     <Route path={ROUTES.RESTAURANT_LIVESTREAM_MANAGEMENT} element={<LivestreamManagementPage />} />
@@ -125,6 +128,14 @@ export default function App() {
                     element={
                       <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
                         <AdminCouponsPage />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.ADMIN_FLASH_SALES}
+                    element={
+                      <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
+                        <AdminFlashSalePage />
                       </RoleRoute>
                     }
                   />

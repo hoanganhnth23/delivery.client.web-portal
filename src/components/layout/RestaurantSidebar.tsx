@@ -36,6 +36,7 @@ const RestaurantSidebar = ({
     { icon: 'bar_chart', label: 'Thống kê', to: ROUTES.RESTAURANT_ANALYTICS },
     { icon: 'reviews', label: 'Đánh giá', to: ROUTES.RESTAURANT_REVIEWS },
     { icon: 'sell', label: 'Khuyến mãi', to: ROUTES.RESTAURANT_COUPONS },
+    { icon: 'bolt', label: 'Flash Sales', to: ROUTES.RESTAURANT_FLASH_SALES },
   ];
 
   const isActive = (path: string) => location.pathname === path;

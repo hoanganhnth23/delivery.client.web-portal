@@ -167,6 +167,24 @@ export const API_ENDPOINTS = {
     DELETE: (id: number) => `/api/promotions/${id}`,
   },
 
+  // ==================== FLASH SALE SERVICE ====================
+  FLASHSALE: {
+    ADMIN: {
+      CREATE_CAMPAIGN: '/api/flashsales/admin/campaigns',
+      GET_ALL_CAMPAIGNS: '/api/flashsales/admin/campaigns',
+      UPDATE_CAMPAIGN_STATUS: (id: number) => `/api/flashsales/admin/campaigns/${id}/status`,
+      APPROVE_ITEM: (id: number) => `/api/flashsales/admin/items/${id}/approve`,
+    },
+    MERCHANT: {
+      REGISTER_ITEM: '/api/flashsales/merchant/items',
+      GET_MY_ITEMS: '/api/flashsales/merchant/items',
+    },
+    PUBLIC: {
+      GET_ACTIVE_CAMPAIGNS: '/api/flashsales/public/campaigns',
+      GET_CAMPAIGN_ITEMS: (id: number) => `/api/flashsales/public/campaigns/${id}/items`,
+    }
+  },
+
   // ==================== DASHBOARD STATISTICS (analytics-service) ====================
   DASHBOARD: {
     ADMIN: (period: string = 'month', year?: number) =>
