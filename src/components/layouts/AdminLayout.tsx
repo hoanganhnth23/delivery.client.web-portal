@@ -56,6 +56,12 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
                   <span className={`material-symbols-outlined ${isActive(ROUTES.ADMIN_SHIPPERS) ? 'icon-filled' : ''}`}>local_shipping</span>
                   <span className={`text-sm ${isActive(ROUTES.ADMIN_SHIPPERS) ? 'font-bold' : 'font-medium'}`}>Quản lý Shipper</span>
                 </Link>
+
+                {/* Realtime Tracking - New */}
+                <Link to={ROUTES.ADMIN_TRACKING} className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive(ROUTES.ADMIN_TRACKING) ? 'bg-primary/10 text-primary group hover:bg-primary/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'}`}>
+                  <span className={`material-symbols-outlined ${isActive(ROUTES.ADMIN_TRACKING) ? 'icon-filled' : ''}`}>map</span>
+                  <span className={`text-sm ${isActive(ROUTES.ADMIN_TRACKING) ? 'font-bold' : 'font-medium'}`}>Realtime Tracking</span>
+                </Link>
                 
                 <Link to={ROUTES.ADMIN_RATINGS} className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive(ROUTES.ADMIN_RATINGS) ? 'bg-primary/10 text-primary group hover:bg-primary/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'}`}>
                   <span className={`material-symbols-outlined ${isActive(ROUTES.ADMIN_RATINGS) ? 'icon-filled' : ''}`}>reviews</span>

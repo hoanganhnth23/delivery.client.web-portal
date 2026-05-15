@@ -2,73 +2,41 @@
  * Home Page - Trang chủ cho người dùng
  * Hiển thị danh sách nhà hàng, categories, flash sale
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/hooks/useAuth';
 import { ROUTES } from '@/utils/constants';
+import { flashSalePublicService, FlashSaleCampaign, FlashSaleItem } from '@/services/api/flashSaleService';
 
 const HomePage = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  
+  const [activeCampaigns, setActiveCampaigns] = useState<FlashSaleCampaign[]>([]);
+  const [flashSaleItems, setFlashSaleItems] = useState<FlashSaleItem[]>([]);
+  const [loadingFS, setLoadingFS] = useState(false);
+
+  useEffect(() => {
+    const fetchFlashSale = async () => {
+      setLoadingFS(true);
+      try {
+        const campaigns = await flashSalePublicService.getActiveCampaigns();
+        setActiveCampaigns(campaigns);
+        if (campaigns.length > 0) {
+          const items = await flashSalePublicService.getCampaignItems(campaigns[0].id);
+          setFlashSaleItems(items);
+        }
+      } catch (error) {
+        console.error('Error fetching flash sale:', error);
+      } finally {
+        setLoadingFS(false);
+      }
+    };
+    fetchFlashSale();
+  }, []);
 
   const categories = [
-    { id: 'all', name: 'All', icon: 'restaurant' },
-    { id: 'burger', name: 'Burger', icon: 'lunch_dining' },
-    { id: 'pizza', name: 'Pizza', icon: 'local_pizza' },
-    { id: 'coffee', name: 'Coffee', icon: 'coffee' },
-    { id: 'healthy', name: 'Healthy', icon: 'eco' },
-    { id: 'asian', name: 'Asian', icon: 'ramen_dining' },
-    { id: 'sweet', name: 'Sweet', icon: 'cookie' },
-    { id: 'drinks', name: 'Drinks', icon: 'local_bar' },
-  ];
-
-  const flashSaleRestaurants = [
-    {
-      id: 1,
-      name: 'Burger King - NY',
-      category: 'Burgers, American, Fast Food',
-      rating: 4.5,
-      discount: '50% OFF',
-      deliveryTime: '25 min',
-      distance: '1.2km',
-      deliveryFee: 'Free Delivery',
-      image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400',
-    },
-    {
-      id: 2,
-      name: 'Pizza Hut',
-      category: 'Pizza, Italian, Pasta',
-      rating: 4.2,
-      discount: '30% OFF',
-      deliveryTime: '40 min',
-      distance: '3.5km',
-      deliveryFee: '$2.99',
-      image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400',
-    },
-    {
-      id: 3,
-      name: 'Gong Cha',
-      category: 'Bubble Tea, Beverages, Dessert',
-      rating: 4.9,
-      discount: 'BOGO',
-      deliveryTime: '15 min',
-      distance: '0.5km',
-      deliveryFee: 'Free Delivery',
-      image: 'https://images.unsplash.com/photo-1525385133512-2f3bdd039054?w=400',
-    },
-    {
-      id: 4,
-      name: 'Pasta House',
-      category: 'Italian, Pasta, Western',
-      rating: 4.0,
-      discount: '20% OFF',
-      deliveryTime: '35 min',
-      distance: '4km',
-      deliveryFee: '$1.49',
-      image: 'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=400',
-    },
-  ];
 
   const popularRestaurants = [
     {
@@ -314,19 +282,31 @@ const HomePage = () => {
         </section>
 
         {/* Flash Sale Section */}
-        <section>
-          <div className="flex items-center gap-4 mb-6">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Flash Sale</h3>
-            <div className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black px-3 py-1 rounded-md text-sm font-mono font-bold">
-              <span>02</span>:<span>14</span>:<span>56</span>
+        {activeCampaigns.length > 0 && (
+          <section>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-3xl animate-pulse">flash_on</span>
+                <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white italic tracking-tighter">FLASH SALE</h3>
+              </div>
+              <div className="flex items-center gap-2 bg-primary text-white px-3 py-1 rounded-md text-sm font-mono font-bold shadow-lg shadow-orange-200 dark:shadow-none">
+                <CountdownTimer targetDate={activeCampaigns[0].endTime} />
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {flashSaleRestaurants.map((restaurant) => (
-              <RestaurantCard key={restaurant.id} restaurant={restaurant} showDiscount />
-            ))}
-          </div>
-        </section>
+            
+            {loadingFS ? (
+              <div className="flex justify-center py-12">
+                <div className="size-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {flashSaleItems.map((item) => (
+                  <FlashSaleItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Promo Banner */}
         <section className="w-full rounded-2xl overflow-hidden bg-gradient-to-r from-orange-400 to-red-500 relative shadow-md">
@@ -515,6 +495,119 @@ const RestaurantCard = ({ restaurant, showDiscount = false }: RestaurantCardProp
             {restaurant.deliveryFee}
           </span>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// Countdown Timer Component
+const CountdownTimer = ({ targetDate }: { targetDate: string }) => {
+  const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = new Date(targetDate).getTime() - now;
+
+      if (distance < 0) {
+        clearInterval(timer);
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+
+      setTimeLeft({
+        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((distance % (1000 * 60)) / 1000),
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  const pad = (num: number) => num.toString().padStart(2, '0');
+
+  return (
+    <div className="flex gap-1">
+      <span>{pad(timeLeft.hours)}</span>:
+      <span>{pad(timeLeft.minutes)}</span>:
+      <span>{pad(timeLeft.seconds)}</span>
+    </div>
+  );
+};
+
+// Flash Sale Item Card Component
+const FlashSaleItemCard = ({ item }: { item: FlashSaleItem }) => {
+  const discount = Math.round((1 - item.flashSalePrice / item.originalPrice) * 100);
+  const isSoldOut = item.soldQuantity >= item.stockQuantity;
+  const progress = (item.soldQuantity / item.stockQuantity) * 100;
+
+  return (
+    <div className="group flex flex-col bg-surface-light dark:bg-surface-dark rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-transparent hover:border-gray-100 dark:hover:border-gray-700">
+      <div className="relative h-48 overflow-hidden">
+        <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-xs font-black px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
+          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+          {discount}% OFF
+        </div>
+        
+        <img
+          src={`https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80`}
+          alt={item.menuItemName}
+          className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${isSoldOut ? 'grayscale opacity-60' : ''}`}
+        />
+        
+        {isSoldOut && (
+          <div className="absolute inset-0 flex items-center justify-center z-20">
+            <div className="bg-black/70 text-white px-4 py-2 rounded-full font-black text-sm uppercase tracking-widest border-2 border-white/20 backdrop-blur-sm">
+              SOLD OUT
+            </div>
+          </div>
+        )}
+
+        <button className="absolute bottom-3 right-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-2 rounded-full shadow-md text-gray-400 hover:text-red-500 transition-colors">
+          <span className="material-symbols-outlined text-[20px] block">favorite</span>
+        </button>
+      </div>
+
+      <div className="p-4 flex flex-col flex-grow gap-2">
+        <h4 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1 group-hover:text-primary transition-colors">
+          {item.menuItemName}
+        </h4>
+        
+        <div className="flex items-baseline gap-2">
+          <span className="text-xl font-black text-red-600">
+            ${item.flashSalePrice.toLocaleString()}
+          </span>
+          <span className="text-sm text-gray-400 line-through">
+            ${item.originalPrice.toLocaleString()}
+          </span>
+        </div>
+
+        <div className="mt-2 space-y-1.5">
+          <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-wider">
+            <span className={isSoldOut ? 'text-gray-400' : 'text-orange-600'}>
+              {isSoldOut ? 'Fully Sold' : `Selling Fast: ${item.soldQuantity} sold`}
+            </span>
+            <span className="text-gray-500">{Math.round(progress)}%</span>
+          </div>
+          <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div 
+              className={`h-full rounded-full transition-all duration-1000 ease-out ${isSoldOut ? 'bg-gray-400' : 'bg-gradient-to-r from-orange-400 to-red-600'}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        <button 
+          disabled={isSoldOut}
+          className={`mt-4 w-full py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${
+            isSoldOut 
+              ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed' 
+              : 'bg-primary hover:bg-primary-dark text-white shadow-orange-100 dark:shadow-none hover:shadow-lg'
+          }`}
+        >
+          {isSoldOut ? 'Out of Stock' : 'Add to Cart'}
+        </button>
       </div>
     </div>
   );

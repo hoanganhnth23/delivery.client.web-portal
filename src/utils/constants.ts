@@ -70,6 +70,7 @@ export const ROUTES = {
   ADMIN_ORDERS: '/admin/orders',
   ADMIN_WITHDRAWALS: '/admin/withdrawals',
   ADMIN_SHIPPERS: '/admin/shippers',
+  ADMIN_TRACKING: '/admin/tracking',
   ADMIN_RATINGS: '/admin/ratings',
   ADMIN_COUPONS: '/admin/coupons',
   ADMIN_FLASH_SALES: '/admin/flash-sales',

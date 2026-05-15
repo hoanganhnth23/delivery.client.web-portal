@@ -25,6 +25,7 @@ import AdminDashboard from './modules/admin/pages/AdminDashboard'
 import AdminOrdersPage from './modules/admin/pages/AdminOrdersPage'
 import AdminWithdrawalsPage from './modules/admin/pages/AdminWithdrawalsPage'
 import AdminShippersPage from './modules/admin/pages/AdminShippersPage'
+import AdminShipperTrackingPage from './modules/admin/pages/tracking/AdminShipperTrackingPage'
 import AdminRatingsPage from './modules/admin/pages/AdminRatingsPage'
 import AdminCouponsPage from './modules/admin/pages/AdminCouponsPage'
 import AdminFlashSalePage from './modules/admin/pages/AdminFlashSalePage'
@@ -112,6 +113,14 @@ export default function App() {
                     element={
                       <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
                         <AdminShippersPage />
+                      </RoleRoute>
+                    }
+                  />
+                  <Route
+                    path={ROUTES.ADMIN_TRACKING}
+                    element={
+                      <RoleRoute allowedRoles={[USER_ROLES.ADMIN]}>
+                        <AdminShipperTrackingPage />
                       </RoleRoute>
                     }
                   />
