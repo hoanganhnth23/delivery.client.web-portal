@@ -1,313 +1,130 @@
-/**
- * AdminLoginPage Component
- * Trang đăng nhập dành riêng cho ADMIN
- * Sử dụng ShopeeFood Design với màu đỏ cho Admin
- */
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ROUTES, USER_ROLES } from '@/utils/constants';
 import { useAuth } from '../hooks/useAuth';
-import { ROUTES } from '@/utils/constants';
-
-// ============================================
-// LOCAL TYPES
-// ============================================
 
 interface LoginFormData {
-    email: string;
-    password: string;
+  email: string;
+  password: string;
 }
 
 interface LoginErrors {
-    general?: string;
-    email?: string;
-    password?: string;
+  general?: string;
+  email?: string;
+  password?: string;
 }
 
 const AdminLoginPage = () => {
-    const navigate = useNavigate();
-    const { login, loading } = useAuth();
+  const navigate = useNavigate();
+  const { login, loading } = useAuth();
+  const [formData, setFormData] = useState<LoginFormData>({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<LoginErrors>({});
 
-    const [formData, setFormData] = useState<LoginFormData>({
-        email: '',
-        password: ''
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({ ...current, [name]: value }));
+    setErrors((current) => ({ ...current, [name]: undefined, general: undefined }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const validation: LoginErrors = {};
+    if (!formData.email.trim()) validation.email = 'Email admin là bắt buộc';
+    if (!formData.password) validation.password = 'Mật khẩu là bắt buộc';
+    if (Object.keys(validation).length > 0) {
+      setErrors(validation);
+      return;
+    }
+
+    const result = await login({
+      email: formData.email.trim(),
+      password: formData.password,
+      role: USER_ROLES.ADMIN,
     });
-    const [showPassword, setShowPassword] = useState(false);
-    const [errors, setErrors] = useState<LoginErrors>({});
+    if (result.success) {
+      navigate(ROUTES.ADMIN_DASHBOARD, { replace: true });
+    } else {
+      setErrors({ general: result.message || 'Đăng nhập admin thất bại' });
+    }
+  };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-        if (errors[name as keyof LoginErrors]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
-        }
-    };
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-6">
+      <section className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
+        <Link to={ROUTES.HOME} className="mb-8 inline-flex items-center gap-2 font-bold text-red-600">
+          <span className="material-symbols-outlined">admin_panel_settings</span>
+          Delivery Admin
+        </Link>
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+        <h1 className="text-3xl font-black text-gray-900">Đăng nhập quản trị</h1>
+        <p className="mt-2 text-gray-600">
+          Chỉ tài khoản ADMIN được operator cấp mới truy cập được các màn hình MVP.
+        </p>
 
-        // Validation
-        const newErrors: LoginErrors = {};
-        if (!formData.email) newErrors.email = 'Admin email is required';
-        if (!formData.password) newErrors.password = 'Password is required';
+        {errors.general && (
+          <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {errors.general}
+          </div>
+        )}
 
-        if (Object.keys(newErrors).length > 0) {
-            setErrors(newErrors);
-            return;
-        }
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <label className="block">
+            <span className="text-sm font-semibold text-gray-800">Email</span>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              autoComplete="username"
+              className="mt-2 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 outline-none focus:ring-2 focus:ring-red-500/30"
+            />
+            {errors.email && <span className="mt-1 block text-xs text-red-500">{errors.email}</span>}
+          </label>
 
-        try {
-            // Admin login - truyền role ADMIN
-            const credentials = {
-                ...formData,
-                role: 'ADMIN', // Trang này dành cho ADMIN
-            };
-            
-            console.log("Admin login credentials:", credentials);
-            const result = await login(credentials);
-
-            // ✅ UI component tự xử lý navigation
-            if (result.success) {
-                navigate(ROUTES.ADMIN_DASHBOARD);
-            } else {
-                setErrors({ general: result.message || 'Admin login failed' });
-            }
-        } catch (err) {
-            const message = (err as Error).message || 'Admin login failed';
-            setErrors({ general: message });
-        }
-    };
-
-    return (
-        <div className="min-h-screen flex">
-            {/* Left Side - Admin Login Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
-                <div className="w-full max-w-md">
-                    {/* Logo & Title */}
-                    <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-2xl mb-4">
-                            <span className="material-symbols-outlined text-4xl text-red-600">
-                                admin_panel_settings
-                            </span>
-                        </div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                            Admin Portal
-                        </h1>
-                        <p className="text-gray-600">
-                            Sign in to manage the platform
-                        </p>
-                    </div>
-
-                    {/* Error Alert */}
-                    {errors.general && (
-                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                            <span className="material-symbols-outlined text-red-600 text-xl">
-                                error
-                            </span>
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-red-800">Login Failed</p>
-                                <p className="text-sm text-red-600 mt-1">{errors.general}</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Login Form */}
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        {/* Email Input */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Admin Email
-                            </label>
-                            <div className="relative">
-                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">
-                                    mail
-                                </span>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    placeholder="admin@deliveryvn.com"
-                                    className={`w-full pl-12 pr-4 py-3.5 border ${
-                                        errors.email ? 'border-red-300' : 'border-gray-300'
-                                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all`}
-                                />
-                            </div>
-                            {errors.email && (
-                                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-base">error</span>
-                                    {errors.email}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Password Input */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Password
-                            </label>
-                            <div className="relative">
-                                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">
-                                    lock
-                                </span>
-                                <input
-                                    type={showPassword ? 'text' : 'password'}
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    placeholder="Enter admin password"
-                                    className={`w-full pl-12 pr-12 py-3.5 border ${
-                                        errors.password ? 'border-red-300' : 'border-gray-300'
-                                    } rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all`}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                                >
-                                    <span className="material-symbols-outlined text-xl">
-                                        {showPassword ? 'visibility_off' : 'visibility'}
-                                    </span>
-                                </button>
-                            </div>
-                            {errors.password && (
-                                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-base">error</span>
-                                    {errors.password}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Remember Me & Forgot Password */}
-                        <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="w-4 h-4 border-gray-300 rounded text-red-600 focus:ring-red-500"
-                                />
-                                <span className="text-sm text-gray-600">Remember me</span>
-                            </label>
-                            <Link
-                                to="/forgot-password"
-                                className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
-                            >
-                                Forgot password?
-                            </Link>
-                        </div>
-
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-red-600 text-white py-3.5 rounded-xl font-medium hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {loading ? (
-                                <>
-                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Signing in...
-                                </>
-                            ) : (
-                                <>
-                                    <span className="material-symbols-outlined">login</span>
-                                    Sign In as Admin
-                                </>
-                            )}
-                        </button>
-                    </form>
-
-                    {/* Divider */}
-                    <div className="relative my-8">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-200"></div>
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-4 bg-white text-gray-500">OR</span>
-                        </div>
-                    </div>
-
-                    {/* Shop Owner Login Link */}
-                    <div className="text-center">
-                        <p className="text-gray-600">
-                            Not an admin?{' '}
-                            <Link
-                                to={ROUTES.LOGIN}
-                                className="font-medium text-[#f49d25] hover:text-[#e38b14] transition-colors"
-                            >
-                                Login as Shop Owner
-                            </Link>
-                        </p>
-                    </div>
-
-                    {/* Security Notice */}
-                    <div className="mt-8 p-4 bg-red-50 rounded-xl flex items-start gap-3">
-                        <span className="material-symbols-outlined text-red-600 text-xl">
-                            security
-                        </span>
-                        <div className="flex-1">
-                            <p className="text-sm font-medium text-red-800">Security Notice</p>
-                            <p className="text-sm text-red-600 mt-1">
-                                This portal is restricted to authorized administrators only. All access attempts are logged.
-                            </p>
-                        </div>
-                    </div>
-                </div>
+          <label className="block">
+            <span className="text-sm font-semibold text-gray-800">Mật khẩu</span>
+            <div className="relative mt-2">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                autoComplete="current-password"
+                className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-red-500/30"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((current) => !current)}
+                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                className="absolute inset-y-0 right-0 px-4 text-gray-500"
+              >
+                <span className="material-symbols-outlined">
+                  {showPassword ? 'visibility_off' : 'visibility'}
+                </span>
+              </button>
             </div>
+            {errors.password && <span className="mt-1 block text-xs text-red-500">{errors.password}</span>}
+          </label>
 
-            {/* Right Side - Admin Illustration */}
-            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-red-50 via-white to-red-50 items-center justify-center p-12">
-                <div className="max-w-lg text-center">
-                    {/* Admin Icon */}
-                    <div className="mb-8 relative">
-                        <div className="inline-flex items-center justify-center w-64 h-64 bg-white rounded-full shadow-2xl">
-                            <span className="material-symbols-outlined text-[140px] text-red-600">
-                                admin_panel_settings
-                            </span>
-                        </div>
-                        {/* Floating Elements */}
-                        <div className="absolute top-0 right-0 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                            <span className="material-symbols-outlined text-2xl text-red-600">
-                                verified_user
-                            </span>
-                        </div>
-                        <div className="absolute bottom-0 left-0 w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center shadow-lg animate-bounce" style={{ animationDelay: '0.5s' }}>
-                            <span className="material-symbols-outlined text-2xl text-orange-600">
-                                manage_accounts
-                            </span>
-                        </div>
-                    </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-red-600 px-5 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? 'Đang đăng nhập…' : 'Đăng nhập admin'}
+          </button>
+        </form>
 
-                    {/* Text Content */}
-                    <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                        Administrator Portal
-                    </h2>
-                    <p className="text-lg text-gray-600 mb-6">
-                        Manage restaurants, monitor orders, and oversee platform operations with powerful admin tools.
-                    </p>
-
-                    {/* Features */}
-                    <div className="grid grid-cols-2 gap-4 text-left">
-                        {[
-                            { icon: 'store', label: 'Manage Restaurants' },
-                            { icon: 'analytics', label: 'View Analytics' },
-                            { icon: 'supervised_user_circle', label: 'User Management' },
-                            { icon: 'settings', label: 'System Settings' },
-                        ].map((feature, index) => (
-                            <div key={index} className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm">
-                                <span className="material-symbols-outlined text-2xl text-red-600">
-                                    {feature.icon}
-                                </span>
-                                <span className="text-sm font-medium text-gray-700">
-                                    {feature.label}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+        <p className="mt-6 text-center text-sm text-gray-600">
+          Chủ nhà hàng?{' '}
+          <Link to={ROUTES.LOGIN} className="font-bold text-red-600 hover:underline">
+            Đăng nhập portal nhà hàng
+          </Link>
+        </p>
+      </section>
+    </main>
+  );
 };
 
 export default AdminLoginPage;

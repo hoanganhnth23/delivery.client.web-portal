@@ -18,13 +18,6 @@ interface LoginCredentials {
   role: string;
 }
 
-interface RegisterData {
-  email: string;
-  password: string;
-  name?: string;
-  role?: 'admin' | 'restaurant' | 'user';
-}
-
 interface LoginResult {
   success: boolean;
   data?: {
@@ -45,7 +38,6 @@ interface AuthContextValue {
   loading: boolean;
   error: string | null;
   login: (credentials: LoginCredentials) => Promise<LoginResult>;
-  register: (data: RegisterData) => Promise<ActionResult>;
   logout: () => Promise<ActionResult>;
   hasRole: (roles: string | string[]) => boolean;
   isAuthenticated: boolean;
@@ -83,15 +75,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           try {
             const freshUser = await authService.getProfile();
             setUser(freshUser); // Cập nhật user với data mới nhất
-          } catch (profileError) {
-            console.error('Failed to fetch fresh profile:', profileError);
-            // Nếu get profile thất bại (token hết hạn, server lỗi)
-            // Vẫn giữ cachedUser để user có thể sử dụng app
-            // Hoặc có thể logout nếu muốn strict hơn
+          } catch {
+            await authService.logout();
+            setUser(null);
           }
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
         setError((err as Error).message);
       } finally {
         setLoading(false);
@@ -116,8 +105,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         throw new Error('Role is required for login');
       }
 
-      console.log("Login credentials:", credentials);
-      
       // 1. Đăng nhập - Lưu tokens vào localStorage
       const result = await authService.login(credentials);
       
@@ -135,30 +122,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       };
     } catch (err) {
+      await authService.logout();
+      setUser(null);
       const errorMessage = (err as Error).message || 'Login failed';
       setError(errorMessage);
-      console.error('Login error:', err);
       return { success: false, message: errorMessage };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Đăng ký
-   */
-  const register = useCallback(async (data: RegisterData): Promise<ActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      await authService.register(data);
-
-      return { success: true };
-    } catch (err) {
-      const message = (err as Error).message;
-      setError(message);
-      return { success: false, message };
     } finally {
       setLoading(false);
     }
@@ -176,7 +144,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // ✅ KHÔNG navigate, component tự xử lý
       return { success: true };
     } catch (err) {
-      console.error('Logout error:', err);
       const message = (err as Error).message;
       setError(message);
       return { success: false, message };
@@ -192,7 +159,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     (allowedRoles: string | string[]) => {
       return authService.hasRole(allowedRoles);
     },
-    [user]
+    []
   );
 
   // ✅ PERFORMANCE OPTIMIZATION: Memoize context value
@@ -204,11 +171,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       error,
       isAuthenticated: !!user,
       login,
-      register,
       logout,
       hasRole,
     }),
-    [user, loading, error, login, register, logout, hasRole]
+    [user, loading, error, login, logout, hasRole]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

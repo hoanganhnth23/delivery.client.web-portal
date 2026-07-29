@@ -3,7 +3,7 @@
  * Form để tạo mới hoặc chỉnh sửa món ăn
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useMenu } from '../hooks/useMenu';
 import type { MenuItem } from '@/types/api.types';
 
@@ -37,28 +37,15 @@ interface FormErrors {
 const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: MenuItemFormProps) => {
   const { createMenuItem, updateMenuItem, loading } = useMenu();
   
-  const [formData, setFormData] = useState<FormData>({
-    restaurantId: restaurantId?.toString() || '',
-    name: '',
-    description: '',
-    price: '',
-    image: ''
-  });
+  const [formData, setFormData] = useState<FormData>(() => ({
+    restaurantId: menuItem?.restaurantId?.toString() || restaurantId.toString(),
+    name: menuItem?.name || '',
+    description: menuItem?.description || '',
+    price: menuItem?.price?.toString() || '',
+    image: menuItem?.image || '',
+  }));
 
   const [errors, setErrors] = useState<FormErrors>({});
-
-  // Load dữ liệu khi edit
-  useEffect(() => {
-    if (menuItem) {
-      setFormData({
-        restaurantId: menuItem.restaurantId?.toString() || restaurantId?.toString() || '',
-        name: menuItem.name || '',
-        description: menuItem.description || '',
-        price: menuItem.price?.toString() || '',
-        image: menuItem.image || ''
-      });
-    }
-  }, [menuItem, restaurantId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -124,8 +111,8 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
       if (result.success) {
         onSuccess?.(result.data);
       }
-    } catch (error) {
-      console.error('Form submit error:', error);
+    } catch {
+      // The menu hook owns the user-visible mutation error state.
     }
   };
 

@@ -1,6 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import { flashSaleAdminService, FlashSaleCampaign, FlashSaleItem, flashSalePublicService } from '@/services/api/flashSaleService';
+import {
+  flashSaleAdminService,
+  type FlashSaleCampaign,
+  type FlashSaleCampaignStatus,
+  type FlashSaleItem,
+} from '@/services/api/flashSaleService';
 import { toast } from 'react-hot-toast';
 
 const AdminFlashSalePage = () => {
@@ -18,29 +23,29 @@ const AdminFlashSalePage = () => {
     endTime: '23:59',
   });
 
-  useEffect(() => {
-    loadCampaigns();
-  }, []);
-
-  const loadCampaigns = async () => {
+  const loadCampaigns = useCallback(async () => {
     setLoading(true);
     try {
       const data = await flashSaleAdminService.getAllCampaigns();
       setCampaigns(data);
-    } catch (error) {
+    } catch {
       toast.error('Lỗi khi tải danh sách Flash Sale');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadCampaigns();
+  }, [loadCampaigns]);
 
   const loadItems = async (campaignId: number) => {
     setItemsLoading(true);
     setShowItemsModal(campaignId);
     try {
-      const data = await flashSalePublicService.getCampaignItems(campaignId);
+      const data = await flashSaleAdminService.getCampaignItems(campaignId);
       setCampaignItems(data);
-    } catch (error) {
+    } catch {
       toast.error('Lỗi khi tải danh sách món ăn');
     } finally {
       setItemsLoading(false);
@@ -53,34 +58,35 @@ const AdminFlashSalePage = () => {
       // Backend expects proper time strings
       const payload = {
         ...newCampaign,
-        startTime: newCampaign.isRecurring ? newCampaign.startTime + ':00' : newCampaign.startTime + ':00', // Need proper formatting depending on API expectation
+        startTime: `${newCampaign.startTime}:00`,
+        endTime: `${newCampaign.endTime}:00`,
       };
       
       await flashSaleAdminService.createCampaign(payload);
       toast.success('Tạo chiến dịch thành công');
       setShowModal(false);
-      loadCampaigns();
-    } catch (error) {
+      void loadCampaigns();
+    } catch {
       toast.error('Lỗi khi tạo chiến dịch');
     }
   };
 
-  const handleUpdateStatus = async (id: number, status: string) => {
+  const handleUpdateStatus = async (id: number, status: FlashSaleCampaignStatus) => {
     try {
       await flashSaleAdminService.updateCampaignStatus(id, status);
       toast.success(`Đã đổi trạng thái thành ${status}`);
-      loadCampaigns();
-    } catch (error) {
+      void loadCampaigns();
+    } catch {
       toast.error('Lỗi khi đổi trạng thái');
     }
   };
 
-  const handleApproveItem = async (itemId: number, status: string) => {
+  const handleApproveItem = async (itemId: number) => {
     try {
-      await flashSaleAdminService.approveItem(itemId, status);
-      toast.success(`Đã ${status === 'APPROVED' ? 'duyệt' : 'từ chối'} món ăn`);
-      if (showItemsModal) loadItems(showItemsModal);
-    } catch (error) {
+      await flashSaleAdminService.approveItem(itemId);
+      toast.success('Đã duyệt món ăn');
+      if (showItemsModal) void loadItems(showItemsModal);
+    } catch {
       toast.error('Lỗi duyệt món ăn');
     }
   };
@@ -135,7 +141,7 @@ const AdminFlashSalePage = () => {
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
                       campaign.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 
-                      campaign.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 
+                      campaign.status === 'UPCOMING' ? 'bg-yellow-100 text-yellow-700' :
                       'bg-gray-100 text-gray-700'
                     }`}>
                       {campaign.status}
@@ -151,7 +157,7 @@ const AdminFlashSalePage = () => {
                         <span className="material-symbols-outlined text-sm">visibility</span>
                       </button>
                       
-                      {campaign.status === 'PENDING' && (
+                      {campaign.status === 'UPCOMING' && (
                         <button
                           onClick={() => handleUpdateStatus(campaign.id, 'ACTIVE')}
                           className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
@@ -281,7 +287,7 @@ const AdminFlashSalePage = () => {
                     campaignItems.map(item => (
                       <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
                         <td className="px-6 py-3">
-                          <div className="font-bold text-sm text-gray-900 dark:text-white">{item.menuItemName}</div>
+                          <div className="font-bold text-sm text-gray-900 dark:text-white">Món #{item.menuItemId}</div>
                           <div className="text-xs text-gray-500">Shop ID: {item.restaurantId}</div>
                         </td>
                         <td className="px-6 py-3 text-sm text-gray-500 line-through">
@@ -306,16 +312,10 @@ const AdminFlashSalePage = () => {
                           {item.status === 'PENDING' && (
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleApproveItem(item.id, 'APPROVED')}
+                                onClick={() => handleApproveItem(item.id)}
                                 className="px-2 py-1 text-xs font-bold bg-green-500 text-white rounded hover:bg-green-600"
                               >
                                 Duyệt
-                              </button>
-                              <button
-                                onClick={() => handleApproveItem(item.id, 'REJECTED')}
-                                className="px-2 py-1 text-xs font-bold bg-red-500 text-white rounded hover:bg-red-600"
-                              >
-                                Từ chối
                               </button>
                             </div>
                           )}

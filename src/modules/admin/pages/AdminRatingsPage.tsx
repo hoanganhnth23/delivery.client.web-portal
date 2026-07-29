@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import adminService, { AdminRating } from '@/services/api/adminService';
 import { toast } from 'react-hot-toast';
@@ -11,22 +11,21 @@ const AdminRatingsPage = () => {
 
   const statusTabs = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'];
 
-  useEffect(() => {
-    loadRatings();
-  }, []);
-
-  const loadRatings = async () => {
+  const loadRatings = useCallback(async () => {
     setLoading(true);
     try {
       const data = await adminService.fetchAllRatings();
       setRatings(data || []);
-    } catch (error) {
-      console.error('Error loading ratings:', error);
+    } catch {
       toast.error('Lỗi khi tải danh sách đánh giá');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadRatings();
+  }, [loadRatings]);
 
   const handleUpdateStatus = async (ratingId: number, status: 'APPROVED' | 'REJECTED') => {
     try {
@@ -34,8 +33,7 @@ const AdminRatingsPage = () => {
       toast.success(status === 'APPROVED' ? 'Đã duyệt đánh giá' : 'Đã từ chối đánh giá');
       // Update local state
       setRatings(prev => prev.map(r => r.id === ratingId ? { ...r, status } : r));
-    } catch (error) {
-      console.error('Error updating rating status:', error);
+    } catch {
       toast.error('Cập nhật trạng thái thất bại');
     }
   };

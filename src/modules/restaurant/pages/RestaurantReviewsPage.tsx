@@ -1,43 +1,33 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import { useRestaurant } from '../hooks/useRestaurant';
-import { getRestaurantRatings } from '../services/restaurantService';
+import {
+  getRestaurantRatings,
+  type RestaurantRating,
+} from '../services/restaurantService';
 import { toast } from 'react-hot-toast';
-
-interface Review {
-  id: number;
-  customerId: number;
-  rating: number;
-  comment: string;
-  createdAt: string;
-}
 
 const RestaurantReviewsPage = () => {
   const { currentRestaurant } = useRestaurant();
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<RestaurantRating[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (currentRestaurant?.id) {
-      loadReviews();
-    }
-  }, [currentRestaurant]);
-
-  const loadReviews = async () => {
+  const loadReviews = useCallback(async () => {
+    if (!currentRestaurant?.id) return;
     setLoading(true);
     try {
-      const response = await getRestaurantRatings(currentRestaurant!.id);
-      if (response.code === 1) {
-        setReviews(response.data || []);
-      }
-    } catch (error) {
-      console.error('Error loading reviews:', error);
+      setReviews(await getRestaurantRatings(currentRestaurant.id));
+    } catch {
       toast.error('Lỗi khi tải danh sách đánh giá');
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentRestaurant]);
+
+  useEffect(() => {
+    void loadReviews();
+  }, [loadReviews]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -60,7 +50,7 @@ const RestaurantReviewsPage = () => {
         <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-4xl mx-auto flex flex-col gap-6">
             {/* Summary Card */}
-            <div className="bg-card-light dark:bg-card-dark p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center justify-between">
+            <div className="bg-card-light dark:bg-card-dark p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Đánh giá trung bình</h3>
                 <div className="flex items-center gap-3">
@@ -79,9 +69,6 @@ const RestaurantReviewsPage = () => {
                     <span className="text-xs text-gray-500">{currentRestaurant?.ratingCount || 0} lượt đánh giá</span>
                   </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-bold text-green-600 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">Tỉ lệ hài lòng 95%</span>
               </div>
             </div>
 

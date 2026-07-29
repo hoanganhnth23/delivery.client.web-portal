@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import adminService, { AdminShipper } from '@/services/api/adminService';
 
@@ -7,7 +7,6 @@ const AdminShippersPage = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'ONLINE' | 'OFFLINE'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
-  const [processingId, setProcessingId] = useState<number | null>(null);
 
   const filterTabs: Array<{ key: 'ALL' | 'ONLINE' | 'OFFLINE'; label: string }> = [
     { key: 'ALL', label: 'Tất cả' },
@@ -15,18 +14,15 @@ const AdminShippersPage = () => {
     { key: 'OFFLINE', label: 'Offline' },
   ];
 
-  useEffect(() => {
-    loadShippers();
-  }, [filter]);
-
-  const loadShippers = async () => {
+  const loadShippers = useCallback(async () => {
     setLoading(true);
     try {
       let data: AdminShipper[];
       if (filter === 'ONLINE') {
         data = await adminService.fetchOnlineShippers();
       } else {
-        data = await adminService.fetchAllShippers();
+        const page = await adminService.fetchAllShippers();
+        data = page.items;
       }
 
       if (filter === 'OFFLINE') {
@@ -34,45 +30,16 @@ const AdminShippersPage = () => {
       }
 
       setShippers(data || []);
-    } catch (error) {
-      console.error('Error loading shippers:', error);
+    } catch {
+      setShippers([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
-  const handleBlock = async (shipper: AdminShipper) => {
-    const reason = window.prompt(`Nhập lý do KHOÁ tài khoản shipper "${shipper.fullName || 'ID: ' + shipper.id}":`);
-    if (reason === null) return;
-
-    setProcessingId(shipper.id);
-    try {
-      await adminService.blockShipper(shipper.userId, reason || 'Vi phạm chính sách');
-      alert('Đã khoá tài khoản shipper thành công');
-      loadShippers();
-    } catch (error) {
-      console.error('Error blocking shipper:', error);
-      alert('Có lỗi xảy ra khi khoá tài khoản');
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleUnblock = async (shipper: AdminShipper) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn MỞ KHOÁ tài khoản shipper "${shipper.fullName || 'ID: ' + shipper.id}"?`)) return;
-
-    setProcessingId(shipper.id);
-    try {
-      await adminService.unblockShipper(shipper.userId);
-      alert('Đã mở khoá tài khoản shipper thành công');
-      loadShippers();
-    } catch (error) {
-      console.error('Error unblocking shipper:', error);
-      alert('Có lỗi xảy ra khi mở khoá tài khoản');
-    } finally {
-      setProcessingId(null);
-    }
-  };
+  useEffect(() => {
+    void loadShippers();
+  }, [loadShippers]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -152,13 +119,12 @@ const AdminShippersPage = () => {
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Xe</th>
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trạng thái</th>
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Ngày tham gia</th>
-                  <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light dark:divide-border-dark">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-gray-500">
+                    <td colSpan={6} className="p-8 text-center text-gray-500">
                       <div className="flex justify-center items-center gap-2">
                         <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
                         Đang tải dữ liệu...
@@ -167,7 +133,7 @@ const AdminShippersPage = () => {
                   </tr>
                 ) : filteredShippers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-gray-500">
+                    <td colSpan={6} className="p-8 text-center text-gray-500">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <span className="material-symbols-outlined text-4xl text-gray-300">local_shipping</span>
                         <span>Không tìm thấy shipper nào.</span>
@@ -201,48 +167,17 @@ const AdminShippersPage = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="flex flex-col gap-1">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium w-fit ${
-                            shipper.isOnline
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                          }`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${shipper.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                            {shipper.isOnline ? 'Online' : 'Offline'}
-                          </span>
-                          {shipper.isBlocked && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 w-fit">
-                              <span className="material-symbols-outlined text-xs">block</span>
-                              Đã khoá
-                            </span>
-                          )}
-                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium w-fit ${
+                          shipper.isOnline
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                        }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${shipper.isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                          {shipper.isOnline ? 'Online' : 'Offline'}
+                        </span>
                       </td>
                       <td className="p-4 text-sm text-gray-600 dark:text-gray-400 hidden sm:table-cell">
                         {formatDate(shipper.createdAt)}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex items-center justify-end gap-2">
-                          {shipper.isBlocked ? (
-                            <button
-                              onClick={() => handleUnblock(shipper)}
-                              disabled={processingId === shipper.id}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 dark:text-green-400 transition-colors disabled:opacity-50 text-sm font-semibold"
-                            >
-                              <span className="material-symbols-outlined text-sm">lock_open</span>
-                              Mở khoá
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleBlock(shipper)}
-                              disabled={processingId === shipper.id}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-400 transition-colors disabled:opacity-50 text-sm font-semibold"
-                            >
-                              <span className="material-symbols-outlined text-sm">block</span>
-                              Khoá
-                            </button>
-                          )}
-                        </div>
                       </td>
                     </tr>
                   ))

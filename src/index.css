@@ -1,11 +1,11 @@
 /**
  * Global Styles
- * DeliveryVN Web Application - ShopeeFood Style
+ * DeliveryVN web application
  */
 
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Reset & Base */
 * {
@@ -15,7 +15,7 @@
 }
 
 :root {
-  /* ShopeeFood Colors */
+  /* Portal colors */
   --primary: #f49d25;
   --primary-hover: #e38b14;
   --background-light: #f8f7f5;
@@ -135,40 +135,4 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gray-500);
-}
-/* Livestream Animations */
-@keyframes float-heart {
-  0% {
-    transform: translateY(0) scale(1) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-200px) scale(1.5) rotate(45deg);
-    opacity: 0;
-  }
-}
-
-.animate-float-heart {
-  animation: float-heart 2s ease-out forwards;
-}
-
-@keyframes bounce-in {
-  0% {
-    transform: scale(0.3);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  70% {
-    transform: scale(0.9);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-.animate-bounce-in {
-  animation: bounce-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }

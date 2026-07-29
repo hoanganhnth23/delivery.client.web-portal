@@ -3,8 +3,13 @@
  * Định nghĩa các hằng số sử dụng trong toàn bộ ứng dụng
  */
 
-// API Base URL
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+// Gateway origin. API endpoints below already include the `/api` prefix.
+export const normalizeApiBaseUrl = (value?: string): string =>
+  (value?.trim() || 'http://localhost:8079')
+    .replace(/\/api\/?$/, '')
+    .replace(/\/+$/, '');
+
+export const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
 // User Roles (mapping từ backend AuthAccount.Role)
 export const USER_ROLES = {
@@ -56,21 +61,11 @@ export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
   ADMIN_LOGIN: '/admin/login',
-  REGISTER: '/register',
   
-  // Protected routes
-  DASHBOARD: '/dashboard',
+  // Admin routes
   ADMIN_DASHBOARD: '/admin/dashboard',
-  ADMIN_RESTAURANTS: '/admin/restaurants',
-  ADMIN_MENUS: '/admin/menus',
-  ADMIN_CATEGORIES: '/admin/categories',
-  ADMIN_USERS: '/admin/users',
-  ADMIN_CHAT: '/admin/chat',
-  ADMIN_SETTINGS: '/admin/settings',
   ADMIN_ORDERS: '/admin/orders',
-  ADMIN_WITHDRAWALS: '/admin/withdrawals',
   ADMIN_SHIPPERS: '/admin/shippers',
-  ADMIN_TRACKING: '/admin/tracking',
   ADMIN_RATINGS: '/admin/ratings',
   ADMIN_COUPONS: '/admin/coupons',
   ADMIN_FLASH_SALES: '/admin/flash-sales',
@@ -78,34 +73,10 @@ export const ROUTES = {
   RESTAURANT_PROFILE: '/restaurant/profile',
   RESTAURANT_MENU: '/restaurant/menu',
   RESTAURANT_ORDERS: '/restaurant/orders',
-  RESTAURANT_CHAT: '/restaurant/chat',
-  RESTAURANT_COUPONS: '/restaurant/coupons',
-  RESTAURANT_FLASH_SALES: '/restaurant/flash-sales',
-  RESTAURANT_LIVESTREAM: '/restaurant/livestream/create',
-  RESTAURANT_LIVESTREAM_DETAIL: '/restaurant/livestream/:id',
-  RESTAURANT_LIVESTREAM_MANAGEMENT: '/restaurant/livestream/management',
-  RESTAURANT_ANALYTICS: '/restaurant/analytics',
   RESTAURANT_REVIEWS: '/restaurant/reviews',
-  RESTAURANT_SETTINGS: '/restaurant/settings',
-  RESTAURANT_SETTLEMENT: '/restaurant/settlement',
-  
-  // Livestream routes
-  LIVESTREAM_VIEWER: '/livestream/:livestreamId',
-  
-  // Restaurant routes
-  RESTAURANTS: '/restaurants',
-  RESTAURANT_DETAIL: '/restaurants/:id',
-  RESTAURANT_NEW: '/restaurants/new',
-  RESTAURANT_EDIT: '/restaurants/:id/edit',
-  
-  // Menu routes
-  MENU: '/restaurants/:restaurantId/menu',
-  MENU_NEW: '/restaurants/:restaurantId/menu/new',
-  MENU_EDIT: '/restaurants/:restaurantId/menu/:menuId/edit',
   
   // Error pages
   UNAUTHORIZED: '/unauthorized',
-  NOT_FOUND: '/404',
 } as const;
 
 // Validation Rules
@@ -126,8 +97,6 @@ export const TOAST_MESSAGES = {
   LOGIN_SUCCESS: 'Đăng nhập thành công!',
   LOGIN_ERROR: 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.',
   LOGOUT_SUCCESS: 'Đăng xuất thành công!',
-  REGISTER_SUCCESS: 'Đăng ký thành công! Vui lòng đăng nhập.',
-  REGISTER_ERROR: 'Đăng ký thất bại. Vui lòng thử lại.',
   
   // Restaurant
   RESTAURANT_CREATED: 'Tạo nhà hàng thành công!',
@@ -138,10 +107,6 @@ export const TOAST_MESSAGES = {
   MENU_CREATED: 'Tạo món ăn thành công!',
   MENU_UPDATED: 'Cập nhật món ăn thành công!',
   MENU_DELETED: 'Xóa món ăn thành công!',
-  
-  // Settlement
-  WITHDRAWAL_SUCCESS: 'Yêu cầu rút tiền đã được gửi!',
-  WITHDRAWAL_ERROR: 'Yêu cầu rút tiền thất bại.',
   
   // Errors
   NETWORK_ERROR: 'Lỗi kết nối mạng. Vui lòng thử lại.',

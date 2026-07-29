@@ -1,136 +1,64 @@
-/**
- * RestaurantSidebar Component
- * Sidebar chung cho tất cả các trang Restaurant/Merchant
- * Đồng bộ UI pattern với AdminLayout sidebar
- */
-
 import { Link, useLocation } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
-
-interface MenuItem {
-  icon: string;
-  label: string;
-  to: string;
-  badge?: string;
-}
 
 interface RestaurantSidebarProps {
   restaurantName?: string;
   restaurantImage?: string;
 }
 
-const RestaurantSidebar = ({ 
-  restaurantName = 'Tasty Bites',
-  restaurantImage = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200'
-}: RestaurantSidebarProps) => {
+const navigation = [
+  { icon: 'dashboard', label: 'Dashboard', to: ROUTES.RESTAURANT_DASHBOARD },
+  { icon: 'shopping_bag', label: 'Đơn hàng', to: ROUTES.RESTAURANT_ORDERS },
+  { icon: 'menu_book', label: 'Quản lý Menu', to: ROUTES.RESTAURANT_MENU },
+  { icon: 'storefront', label: 'Hồ sơ cửa hàng', to: ROUTES.RESTAURANT_PROFILE },
+  { icon: 'reviews', label: 'Đánh giá', to: ROUTES.RESTAURANT_REVIEWS },
+];
+
+const RestaurantSidebar = ({ restaurantName, restaurantImage }: RestaurantSidebarProps) => {
   const location = useLocation();
-
-  const menuItems: MenuItem[] = [
-    { icon: 'dashboard', label: 'Dashboard', to: ROUTES.RESTAURANT_DASHBOARD },
-    { icon: 'shopping_bag', label: 'Đơn hàng', to: ROUTES.RESTAURANT_ORDERS },
-    { icon: 'menu_book', label: 'Quản lý Menu', to: ROUTES.RESTAURANT_MENU },
-    { icon: 'videocam', label: 'Livestream', to: ROUTES.RESTAURANT_LIVESTREAM_MANAGEMENT },
-    { icon: 'chat_bubble', label: 'Tin nhắn', to: ROUTES.RESTAURANT_CHAT },
-    { icon: 'storefront', label: 'Hồ sơ cửa hàng', to: ROUTES.RESTAURANT_PROFILE },
-    { icon: 'account_balance_wallet', label: 'Thu nhập', to: ROUTES.RESTAURANT_SETTLEMENT },
-    { icon: 'bar_chart', label: 'Thống kê', to: ROUTES.RESTAURANT_ANALYTICS },
-    { icon: 'reviews', label: 'Đánh giá', to: ROUTES.RESTAURANT_REVIEWS },
-    { icon: 'sell', label: 'Khuyến mãi', to: ROUTES.RESTAURANT_COUPONS },
-    { icon: 'bolt', label: 'Flash Sales', to: ROUTES.RESTAURANT_FLASH_SALES },
-  ];
-
-  const isActive = (path: string) => location.pathname === path;
+  const identity = restaurantName?.trim() || 'Nhà hàng chưa được gán';
 
   return (
-    <aside className="hidden lg:flex flex-col w-72 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark flex-shrink-0 transition-colors duration-200">
-      <div className="flex h-full flex-col justify-between p-6">
-        <div className="flex flex-col gap-8">
-          {/* Logo / Restaurant Info */}
-          <div className="flex items-center gap-4 px-2">
-            <div
-              className="bg-center bg-no-repeat bg-cover rounded-full size-12 shadow-sm border-2 border-primary"
-              style={{ backgroundImage: `url('${restaurantImage}')` }}
-            />
-            <div className="flex flex-col">
-              <h1 className="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-tight">
-                {restaurantName}
-              </h1>
-              <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider">
-                Quản lý cửa hàng
-              </p>
-            </div>
+    <aside className="hidden w-72 flex-shrink-0 flex-col border-r border-border-light bg-surface-light p-6 dark:border-border-dark dark:bg-surface-dark lg:flex">
+      <div className="flex items-center gap-4 px-2">
+        {restaurantImage?.trim() ? (
+          <img
+            src={restaurantImage}
+            alt=""
+            className="size-12 rounded-full border-2 border-primary object-cover"
+          />
+        ) : (
+          <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <span className="material-symbols-outlined">restaurant</span>
           </div>
-
-          {/* Navigation Links */}
-          <nav className="flex flex-col gap-2">
-            {menuItems.map((item) => {
-              const active = isActive(item.to);
-              
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`
-                    flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-all
-                    ${active 
-                      ? 'bg-primary/10 text-primary group hover:bg-primary/20' 
-                      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`material-symbols-outlined text-xl ${active ? 'icon-filled' : ''}`}>
-                      {item.icon}
-                    </span>
-                    <span className={`text-sm ${active ? 'font-bold' : 'font-medium'}`}>
-                      {item.label}
-                    </span>
-                  </div>
-                  
-                  {item.badge && (
-                    <span className="flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full bg-primary text-white text-xs font-bold">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-            
-            {/* Divider */}
-            <div className="h-px bg-border-light dark:bg-border-dark my-2 mx-4"></div>
-
-            {/* Settings */}
-            <Link
-              to={ROUTES.RESTAURANT_SETTINGS}
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive(ROUTES.RESTAURANT_SETTINGS) ? 'bg-primary/10 text-primary group hover:bg-primary/20' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'}`}
-            >
-              <span className={`material-symbols-outlined ${isActive(ROUTES.RESTAURANT_SETTINGS) ? 'icon-filled' : ''}`}>settings</span>
-              <span className={`text-sm ${isActive(ROUTES.RESTAURANT_SETTINGS) ? 'font-bold' : 'font-medium'}`}>Cài đặt</span>
-            </Link>
-            
-            {/* Logout */}
-            <Link
-              to={ROUTES.LOGIN}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-            >
-              <span className="material-symbols-outlined text-xl">logout</span>
-              <span className="text-sm font-medium">Đăng xuất</span>
-            </Link>
-          </nav>
-        </div>
-
-        {/* Bottom Help Card */}
-        <div className="rounded-xl bg-gradient-to-br from-primary to-orange-600 p-4 text-white relative overflow-hidden">
-          <div className="absolute -right-2 -top-2 opacity-20 transform rotate-12">
-            <span className="material-symbols-outlined text-6xl">restaurant</span>
-          </div>
-          <p className="text-xs font-medium opacity-80 mb-1">Cần hỗ trợ?</p>
-          <p className="font-bold text-sm mb-2">Liên hệ hỗ trợ</p>
-          <button className="text-xs bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-1.5 rounded-lg font-medium transition-colors">
-            Hỗ trợ ngay
-          </button>
+        )}
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-bold text-gray-900 dark:text-white">{identity}</h1>
+          <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Quản lý cửa hàng
+          </p>
         </div>
       </div>
+
+      <nav className="mt-8 flex flex-col gap-2">
+        {navigation.map((item) => {
+          const active = location.pathname === item.to;
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-colors ${
+                active
+                  ? 'bg-primary/10 font-bold text-primary'
+                  : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+              }`}
+            >
+              <span className="material-symbols-outlined">{item.icon}</span>
+              <span className="text-sm">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </aside>
   );
 };

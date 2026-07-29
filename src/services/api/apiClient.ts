@@ -13,6 +13,34 @@ interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
 
+interface BaseResponseEnvelope<T = unknown> {
+  status: 0 | 1;
+  message: string | null;
+  data: T;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const parseBaseResponse = <T>(payload: unknown): BaseResponseEnvelope<T> => {
+  if (
+    !isRecord(payload) ||
+    (payload.status !== RESPONSE_CODES.SUCCESS && payload.status !== RESPONSE_CODES.ERROR) ||
+    !Object.prototype.hasOwnProperty.call(payload, 'data') ||
+    !Object.prototype.hasOwnProperty.call(payload, 'message') ||
+    (payload.message !== null && typeof payload.message !== 'string')
+  ) {
+    throw new Error('Backend response does not match the canonical BaseResponse contract');
+  }
+
+  return payload as unknown as BaseResponseEnvelope<T>;
+};
+
+const getAuthorizationHeader = (config: ExtendedAxiosRequestConfig): string | undefined => {
+  const value = config.headers?.get?.('Authorization') ?? config.headers?.Authorization;
+  return typeof value === 'string' ? value : undefined;
+};
+
 // Request queue để chặn các API calls khi đang refresh token
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -51,19 +79,9 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Log request (chỉ trong development)
-    if (import.meta.env.DEV) {
-      console.log('🚀 API Request:', {
-        method: config.method?.toUpperCase(),
-        url: config.url,
-        data: config.data,
-      });
-    }
-
     return config;
   },
   (error: AxiosError) => {
-    console.error('❌ Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -71,39 +89,23 @@ apiClient.interceptors.request.use(
 // Response Interceptor - Xử lý response và auto-refresh token
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Log response (chỉ trong development)
-    if (import.meta.env.DEV) {
-      console.log('✅ API Response:', {
-        url: response.config.url,
-        status: response.status,
-        data: response.data,
-      });
-    }
-
-    // Kiểm tra BaseResponse format từ backend
-    // Backend trả về: { status: 1, message: "...", data: {...} }
-    const isBaseResponse = response.data && typeof response.data === 'object' && ('status' in response.data || 'code' in response.data);
-
-    if (!isBaseResponse) {
-      if (response.status >= 200 && response.status < 300) {
+    try {
+      const envelope = parseBaseResponse(response.data);
+      if (envelope.status === RESPONSE_CODES.SUCCESS) {
         return response;
       }
-      const error = new Error('API Error') as Error & { response: AxiosResponse };
+
+      const error = new Error(envelope.message || 'API Error') as Error & { response: AxiosResponse };
       error.response = response;
       return Promise.reject(error);
-    }
+    } catch (contractError) {
+      if (contractError instanceof Error && 'response' in contractError) {
+        return Promise.reject(contractError);
+      }
 
-    const { status, code, message } = response.data;
-
-    // Backend dùng "status" thay vì "code"
-    const successCode = status || code;
-
-    if (successCode === RESPONSE_CODES.SUCCESS) {
-      // Trả về response nếu success
-      return response;
-    } else {
-      // Throw error nếu status !== 1
-      const error = new Error(message || 'API Error') as Error & { response: AxiosResponse };
+      const error = new Error(
+        contractError instanceof Error ? contractError.message : 'Invalid backend response',
+      ) as Error & { response: AxiosResponse };
       error.response = response;
       return Promise.reject(error);
     }
@@ -111,23 +113,15 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as ExtendedAxiosRequestConfig;
 
-    // Log error (chỉ trong development)
-    if (import.meta.env.DEV) {
-      console.error('❌ API Error:', {
-        url: originalRequest?.url,
-        status: error.response?.status,
-        message: error.message,
-        data: error.response?.data,
-      });
-    }
-
     // Xử lý 401 Unauthorized - Auto refresh token
     if (
       error.response?.status === HTTP_STATUS.UNAUTHORIZED &&
       originalRequest &&
       !originalRequest._retry &&
+      getAuthorizationHeader(originalRequest)?.startsWith('Bearer ') &&
       !originalRequest.url?.includes('/api/auth/login') &&
-      !originalRequest.url?.includes('/api/auth/refresh-token')
+      !originalRequest.url?.includes('/api/auth/refresh-token') &&
+      !originalRequest.url?.includes('/api/auth/logout')
     ) {
       // Nếu đang refresh token, thêm request vào queue
       if (isRefreshing) {
@@ -156,16 +150,26 @@ apiClient.interceptors.response.use(
         // Gọi API refresh token
         const response = await axios.post(
           `${API_BASE_URL}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
-          { refreshToken }
+          { refreshToken },
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 30000,
+          },
         );
 
-        const { accessToken, refreshToken: refreshToken1 } = response.data.data;
+        const refreshData = handleResponse<Record<string, unknown>>(response);
+        const accessToken = refreshData.accessToken;
+        const rotatedRefreshToken = refreshData.refreshToken;
+        if (typeof accessToken !== 'string' || accessToken.trim() === '') {
+          throw new Error('Refresh response is missing a valid access token');
+        }
+        if (typeof rotatedRefreshToken !== 'string' || rotatedRefreshToken.trim() === '') {
+          throw new Error('Refresh response is missing a valid refresh token');
+        }
 
         // Lưu token mới
         TokenStorage.setAccessToken(accessToken);
-        if (refreshToken1) {
-          TokenStorage.setRefreshToken(refreshToken1);
-        }
+        TokenStorage.setRefreshToken(rotatedRefreshToken);
 
 
         // Process queue - retry tất cả requests đang chờ
@@ -176,8 +180,6 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         // Refresh token thất bại -> logout
-        console.error('❌ Refresh Token Failed:', refreshError);
-
         // Process queue với error - reject tất cả requests
         processQueue(refreshError, null);
 
@@ -205,12 +207,11 @@ apiClient.interceptors.response.use(
  * Backend format: { status: 1, message: "Success", data: {...} }
  */
 export const handleResponse = <T = unknown>(response: AxiosResponse): T => {
-  // Backend trả về format: { status: 1, data: {...}, message: "Success" }
-  if (response.data && response.data.data !== undefined) {
-    return response.data.data;
+  const envelope = parseBaseResponse<T>(response.data);
+  if (envelope.status !== RESPONSE_CODES.SUCCESS) {
+    throw new Error(envelope.message || 'API Error');
   }
-  // Fallback: trả về toàn bộ response.data nếu không có nested data
-  return response.data;
+  return envelope.data;
 };
 
 /**
@@ -227,20 +228,12 @@ export const handleError = (error: unknown): never => {
       errorStatus = error.response.status;
       errorMessage = (error.response.data as { message?: string })?.message || error.message;
 
-      // Log chi tiết error để debug
-      console.error('API Error Details:', {
-        status: errorStatus,
-        message: errorMessage,
-        data: error.response.data,
-      });
     } else if (error.request) {
       // Request was made but no response
       errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối.';
-      console.error('Network Error:', error.message);
     } else {
       // Something else happened
       errorMessage = error.message || errorMessage;
-      console.error('Error:', error.message);
     }
   } else if (error instanceof Error) {
     errorMessage = error.message;

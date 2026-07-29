@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import adminService, { AdminOrder, AdminShipper } from '@/services/api/adminService';
+import adminService, { AdminOrder } from '@/services/api/adminService';
 import { toast } from 'react-hot-toast';
 
 const AdminOrdersPage = () => {
@@ -11,87 +11,46 @@ const AdminOrdersPage = () => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   
-  // Shipper assignment states
-  const [showShipperModal, setShowShipperModal] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
-  const [onlineShippers, setOnlineShippers] = useState<AdminShipper[]>([]);
-  const [loadingShippers, setLoadingShippers] = useState(false);
-  const [processingId, setProcessingId] = useState<number | null>(null);
+  const statusTabs = [
+    'ALL',
+    'PENDING',
+    'CONFIRMED',
+    'FINDING_SHIPPER',
+    'WAIT_SHIPPER_CONFIRM',
+    'ASSIGNED',
+    'PICKED_UP',
+    'DELIVERING',
+    'DELIVERED',
+    'CANCELLED',
+    'SHIPPER_NOT_FOUND',
+  ];
 
-  const statusTabs = ['ALL', 'PENDING', 'CONFIRMED', 'DELIVERING', 'DELIVERED', 'CANCELLED'];
-
-  useEffect(() => {
-    setPage(0);
-  }, [statusFilter]);
-
-  useEffect(() => {
-    loadOrders();
-  }, [statusFilter, page]);
-
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     setLoading(true);
     try {
       if (statusFilter === 'ALL') {
         const data = await adminService.fetchAllOrders(page, 20);
-        setOrders(data?.content || []);
-        setTotalPages(data?.totalPages || 1);
+        setOrders(data.items);
+        setTotalPages(data.totalPages);
       } else {
         const data = await adminService.fetchOrdersByStatus(statusFilter, page, 20);
-        setOrders(data?.content || []);
-        setTotalPages(data?.totalPages || 1);
+        setOrders(data.items);
+        setTotalPages(data.totalPages);
       }
-    } catch (error) {
-      console.error('Error loading orders:', error);
+    } catch {
       toast.error('Không thể tải danh sách đơn hàng');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter]);
 
-  const handleCancelOrder = async (order: AdminOrder) => {
-    const reason = window.prompt(`Nhập lý do hủy đơn hàng #${order.id}:`, 'Admin hủy theo yêu cầu');
-    if (reason === null) return;
+  useEffect(() => {
+    void loadOrders();
+  }, [loadOrders]);
 
-    setProcessingId(order.id);
-    try {
-      await adminService.cancelOrder(order.id, reason);
-      toast.success(`Đã hủy đơn hàng #${order.id}`);
-      loadOrders();
-    } catch (error) {
-      toast.error('Không thể hủy đơn hàng');
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const openAssignModal = async (order: AdminOrder) => {
-    setSelectedOrder(order);
-    setShowShipperModal(true);
-    setLoadingShippers(true);
-    try {
-      const shippers = await adminService.fetchOnlineShippers();
-      setOnlineShippers(shippers || []);
-    } catch (error) {
-      toast.error('Không thể tải danh sách shipper online');
-    } finally {
-      setLoadingShippers(false);
-    }
-  };
-
-  const handleAssignShipper = async (shipperId: number) => {
-    if (!selectedOrder) return;
-
-    setProcessingId(selectedOrder.id);
-    try {
-      await adminService.assignShipper(selectedOrder.id, shipperId);
-      toast.success('Đã gán shipper thành công');
-      setShowShipperModal(false);
-      loadOrders();
-    } catch (error) {
-      toast.error('Không thể gán shipper');
-    } finally {
-      setProcessingId(null);
-    }
+  const changeStatusFilter = (status: string) => {
+    setStatusFilter(status);
+    setPage(0);
   };
 
   const getStatusColor = (status: string) => {
@@ -109,11 +68,6 @@ const AdminOrdersPage = () => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('vi-VN');
-  };
-
   const filteredOrders = orders.filter(order => 
     order.id.toString().includes(searchTerm) || 
     order.userId?.toString().includes(searchTerm) ||
@@ -129,7 +83,7 @@ const AdminOrdersPage = () => {
             {statusTabs.map(tab => (
               <button
                 key={tab}
-                onClick={() => setStatusFilter(tab)}
+                onClick={() => changeStatusFilter(tab)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
                   statusFilter === tab 
                     ? 'bg-primary text-white shadow-sm' 
@@ -164,13 +118,12 @@ const AdminOrdersPage = () => {
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tổng tiền</th>
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Shipper</th>
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trạng thái</th>
-                  <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light dark:divide-border-dark">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-gray-500">
+                    <td colSpan={5} className="p-8 text-center text-gray-500">
                       <div className="flex justify-center items-center gap-2">
                         <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
                         Đang tải dữ liệu...
@@ -179,7 +132,7 @@ const AdminOrdersPage = () => {
                   </tr>
                 ) : filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-8 text-center text-gray-500">
+                    <td colSpan={5} className="p-8 text-center text-gray-500">
                       Không tìm thấy đơn hàng nào.
                     </td>
                   </tr>
@@ -194,7 +147,7 @@ const AdminOrdersPage = () => {
                         </div>
                       </td>
                       <td className="p-4 font-bold text-gray-900 dark:text-white">
-                        {formatCurrency(order.totalAmount)}
+                        {formatCurrency(order.totalPrice)}
                       </td>
                       <td className="p-4">
                         {order.shipperId ? (
@@ -207,32 +160,6 @@ const AdminOrdersPage = () => {
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                           {order.status}
                         </span>
-                      </td>
-                      <td className="p-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          {['PENDING', 'CONFIRMED'].includes(order.status) && (
-                            <>
-                              <button 
-                                onClick={() => openAssignModal(order)}
-                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 transition-colors text-xs font-semibold"
-                              >
-                                <span className="material-symbols-outlined text-sm">local_shipping</span>
-                                Gán Shipper
-                              </button>
-                              <button 
-                                onClick={() => handleCancelOrder(order)}
-                                disabled={processingId === order.id}
-                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 transition-colors text-xs font-semibold disabled:opacity-50"
-                              >
-                                <span className="material-symbols-outlined text-sm">cancel</span>
-                                Hủy đơn
-                              </button>
-                            </>
-                          )}
-                          <button className="p-2 rounded-lg text-gray-400 hover:text-primary transition-colors">
-                            <span className="material-symbols-outlined text-xl">visibility</span>
-                          </button>
-                        </div>
                       </td>
                     </tr>
                   ))
@@ -268,80 +195,6 @@ const AdminOrdersPage = () => {
         </div>
       </div>
 
-      {/* Shipper Selection Modal */}
-      {showShipperModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-surface-dark w-full max-w-lg rounded-2xl shadow-xl overflow-hidden">
-            <div className="p-6 border-b border-border-light dark:border-border-dark flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Gán Shipper cho đơn #{selectedOrder?.id}</h3>
-                <p className="text-sm text-gray-500">Chọn một shipper đang trực tuyến</p>
-              </div>
-              <button 
-                onClick={() => setShowShipperModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            
-            <div className="p-4 max-h-[60vh] overflow-y-auto">
-              {loadingShippers ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
-                </div>
-              ) : onlineShippers.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  Không có shipper nào đang online.
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {onlineShippers.map(shipper => (
-                    <button
-                      key={shipper.id}
-                      onClick={() => handleAssignShipper(shipper.id)}
-                      disabled={processingId !== null}
-                      className="flex items-center justify-between p-4 rounded-xl border border-border-light dark:border-border-dark hover:border-primary hover:bg-primary/5 transition-all group text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold">
-                          {shipper.fullName?.[0]?.toUpperCase() || 'S'}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-900 dark:text-white group-hover:text-primary transition-colors">
-                            {shipper.fullName}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {shipper.vehicleType} · {shipper.licensePlate}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <div className="flex items-center text-amber-500">
-                          <span className="material-symbols-outlined text-sm">star</span>
-                          <span className="text-sm font-bold ml-1">{shipper.rating.toFixed(1)}</span>
-                        </div>
-                        <div className="text-[10px] text-gray-400">
-                          {shipper.totalDeliveries} đơn đã giao
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            <div className="p-6 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
-              <button 
-                onClick={() => setShowShipperModal(false)}
-                className="px-4 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </AdminLayout>
   );
 };

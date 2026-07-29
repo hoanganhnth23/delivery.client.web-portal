@@ -3,7 +3,7 @@
  * Form để tạo mới hoặc chỉnh sửa nhà hàng
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRestaurant } from '../hooks/useRestaurant';
 import type { Restaurant } from '@/types/api.types';
 
@@ -24,8 +24,8 @@ interface FormData {
   openingHour: string;
   closingHour: string;
   image: string;
-  addressLat: number;
-  addressLng: number;
+  addressLat: string;
+  addressLng: string;
   description: string;
 }
 
@@ -37,47 +37,38 @@ interface FormErrors {
   closingHour?: string;
   image?: string;
   description?: string;
+  addressLat?: string;
+  addressLng?: string;
 }
 
 const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFormProps) => {
   const { createRestaurant, updateRestaurant, loading } = useRestaurant();
   
-  const [formData, setFormData] = useState<FormData>({
-    name: '',
-    address: '',
-    phone: '',
-    openingHour: '08:00',
-    closingHour: '22:00',
-    image: '',
-    addressLat: 0,
-    addressLng: 0,
-    description: ''
-  });
+  const [formData, setFormData] = useState<FormData>(() => ({
+    name: restaurant?.name || '',
+    address: restaurant?.address || '',
+    phone: restaurant?.phone || '',
+    openingHour: restaurant?.openingHour || '08:00',
+    closingHour: restaurant?.closingHour || '22:00',
+    image: restaurant?.image || '',
+    addressLat:
+      typeof restaurant?.addressLat === 'number' && Number.isFinite(restaurant.addressLat)
+        ? String(restaurant.addressLat)
+        : '',
+    addressLng:
+      typeof restaurant?.addressLng === 'number' && Number.isFinite(restaurant.addressLng)
+        ? String(restaurant.addressLng)
+        : '',
+    description: restaurant?.description || '',
+  }));
 
   const [errors, setErrors] = useState<FormErrors>({});
-
-  // Load dữ liệu khi edit
-  useEffect(() => {
-    if (restaurant) {
-      setFormData({
-        name: restaurant.name || '',
-        address: restaurant.address || '',
-        phone: restaurant.phone || '',
-        openingHour: restaurant.openingHour || '08:00',
-        closingHour: restaurant.closingHour || '22:00',
-        image: restaurant.image || '',
-        addressLat: restaurant.addressLat || 0,
-        addressLng: restaurant.addressLng || 0,
-        description: restaurant.description || ''
-      });
-    }
-  }, [restaurant]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Clear error khi user nhập
     if (errors[name as keyof FormErrors]) {
@@ -112,6 +103,16 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
     if (!formData.closingHour) {
       newErrors.closingHour = 'Giờ đóng cửa không được để trống';
     }
+
+    const latitude = Number(formData.addressLat);
+    if (!formData.addressLat.trim() || !Number.isFinite(latitude) || latitude < 8 || latitude > 24) {
+      newErrors.addressLat = 'Vĩ độ phải nằm trong phạm vi Việt Nam (8 đến 24)';
+    }
+
+    const longitude = Number(formData.addressLng);
+    if (!formData.addressLng.trim() || !Number.isFinite(longitude) || longitude < 102 || longitude > 110) {
+      newErrors.addressLng = 'Kinh độ phải nằm trong phạm vi Việt Nam (102 đến 110)';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -126,20 +127,25 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
 
     try {
       let result;
+      const request = {
+        ...formData,
+        addressLat: Number(formData.addressLat),
+        addressLng: Number(formData.addressLng),
+      };
       
       if (restaurant?.id) {
         // Update
-        result = await updateRestaurant(restaurant.id, formData, { skipRedirect: true });
+        result = await updateRestaurant(restaurant.id, request, { skipRedirect: true });
       } else {
         // Create
-        result = await createRestaurant(formData, { skipRedirect: true });
+        result = await createRestaurant(request, { skipRedirect: true });
       }
 
       if (result.success) {
         onSuccess?.(result.data);
       }
-    } catch (error) {
-      console.error('Form submit error:', error);
+    } catch {
+      // The restaurant hook owns the user-visible mutation error state.
     }
   };
 
@@ -196,6 +202,9 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
             className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="10.762622"
           />
+          {errors.addressLat && (
+            <p className="mt-1 text-sm text-red-500">{errors.addressLat}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -210,6 +219,9 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
             className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary"
             placeholder="106.660172"
           />
+          {errors.addressLng && (
+            <p className="mt-1 text-sm text-red-500">{errors.addressLng}</p>
+          )}
         </div>
       </div>
 

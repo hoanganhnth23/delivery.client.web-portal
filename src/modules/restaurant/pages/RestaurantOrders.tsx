@@ -8,7 +8,6 @@ import { useOrder } from '../hooks/useOrder';
 import { useRestaurant } from '../hooks/useRestaurant';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
-import type { Order } from '@/types/api.types';
 
 const RestaurantOrders = () => {
   const { 
@@ -16,14 +15,14 @@ const RestaurantOrders = () => {
     loading, 
     error, 
     getMyOrders, 
-    updateOrderStatus,
+    confirmOrder,
+    rejectOrder,
     totalPages,
-    totalElements,
+    totalItems,
     currentPage
   } = useOrder();
   const { currentRestaurant } = useRestaurant();
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Load orders khi component mount
   useEffect(() => {
@@ -44,19 +43,15 @@ const RestaurantOrders = () => {
     { value: 'ALL', label: 'Tất cả', color: 'gray' },
     { value: 'PENDING', label: 'Chờ xác nhận', color: 'yellow' },
     { value: 'CONFIRMED', label: 'Đã xác nhận', color: 'blue' },
-    { value: 'PREPARING', label: 'Đang chuẩn bị', color: 'purple' },
-    { value: 'READY', label: 'Sẵn sàng', color: 'indigo' },
+    { value: 'FINDING_SHIPPER', label: 'Đang tìm shipper', color: 'purple' },
+    { value: 'WAIT_SHIPPER_CONFIRM', label: 'Chờ shipper xác nhận', color: 'purple' },
+    { value: 'ASSIGNED', label: 'Đã có shipper', color: 'indigo' },
     { value: 'PICKED_UP', label: 'Đã lấy hàng', color: 'cyan' },
     { value: 'DELIVERING', label: 'Đang giao', color: 'orange' },
     { value: 'DELIVERED', label: 'Đã giao', color: 'green' },
+    { value: 'SHIPPER_NOT_FOUND', label: 'Không tìm thấy shipper', color: 'red' },
     { value: 'CANCELLED', label: 'Đã hủy', color: 'red' },
   ];
-
-  // Get status color
-  const getStatusColor = (status: string) => {
-    const statusObj = statusOptions.find(s => s.value === status);
-    return statusObj?.color || 'gray';
-  };
 
   // Get status label
   const getStatusLabel = (status: string) => {
@@ -64,12 +59,31 @@ const RestaurantOrders = () => {
     return statusObj?.label || status;
   };
 
-  // Handle status change
-  const handleStatusChange = async (orderId: number, newStatus: string) => {
-    const result = await updateOrderStatus(orderId, newStatus);
+  const refreshAfterDecision = async (orderId: number) => {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (attempt > 0) {
+        await new Promise(resolve => window.setTimeout(resolve, 500 * attempt));
+      }
+
+      const result = await getMyOrders(currentPage, 10);
+      const refreshedOrder = result.data?.items.find(order => order.id === orderId);
+      if (!refreshedOrder || refreshedOrder.status !== 'PENDING') return;
+    }
+  };
+
+  const handleConfirm = async (orderId: number, restaurantId: number) => {
+    const result = await confirmOrder(orderId, restaurantId, 30);
     if (result.success) {
-      // Refresh orders on the same page
-      await getMyOrders(currentPage, 10);
+      await refreshAfterDecision(orderId);
+    }
+  };
+
+  const handleReject = async (orderId: number, restaurantId: number) => {
+    const reason = window.prompt('Lý do từ chối đơn hàng?')?.trim();
+    if (!reason) return;
+    const result = await rejectOrder(orderId, restaurantId, reason);
+    if (result.success) {
+      await refreshAfterDecision(orderId);
     }
   };
 
@@ -105,7 +119,7 @@ const RestaurantOrders = () => {
         {/* Header */}
         <RestaurantHeader
           title="Quản lý đơn hàng"
-          subtitle={`${totalElements} đơn hàng`}
+          subtitle={`${totalItems} đơn hàng`}
           showSearch={false}
         />
 
@@ -180,10 +194,11 @@ const RestaurantOrders = () => {
                             px-3 py-1 rounded-full text-xs font-bold
                             ${order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : ''}
                             ${order.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
-                            ${order.status === 'PREPARING' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
-                            ${order.status === 'READY' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : ''}
+                            ${['FINDING_SHIPPER', 'WAIT_SHIPPER_CONFIRM'].includes(order.status) ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
+                            ${order.status === 'ASSIGNED' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : ''}
+                            ${['PICKED_UP', 'DELIVERING'].includes(order.status) ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : ''}
                             ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
-                            ${order.status === 'CANCELLED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : ''}
+                            ${['SHIPPER_NOT_FOUND', 'CANCELLED'].includes(order.status) ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : ''}
                           `}>
                             {getStatusLabel(order.status)}
                           </span>
@@ -239,38 +254,22 @@ const RestaurantOrders = () => {
 
                         <div className="flex gap-2 w-full lg:w-auto">
                           {order.status === 'PENDING' && (
-                            <button
-                              onClick={() => handleStatusChange(order.id, 'CONFIRMED')}
-                              className="flex-1 lg:flex-none px-4 py-2.5 bg-primary hover:bg-orange-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
-                            >
-                              <span className="material-symbols-outlined text-lg">check_circle</span>
-                              Xác nhận
-                            </button>
+                            <>
+                              <button
+                                onClick={() => handleConfirm(order.id, order.restaurantId)}
+                                className="flex-1 lg:flex-none px-4 py-2.5 bg-primary hover:bg-orange-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+                              >
+                                <span className="material-symbols-outlined text-lg">check_circle</span>
+                                Xác nhận
+                              </button>
+                              <button
+                                onClick={() => handleReject(order.id, order.restaurantId)}
+                                className="flex-1 lg:flex-none px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+                              >
+                                Từ chối
+                              </button>
+                            </>
                           )}
-                          {order.status === 'CONFIRMED' && (
-                            <button
-                              onClick={() => handleStatusChange(order.id, 'PREPARING')}
-                              className="flex-1 lg:flex-none px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
-                            >
-                              <span className="material-symbols-outlined text-lg">cooking</span>
-                              Chế biến
-                            </button>
-                          )}
-                          {order.status === 'PREPARING' && (
-                            <button
-                              onClick={() => handleStatusChange(order.id, 'READY')}
-                              className="flex-1 lg:flex-none px-4 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
-                            >
-                              <span className="material-symbols-outlined text-lg">restaurant</span>
-                              Sẵn sàng
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setSelectedOrder(order)}
-                            className="flex-1 lg:flex-none px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
-                          >
-                            Chi tiết
-                          </button>
                         </div>
                       </div>
                     </div>

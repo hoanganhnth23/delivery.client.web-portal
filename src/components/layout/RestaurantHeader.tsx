@@ -39,10 +39,12 @@ const RestaurantHeader = ({
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate(ROUTES.LOGIN);
+  const handleLogout = async () => {
+    await logout();
+    navigate(ROUTES.LOGIN, { replace: true });
   };
+
+  const identity = user?.name || user?.email;
 
   return (
     <header className="sticky top-0 z-40 w-full bg-white dark:bg-surface-dark border-b border-border-light dark:border-border-dark shadow-sm">
@@ -50,11 +52,6 @@ const RestaurantHeader = ({
         <div className="flex items-center justify-between">
           {/* Left: Title & Restaurant Info */}
           <div className="flex items-center gap-4">
-            {/* Mobile Menu Button */}
-            <button className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-              <span className="material-symbols-outlined">menu</span>
-            </button>
-
             {/* Title Section */}
             <div>
               <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
@@ -95,14 +92,6 @@ const RestaurantHeader = ({
               </div>
             )}
 
-            {/* Notifications */}
-            <button className="relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
-              <span className="material-symbols-outlined text-gray-600 dark:text-gray-400">
-                notifications
-              </span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-
             {/* User Menu */}
             <div className="relative">
               <button
@@ -111,14 +100,14 @@ const RestaurantHeader = ({
               >
                 <div className="hidden md:block text-right">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {user?.name || 'Restaurant Owner'}
+                    {identity || 'Chủ nhà hàng'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {currentRestaurant?.name || 'Restaurant'}
+                    {currentRestaurant?.name || 'Chưa được gán nhà hàng'}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center text-white font-bold">
-                  {(user?.name || 'R')[0].toUpperCase()}
+                  {(identity || 'C')[0].toUpperCase()}
                 </div>
                 <span className="material-symbols-outlined text-gray-600 dark:text-gray-400 text-xl">
                   {showUserMenu ? 'expand_less' : 'expand_more'}
@@ -136,7 +125,7 @@ const RestaurantHeader = ({
                     {/* User Info */}
                     <div className="p-4 border-b border-border-light dark:border-border-dark">
                       <p className="font-semibold text-gray-900 dark:text-white">
-                        {user?.name || 'Restaurant Owner'}
+                        {identity || 'Chủ nhà hàng'}
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         {user?.email}
@@ -158,19 +147,9 @@ const RestaurantHeader = ({
                         <span className="material-symbols-outlined text-xl">person</span>
                         <span className="text-sm font-medium">Thông tin cửa hàng</span>
                       </button>
-                      <button
-                        onClick={() => {
-                          navigate(ROUTES.RESTAURANT_SETTINGS);
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-3 text-gray-700 dark:text-gray-300"
-                      >
-                        <span className="material-symbols-outlined text-xl">settings</span>
-                        <span className="text-sm font-medium">Cài đặt</span>
-                      </button>
                       <div className="h-px bg-border-light dark:bg-border-dark my-2"></div>
                       <button
-                        onClick={handleLogout}
+                        onClick={() => void handleLogout()}
                         className="w-full px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-red-600 dark:text-red-400"
                       >
                         <span className="material-symbols-outlined text-xl">logout</span>

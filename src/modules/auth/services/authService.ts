@@ -19,13 +19,6 @@ interface LoginRequest {
   role?: string; // RESTAURANT_OWNER, ADMIN, etc.
 }
 
-interface RegisterRequest {
-  email: string;
-  password: string;
-  name?: string;
-  role?: 'admin' | 'restaurant' | 'user';
-}
-
 interface AuthResponse {
   accessToken: string;
   refreshToken: string;
@@ -45,24 +38,42 @@ interface RefreshTokenResponse {
   refreshToken: string;
 }
 
+interface UserProfileResponse {
+  id?: number;
+  userId?: number;
+  email: string;
+  fullName?: string;
+  role: string;
+}
+
+const isUserRole = (value: unknown): value is UserRole =>
+  typeof value === 'string' && Object.values(USER_ROLES).includes(value as UserRole);
+
+const requireNonBlankString = (value: unknown, field: string): string => {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`Backend response is missing a valid ${field}`);
+  }
+  return value;
+};
+
+const parseAuthResponse = (value: AuthResponse, expectedRole?: string): AuthResponse => {
+  const accessToken = requireNonBlankString(value?.accessToken, 'access token');
+  const refreshToken = requireNonBlankString(value?.refreshToken, 'refresh token');
+  const email = requireNonBlankString(value?.email, 'email');
+  if (!Number.isSafeInteger(value?.authId) || value.authId <= 0) {
+    throw new Error('Backend response is missing a valid auth id');
+  }
+  if (!isUserRole(value?.role)) {
+    throw new Error('Backend response contains an unsupported role');
+  }
+  if (expectedRole && value.role !== expectedRole) {
+    throw new Error('Authenticated role does not match the requested portal role');
+  }
+
+  return { ...value, accessToken, refreshToken, email, role: value.role };
+};
+
 export const authService = {
-  /**
-   * Đăng ký tài khoản mới
-   */
-  async register(data: RegisterRequest): Promise<boolean> {
-    try {
-      const response = await apiClient.post(API_ENDPOINTS.AUTH.REGISTER, {
-        email: data.email,
-        password: data.password,
-        role: data.role || USER_ROLES.RESTAURANT_OWNER, // Default role
-      });
-
-      return handleResponse(response);
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
-
   /**
    * Đăng nhập
    * Backend request: { email, password, role, deviceType, deviceId }
@@ -82,7 +93,10 @@ export const authService = {
       });
 
       // Backend trả về: { status: 1, data: { accessToken, refreshToken, authId, email, role } }
-      const responseData = handleResponse<AuthResponse>(response);
+      const responseData = parseAuthResponse(
+        handleResponse<AuthResponse>(response),
+        credentials.role || USER_ROLES.RESTAURANT_OWNER,
+      );
       
       // Destructure từ response data
       const { accessToken, refreshToken, authId, email, role } = responseData;
@@ -96,7 +110,7 @@ export const authService = {
         id: authId,
         email: email,
         name: email.split('@')[0], // Temporary name từ email
-        role: role as 'admin' | 'restaurant' | 'user',
+        role,
       };
       
       TokenStorage.setUserInfo(userInfo);
@@ -122,8 +136,8 @@ export const authService = {
       if (refreshToken) {
         await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, { refreshToken });
       }
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch {
+      // Local session cleanup in finally is authoritative for logout.
     } finally {
       // Luôn clear tokens dù API có lỗi hay không
       TokenStorage.clearAll();
@@ -147,13 +161,13 @@ export const authService = {
         refreshToken,
       });
 
-      const { accessToken, refreshToken: newRefreshToken } = handleResponse<RefreshTokenResponse>(response);
+      const refreshData = handleResponse<RefreshTokenResponse>(response);
+      const accessToken = requireNonBlankString(refreshData?.accessToken, 'access token');
+      const newRefreshToken = requireNonBlankString(refreshData?.refreshToken, 'refresh token');
 
       // Cập nhật tokens
       TokenStorage.setAccessToken(accessToken);
-      if (newRefreshToken) {
-        TokenStorage.setRefreshToken(newRefreshToken);
-      }
+      TokenStorage.setRefreshToken(newRefreshToken);
 
       return accessToken;
     } catch (error) {
@@ -164,45 +178,32 @@ export const authService = {
   },
 
   /**
-   * Lấy danh sách sessions đang hoạt động
-   * Yêu cầu: User đã đăng nhập
-   */
-  async getSessions(): Promise<unknown> {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.AUTH.GET_SESSIONS);
-      return handleResponse(response);
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
-
-  /**
-   * Lấy thông tin account theo ID
-   */
-  async getAccountById(id: number): Promise<unknown> {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.AUTH.GET_ACCOUNT_BY_ID(id));
-      return handleResponse(response);
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
-
-  /**
    * Lấy profile của user hiện tại từ backend
-   * Endpoint: GET /api/users/profile (với accessToken trong header)
+   * Endpoint: GET /api/users (với accessToken trong header)
    */
   async getProfile(): Promise<User> {
     try {
       const response = await apiClient.get(API_ENDPOINTS.USER.GET_PROFILE);
-      const profileData = handleResponse(response) as any;
+      const profileData = handleResponse<UserProfileResponse>(response);
+      const profileId = profileData.id ?? profileData.userId;
+      if (!Number.isSafeInteger(profileId) || (profileId as number) <= 0) {
+        throw new Error('Backend profile response is missing user id');
+      }
+      const email = requireNonBlankString(profileData?.email, 'profile email');
+      if (!isUserRole(profileData?.role)) {
+        throw new Error('Backend profile response contains an unsupported role');
+      }
+      const currentUser = TokenStorage.getUserInfo();
+      if (currentUser && (currentUser.email !== email || currentUser.role !== profileData.role)) {
+        throw new Error('Backend profile identity does not match the authenticated session');
+      }
       
       // Convert response data to User type
       const user: User = {
-        id: profileData.id || profileData.userId,
-        email: profileData.email,
-        name: profileData.fullName || profileData.email.split('@')[0],
-        role: profileData.role as 'admin' | 'restaurant' | 'user',
+        id: profileId,
+        email,
+        name: profileData.fullName?.trim() || email.split('@')[0],
+        role: profileData.role,
       };
 
       // Cập nhật localStorage với thông tin mới nhất
@@ -245,8 +246,7 @@ export const authService = {
         iat: payload.iat,
         exp: payload.exp,
       };
-    } catch (error) {
-      console.error('Token decode error:', error);
+    } catch {
       return null;
     }
   },

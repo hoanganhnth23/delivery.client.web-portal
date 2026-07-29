@@ -11,9 +11,10 @@ import { ROUTES } from '@/utils/constants';
 interface RoleRouteProps {
   children: ReactNode;
   allowedRoles: string[];
+  loginPath?: string;
 }
 
-const RoleRoute = ({ children, allowedRoles }: RoleRouteProps) => {
+const RoleRoute = ({ children, allowedRoles, loginPath = ROUTES.LOGIN }: RoleRouteProps) => {
   const { user, loading } = useAuth();
 
   // Đang loading -> hiển thị loading
@@ -28,7 +29,7 @@ const RoleRoute = ({ children, allowedRoles }: RoleRouteProps) => {
 
   // Chưa đăng nhập -> redirect về login
   if (!user) {
-    return <Navigate to={ROUTES.LOGIN} replace />;
+    return <Navigate to={loginPath} replace />;
   }
 
   // Kiểm tra role

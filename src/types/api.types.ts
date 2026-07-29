@@ -31,11 +31,12 @@ export interface ActionResult<T = unknown> {
  * Pagination Data Structure
  */
 export interface PageData<T> {
-  content: T[];
-  totalPages: number;
-  totalElements: number;
+  items: T[];
+  page: number;
   size: number;
-  number: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
 }
 
 // ============================================
@@ -53,6 +54,7 @@ export interface Restaurant {
   addressLat: number;
   addressLng: number;
   description: string;
+  open: boolean;
   createdAt?: string;
   updatedAt?: string;
   rating?: number;
@@ -78,6 +80,7 @@ export interface MenuItem {
   description: string;
   price: number;
   image: string;
+  status: 'AVAILABLE' | 'SOLD_OUT' | 'DISCONTINUED';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -140,8 +143,18 @@ export interface Order {
   discountAmount: number;
   shippingFee: number;
   totalPrice: number;
-  status: string;
-  paymentMethod: string;
+  status:
+    | 'PENDING'
+    | 'CONFIRMED'
+    | 'FINDING_SHIPPER'
+    | 'WAIT_SHIPPER_CONFIRM'
+    | 'ASSIGNED'
+    | 'PICKED_UP'
+    | 'DELIVERING'
+    | 'DELIVERED'
+    | 'CANCELLED'
+    | 'SHIPPER_NOT_FOUND';
+  paymentMethod: 'COD';
   deliveryAddress: string;
   deliveryLat: number;
   deliveryLng: number;
@@ -162,4 +175,3 @@ export type OrderListResponse = BaseResponse<PageData<Order>>;
 // Specific Action Result Types
 export type OrderActionResult = ActionResult<Order>;
 export type OrderListActionResult = ActionResult<PageData<Order>>;
-

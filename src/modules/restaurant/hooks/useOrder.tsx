@@ -25,14 +25,14 @@ interface OrderContextValue {
   
   // Pagination
   totalPages: number;
-  totalElements: number;
+  totalItems: number;
   currentPage: number;
   
   // Actions
   getMyOrders: (page?: number, size?: number) => Promise<OrderListActionResult>;
   getOrderById: (id: number) => Promise<OrderActionResult>;
-  updateOrderStatus: (id: number, status: string) => Promise<OrderActionResult>;
-  cancelOrder: (id: number) => Promise<OrderActionResult>;
+  confirmOrder: (orderId: number, restaurantId: number, estimatedPrepTime?: number) => Promise<OrderActionResult>;
+  rejectOrder: (orderId: number, restaurantId: number, reason: string) => Promise<OrderActionResult>;
   
   // Setters
   setCurrentOrder: (order: Order | null) => void;
@@ -54,7 +54,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
 
   // Pagination states
   const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
 
   /**
@@ -65,18 +65,12 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       setLoading(true);
       setError(null);
       
-      const response = await orderService.getMyOrders(page, size);
-      
-      if (response.status === 1) {
-        setOrders(response.data.content);
-        setTotalPages(response.data.totalPages);
-        setTotalElements(response.data.totalElements);
-        setCurrentPage(response.data.number);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
+      const ordersPage = await orderService.getMyOrders(page, size);
+      setOrders(ordersPage.items);
+      setTotalPages(ordersPage.totalPages);
+      setTotalItems(ordersPage.totalItems);
+      setCurrentPage(ordersPage.page);
+      return { success: true, data: ordersPage };
     } catch (err) {
       const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Không thể tải danh sách đơn hàng';
       setError(message);
@@ -94,15 +88,9 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       setLoading(true);
       setError(null);
       
-      const response = await orderService.getOrderById(id);
-      
-      if (response.status === 1) {
-        setCurrentOrder(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
+      const order = await orderService.getOrderById(id);
+      setCurrentOrder(order);
+      return { success: true, data: order };
     } catch (err) {
       const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Không thể tải thông tin đơn hàng';
       setError(message);
@@ -112,76 +100,49 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     }
   }, []);
 
-  /**
-   * Cập nhật trạng thái order
-   */
-  const updateOrderStatus = useCallback(async (
-    id: number,
-    status: string
+  const confirmOrder = useCallback(async (
+    orderId: number,
+    restaurantId: number,
+    estimatedPrepTime = 30,
   ): Promise<OrderActionResult> => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await orderService.updateOrderStatus(id, status);
-      
-      if (response.status === 1) {
-        // Cập nhật lại danh sách orders
-        setOrders(prev => prev.map(order => 
-          order.id === id ? response.data : order
-        ));
-        
-        if (currentOrder?.id === id) {
-          setCurrentOrder(response.data);
-        }
-        
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
+
+      await orderService.confirmOrder(
+        orderId,
+        restaurantId,
+        estimatedPrepTime,
+      );
+      return { success: true, message: 'Đã xác nhận đơn hàng' };
     } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng';
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Không thể xác nhận đơn hàng';
       setError(message);
       return { success: false, message };
     } finally {
       setLoading(false);
     }
-  }, [currentOrder]);
+  }, []);
 
-  /**
-   * Hủy order
-   */
-  const cancelOrder = useCallback(async (id: number): Promise<OrderActionResult> => {
+  const rejectOrder = useCallback(async (
+    orderId: number,
+    restaurantId: number,
+    reason: string,
+  ): Promise<OrderActionResult> => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await orderService.cancelOrder(id);
-      
-      if (response.status === 1) {
-        // Cập nhật lại danh sách orders
-        setOrders(prev => prev.map(order => 
-          order.id === id ? response.data : order
-        ));
-        
-        if (currentOrder?.id === id) {
-          setCurrentOrder(response.data);
-        }
-        
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
+
+      await orderService.rejectOrder(orderId, restaurantId, reason);
+      return { success: true, message: 'Đã từ chối đơn hàng' };
     } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Không thể hủy đơn hàng';
+      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Không thể từ chối đơn hàng';
       setError(message);
       return { success: false, message };
     } finally {
       setLoading(false);
     }
-  }, [currentOrder]);
+  }, []);
 
   // Context Value wrapped in useMemo (CRITICAL for performance)
   const value = useMemo<OrderContextValue>(() => ({
@@ -191,13 +152,13 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     loading,
     error,
     totalPages,
-    totalElements,
+    totalItems,
     currentPage,
     // Actions
     getMyOrders,
     getOrderById,
-    updateOrderStatus,
-    cancelOrder,
+    confirmOrder,
+    rejectOrder,
     // Setters
     setCurrentOrder,
     setError
@@ -207,12 +168,12 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     loading,
     error,
     totalPages,
-    totalElements,
+    totalItems,
     currentPage,
     getMyOrders,
     getOrderById,
-    updateOrderStatus,
-    cancelOrder
+    confirmOrder,
+    rejectOrder
   ]);
 
   return (

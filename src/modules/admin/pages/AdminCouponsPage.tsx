@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import adminService, { AdminCoupon } from '@/services/api/adminService';
 import { toast } from 'react-hot-toast';
@@ -16,26 +16,37 @@ const AdminCouponsPage = () => {
     maxDiscountValue: 0,
     totalQuantity: 100,
     usageLimitPerUser: 1,
-    startTime: new Date().toISOString().slice(0, 16),
-    endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    startTime: '',
+    endTime: '',
     minOrderValue: 0,
     scopeType: 'ALL'
   });
 
-  useEffect(() => {
-    loadCoupons();
-  }, []);
-
-  const loadCoupons = async () => {
+  const loadCoupons = useCallback(async () => {
     setLoading(true);
     try {
       const data = await adminService.fetchAllCoupons();
       setCoupons(data);
-    } catch (error) {
+    } catch {
       toast.error('Lỗi khi tải danh sách coupon');
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    void loadCoupons();
+  }, [loadCoupons]);
+
+  const openCreateModal = () => {
+    const start = new Date();
+    const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+    setNewCoupon((current) => ({
+      ...current,
+      startTime: start.toISOString().slice(0, 16),
+      endTime: end.toISOString().slice(0, 16),
+    }));
+    setShowModal(true);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -44,8 +55,8 @@ const AdminCouponsPage = () => {
       await adminService.createCoupon(newCoupon);
       toast.success('Tạo coupon thành công');
       setShowModal(false);
-      loadCoupons();
-    } catch (error) {
+      void loadCoupons();
+    } catch {
       toast.error('Lỗi khi tạo coupon');
     }
   };
@@ -55,8 +66,8 @@ const AdminCouponsPage = () => {
     try {
       await adminService.deleteCoupon(id);
       toast.success('Đã xóa coupon');
-      loadCoupons();
-    } catch (error) {
+      void loadCoupons();
+    } catch {
       toast.error('Lỗi khi xóa coupon');
     }
   };
@@ -69,7 +80,7 @@ const AdminCouponsPage = () => {
           <p className="text-gray-500">Tạo và quản lý các mã giảm giá toàn sàn</p>
         </div>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={openCreateModal}
           className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-2"
         >
           <span className="material-symbols-outlined">add</span>

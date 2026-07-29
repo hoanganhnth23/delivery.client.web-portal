@@ -1,310 +1,78 @@
-/**
- * useRestaurant Hook
- * Custom hook để quản lý state và actions cho Restaurant
- * Theo pattern: Context API + Custom Hook với useMemo & useCallback
- */
-
-import { createContext, useContext, useState, useMemo, useCallback, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as restaurantService from '../services/restaurantService';
 import TokenStorage from '@/services/storage/localStorage';
-import type { CreateRestaurantRequest } from '../services/restaurantService';
 import type {
   Restaurant,
   RestaurantActionResult,
   RestaurantListActionResult,
-  DeleteActionResult,
 } from '@/types/api.types';
 import { ROUTES } from '@/utils/constants';
-
-// ============================================
-// LOCAL TYPES
-// ============================================
-
-interface RestaurantContextValue {
-  // States
-  restaurants: Restaurant[];
-  currentRestaurant: Restaurant | null;
-  loading: boolean;
-  error: string | null;
-  
-  // Actions
-  createRestaurant: (data: CreateRestaurantRequest, options?: ActionOptions) => Promise<RestaurantActionResult>;
-  updateRestaurant: (id: number, data: CreateRestaurantRequest, options?: ActionOptions) => Promise<RestaurantActionResult>;
-  deleteRestaurant: (id: number, options?: ActionOptions) => Promise<DeleteActionResult>;
-  getRestaurantById: (id: number) => Promise<RestaurantActionResult>;
-  getAllRestaurants: () => Promise<RestaurantListActionResult>;
-  searchRestaurants: (params: Record<string, unknown>) => Promise<RestaurantListActionResult>;
-  getMyRestaurants: () => Promise<RestaurantListActionResult>;
-  
-  // Setters
-  setCurrentRestaurant: (restaurant: Restaurant | null) => void;
-  setError: (error: string | null) => void;
-}
+import * as restaurantService from '../services/restaurantService';
+import type { CreateRestaurantRequest } from '../services/restaurantService';
 
 interface ActionOptions {
   skipRedirect?: boolean;
 }
 
-interface RestaurantProviderProps {
-  children: ReactNode;
+interface RestaurantContextValue {
+  restaurants: Restaurant[];
+  currentRestaurant: Restaurant | null;
+  loading: boolean;
+  error: string | null;
+  createRestaurant: (
+    data: CreateRestaurantRequest,
+    options?: ActionOptions,
+  ) => Promise<RestaurantActionResult>;
+  updateRestaurant: (
+    id: number,
+    data: CreateRestaurantRequest,
+    options?: ActionOptions,
+  ) => Promise<RestaurantActionResult>;
+  getMyRestaurants: () => Promise<RestaurantListActionResult>;
+  setCurrentRestaurant: (restaurant: Restaurant | null) => void;
+  setError: (error: string | null) => void;
 }
 
 const RestaurantContext = createContext<RestaurantContextValue | null>(null);
 
-export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
+export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
-  
-  // States
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-load restaurant khi app khởi động (nếu đã login)
-  useEffect(() => {
-    const hasToken = TokenStorage.hasToken();
-    const savedRestaurantId = TokenStorage.getCurrentRestaurantId();
-    
-    // Chỉ load nếu có token và có saved restaurant ID
-    if (hasToken && savedRestaurantId && !currentRestaurant) {
-      getMyRestaurants();
-    }
-  }, []);
-
-  /**
-   * Tạo nhà hàng mới
-   */
-  const createRestaurant = useCallback(async (
-    data: CreateRestaurantRequest,
-    options: ActionOptions = {}
-  ): Promise<RestaurantActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await restaurantService.createRestaurant(data);
-      
-      if (response.status === 1) {
-        // Thêm vào danh sách
-        setRestaurants(prev => [response.data, ...prev]);
-        setCurrentRestaurant(response.data);
-        
-        // Navigation logic (Hybrid)
-        if (!options.skipRedirect) {
-          navigate(ROUTES.RESTAURANT_DASHBOARD);
-        }
-        
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Tạo nhà hàng thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
-  /**
-   * Cập nhật thông tin nhà hàng
-   */
-  const updateRestaurant = useCallback(async (
-    id: number,
-    data: CreateRestaurantRequest,
-    options: ActionOptions = {}
-  ): Promise<RestaurantActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await restaurantService.updateRestaurant(id, data);
-      
-      if (response.status === 1) {
-        // Cập nhật trong danh sách
-        setRestaurants(prev => 
-          prev.map(r => r.id === id ? response.data : r)
-        );
-        setCurrentRestaurant(response.data);
-        
-        if (!options.skipRedirect) {
-          navigate(ROUTES.RESTAURANT_DASHBOARD);
-        }
-        
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Cập nhật nhà hàng thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
-  /**
-   * Xóa nhà hàng
-   */
-  const deleteRestaurant = useCallback(async (
-    id: number,
-    options: ActionOptions = {}
-  ): Promise<DeleteActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await restaurantService.deleteRestaurant(id);
-      
-      if (response.status === 1) {
-        // Xóa khỏi danh sách
-        setRestaurants(prev => prev.filter(r => r.id !== id));
-        if (currentRestaurant?.id === id) {
-          setCurrentRestaurant(null);
-        }
-        
-        if (!options.skipRedirect) {
-          navigate(ROUTES.RESTAURANT_DASHBOARD);
-        }
-        
-        return { success: true };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Xóa nhà hàng thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, [currentRestaurant, navigate]);
-
-  /**
-   * Lấy thông tin chi tiết nhà hàng
-   */
-  const getRestaurantById = useCallback(async (id: number): Promise<RestaurantActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await restaurantService.getRestaurantById(id);
-      
-      if (response.status === 1) {
-        setCurrentRestaurant(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy thông tin nhà hàng thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Lấy danh sách tất cả nhà hàng
-   */
-  const getAllRestaurants = useCallback(async (): Promise<RestaurantListActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await restaurantService.getAllRestaurants();
-      
-      if (response.status === 1) {
-        setRestaurants(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy danh sách nhà hàng thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Tìm kiếm nhà hàng
-   */
-  const searchRestaurants = useCallback(async (params: Record<string, unknown>): Promise<RestaurantListActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await restaurantService.searchRestaurants(params);
-      
-      if (response.status === 1) {
-        setRestaurants(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Tìm kiếm thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Lấy danh sách nhà hàng của user hiện tại
-   */
   const getMyRestaurants = useCallback(async (): Promise<RestaurantListActionResult> => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await restaurantService.getMyRestaurants();
-      
-      if (response.status === 1) {
-        setRestaurants(response.data);
-        
-        // Load restaurant từ localStorage trước
-        const savedRestaurantId = TokenStorage.getCurrentRestaurantId();
-        
-        if (savedRestaurantId && response.data.length > 0) {
-          // Tìm restaurant theo saved ID
-          const savedRestaurant = response.data.find(r => r.id === savedRestaurantId);
-          if (savedRestaurant) {
-            setCurrentRestaurant(savedRestaurant);
-          } else {
-            // Nếu không tìm thấy, chọn restaurant đầu tiên và save ID mới
-            const firstRestaurant = response.data[0];
-            setCurrentRestaurant(firstRestaurant);
-            TokenStorage.setCurrentRestaurantId(firstRestaurant.id);
-          }
-        } else if (response.data.length > 0) {
-          // Chưa có saved ID, chọn restaurant đầu tiên và save
-          const firstRestaurant = response.data[0];
-          setCurrentRestaurant(firstRestaurant);
-          TokenStorage.setCurrentRestaurantId(firstRestaurant.id);
-        }
-        
-        return { success: true, data: response.data };
+      const data = await restaurantService.getMyRestaurants();
+
+      setRestaurants(data);
+      const savedRestaurantId = TokenStorage.getCurrentRestaurantId();
+      const selected =
+        data.find((restaurant) => restaurant.id === savedRestaurantId) ??
+        data[0] ??
+        null;
+      setCurrentRestaurant(selected);
+      if (selected) {
+        TokenStorage.setCurrentRestaurantId(selected.id);
       } else {
-        setError(response.message);
-        return { success: false, message: response.message };
+        TokenStorage.clearRestaurantId();
       }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy danh sách nhà hàng thất bại';
+      return { success: true, data };
+    } catch (caught) {
+      const message =
+        (caught as { response?: { data?: { message?: string } } }).response?.data?.message ||
+        'Lấy danh sách nhà hàng thất bại';
       setError(message);
       return { success: false, message };
     } finally {
@@ -312,66 +80,105 @@ export const  RestaurantProvider = ({ children }: RestaurantProviderProps) => {
     }
   }, []);
 
-  /**
-   * Helper function để set currentRestaurant và save ID vào localStorage
-   */
+  useEffect(() => {
+    if (TokenStorage.hasToken() && TokenStorage.getCurrentRestaurantId()) {
+      void getMyRestaurants();
+    }
+  }, [getMyRestaurants]);
+
+  const createRestaurant = useCallback(
+    async (
+      data: CreateRestaurantRequest,
+      options: ActionOptions = {},
+    ): Promise<RestaurantActionResult> => {
+      try {
+        setLoading(true);
+        setError(null);
+        const restaurant = await restaurantService.createRestaurant(data);
+        setRestaurants((current) => [restaurant, ...current]);
+        setCurrentRestaurant(restaurant);
+        TokenStorage.setCurrentRestaurantId(restaurant.id);
+        if (!options.skipRedirect) navigate(ROUTES.RESTAURANT_DASHBOARD);
+        return { success: true, data: restaurant };
+      } catch (caught) {
+        const message =
+          (caught as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Tạo nhà hàng thất bại';
+        setError(message);
+        return { success: false, message };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [navigate],
+  );
+
+  const updateRestaurant = useCallback(
+    async (
+      id: number,
+      data: CreateRestaurantRequest,
+      options: ActionOptions = {},
+    ): Promise<RestaurantActionResult> => {
+      try {
+        setLoading(true);
+        setError(null);
+        const restaurant = await restaurantService.updateRestaurant(id, data);
+        setRestaurants((current) =>
+          current.map((currentRestaurant) =>
+            currentRestaurant.id === id ? restaurant : currentRestaurant,
+          ),
+        );
+        setCurrentRestaurant(restaurant);
+        if (!options.skipRedirect) navigate(ROUTES.RESTAURANT_DASHBOARD);
+        return { success: true, data: restaurant };
+      } catch (caught) {
+        const message =
+          (caught as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Cập nhật nhà hàng thất bại';
+        setError(message);
+        return { success: false, message };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [navigate],
+  );
+
   const setCurrentRestaurantWithSave = useCallback((restaurant: Restaurant | null) => {
     setCurrentRestaurant(restaurant);
-    if (restaurant) {
-      TokenStorage.setCurrentRestaurantId(restaurant.id);
-    } else {
-      TokenStorage.clearRestaurantId();
-    }
+    if (restaurant) TokenStorage.setCurrentRestaurantId(restaurant.id);
+    else TokenStorage.clearRestaurantId();
   }, []);
 
-  // Context Value wrapped in useMemo (CRITICAL for performance)
-  const value = useMemo<RestaurantContextValue>(() => ({
-    // States
-    restaurants,
-    currentRestaurant,
-    loading,
-    error,
-    // Actions
-    createRestaurant,
-    updateRestaurant,
-    deleteRestaurant,
-    getRestaurantById,
-    getAllRestaurants,
-    searchRestaurants,
-    getMyRestaurants,
-    // Setters
-    setCurrentRestaurant: setCurrentRestaurantWithSave,
-    setError
-  }), [
-    restaurants,
-    currentRestaurant,
-    loading,
-    error,
-    createRestaurant,
-    updateRestaurant,
-    deleteRestaurant,
-    getRestaurantById,
-    getAllRestaurants,
-    searchRestaurants,
-    getMyRestaurants,
-    setCurrentRestaurantWithSave
-  ]);
-
-  return (
-    <RestaurantContext.Provider value={value}>
-      {children}
-    </RestaurantContext.Provider>
+  const value = useMemo<RestaurantContextValue>(
+    () => ({
+      restaurants,
+      currentRestaurant,
+      loading,
+      error,
+      createRestaurant,
+      updateRestaurant,
+      getMyRestaurants,
+      setCurrentRestaurant: setCurrentRestaurantWithSave,
+      setError,
+    }),
+    [
+      restaurants,
+      currentRestaurant,
+      loading,
+      error,
+      createRestaurant,
+      updateRestaurant,
+      getMyRestaurants,
+      setCurrentRestaurantWithSave,
+    ],
   );
+
+  return <RestaurantContext.Provider value={value}>{children}</RestaurantContext.Provider>;
 };
 
-/**
- * Custom hook để sử dụng Restaurant Context
- * @throws {Error} Nếu sử dụng ngoài RestaurantProvider
- */
 export const useRestaurant = () => {
   const context = useContext(RestaurantContext);
-  if (!context) {
-    throw new Error('useRestaurant must be used within RestaurantProvider');
-  }
+  if (!context) throw new Error('useRestaurant must be used within RestaurantProvider');
   return context;
 };

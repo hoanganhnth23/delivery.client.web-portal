@@ -1,68 +1,141 @@
 import apiClient, { handleResponse, handleError } from './apiClient';
 import { API_ENDPOINTS } from './endpoints';
+import {
+  optionalPositiveInteger,
+  optionalString,
+  requireArray,
+  requireBoolean,
+  requireEnum,
+  requireInteger,
+  requireNumber,
+  requirePage,
+  requireRecord,
+  requireString,
+  requireTimestamp,
+} from './contract';
+
+const ORDER_STATUSES = [
+  'PENDING',
+  'CONFIRMED',
+  'FINDING_SHIPPER',
+  'WAIT_SHIPPER_CONFIRM',
+  'ASSIGNED',
+  'PICKED_UP',
+  'DELIVERING',
+  'DELIVERED',
+  'CANCELLED',
+  'SHIPPER_NOT_FOUND',
+] as const;
+const RATING_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
+const REWARD_TYPES = ['FIXED', 'PERCENTAGE', 'FREESHIP'] as const;
 
 export interface PageResponse<T> {
-  content: T[];
-  totalPages: number;
-  totalElements: number;
+  items: T[];
+  page: number;
   size: number;
-  number: number;
+  totalItems: number;
+  totalPages: number;
+  hasNext: boolean;
 }
 
 export interface AdminOrder {
   id: number;
   userId: number;
   restaurantId: number;
-  totalAmount: number;
+  totalPrice: number;
   status: string;
   createdAt: string;
   updatedAt: string;
-  paymentStatus: string;
   paymentMethod: string;
-  shippingAddress: string;
+  deliveryAddress: string;
   shipperId: number | null;
-}
-
-export interface AdminTransaction {
-  id: number;
-  entityId: number;
-  entityType: string;
-  direction: string;
-  reason: string;
-  amount: number;
-  description: string;
-  status: string;
-  walletType: string;
-  createdAt: string;
 }
 
 export interface AdminShipper {
   id: number;
   userId: number;
-  fullName: string;
-  phone: string;
-  vehicleType: string;
-  licensePlate: string;
+  fullName: string | null;
+  phone: string | null;
+  vehicleType: string | null;
+  licensePlate: string | null;
   isOnline: boolean;
-  isBlocked: boolean;
-  rating: number;
-  totalDeliveries: number;
+  rating: number | null;
+  completedDeliveries: number;
   createdAt: string;
 }
 
-export interface UserStatistics {
-  totalUsers: number;
-  totalShippers: number;
-  totalRestaurants: number;
-  newUsersToday: number;
-}
+const parseAdminOrder = (value: unknown, label: string): AdminOrder => {
+  const order = requireRecord(value, label);
+  return {
+    id: requireInteger(order.id, `${label}.id`, 1),
+    userId: requireInteger(order.userId, `${label}.userId`, 1),
+    restaurantId: requireInteger(order.restaurantId, `${label}.restaurantId`, 1),
+    totalPrice: requireNumber(order.totalPrice, `${label}.totalPrice`),
+    status: requireEnum(order.status, ORDER_STATUSES, `${label}.status`),
+    createdAt: requireTimestamp(order.createdAt, `${label}.createdAt`),
+    updatedAt: requireTimestamp(order.updatedAt, `${label}.updatedAt`),
+    paymentMethod: requireEnum(order.paymentMethod, ['COD'] as const, `${label}.paymentMethod`),
+    deliveryAddress: requireString(order.deliveryAddress, `${label}.deliveryAddress`),
+    shipperId: optionalPositiveInteger(order.shipperId, `${label}.shipperId`),
+  };
+};
 
-export interface AdminRestaurant {
-  id: number;
-  name: string;
-  address: string;
-  createdAt: string;
-}
+const parseAdminShipper = (value: unknown, label: string): AdminShipper => {
+  const shipper = requireRecord(value, label);
+  const rating = shipper.rating === null
+    ? null
+    : requireNumber(shipper.rating, `${label}.rating`);
+  return {
+    id: requireInteger(shipper.id, `${label}.id`, 1),
+    userId: requireInteger(shipper.userId, `${label}.userId`, 1),
+    fullName: optionalString(shipper.fullName, `${label}.fullName`),
+    phone: optionalString(shipper.phone, `${label}.phone`),
+    vehicleType: optionalString(shipper.vehicleType, `${label}.vehicleType`),
+    licensePlate: optionalString(shipper.licensePlate, `${label}.licensePlate`),
+    isOnline: requireBoolean(shipper.isOnline, `${label}.isOnline`),
+    rating,
+    completedDeliveries: requireInteger(
+      shipper.completedDeliveries,
+      `${label}.completedDeliveries`,
+    ),
+    createdAt: requireTimestamp(shipper.createdAt, `${label}.createdAt`),
+  };
+};
+
+const parseAdminRating = (value: unknown, label: string): AdminRating => {
+  const rating = requireRecord(value, label);
+  return {
+    id: requireInteger(rating.id, `${label}.id`, 1),
+    restaurantId: requireInteger(rating.restaurantId, `${label}.restaurantId`, 1),
+    customerId: requireInteger(rating.customerId, `${label}.customerId`, 1),
+    orderId: requireInteger(rating.orderId, `${label}.orderId`, 1),
+    rating: requireInteger(rating.rating, `${label}.rating`, 1),
+    comment: optionalString(rating.comment, `${label}.comment`) ?? '',
+    status: requireEnum(rating.status, RATING_STATUSES, `${label}.status`),
+    createdAt: requireTimestamp(rating.createdAt, `${label}.createdAt`),
+  };
+};
+
+const parseAdminCoupon = (value: unknown, label: string): AdminCoupon => {
+  const coupon = requireRecord(value, label);
+  return {
+    id: requireInteger(coupon.id, `${label}.id`, 1),
+    code: requireString(coupon.code, `${label}.code`),
+    name: requireString(coupon.name, `${label}.name`),
+    description: optionalString(coupon.description, `${label}.description`) ?? '',
+    rewardType: requireEnum(coupon.rewardType, REWARD_TYPES, `${label}.rewardType`),
+    discountValue: requireNumber(coupon.discountValue, `${label}.discountValue`),
+    maxDiscountValue: coupon.maxDiscountValue === null
+      ? null
+      : requireNumber(coupon.maxDiscountValue, `${label}.maxDiscountValue`),
+    totalQuantity: requireInteger(coupon.totalQuantity, `${label}.totalQuantity`, 1),
+    usedQuantity: requireInteger(coupon.usedQuantity, `${label}.usedQuantity`),
+    startTime: requireTimestamp(coupon.startTime, `${label}.startTime`),
+    endTime: requireTimestamp(coupon.endTime, `${label}.endTime`),
+    minOrderValue: requireNumber(coupon.minOrderValue, `${label}.minOrderValue`),
+    active: requireBoolean(coupon.active, `${label}.active`),
+  };
+};
 
 class AdminService {
   /**
@@ -71,7 +144,7 @@ class AdminService {
   async fetchAllOrders(page: number = 0, size: number = 20): Promise<PageResponse<AdminOrder>> {
     try {
       const response = await apiClient.get(API_ENDPOINTS.ORDER.GET_ALL_ADMIN, { params: { page, size } });
-      return handleResponse<PageResponse<AdminOrder>>(response);
+      return requirePage(handleResponse(response), 'orders page', parseAdminOrder);
     } catch (error) {
       return handleError(error);
     }
@@ -83,55 +156,7 @@ class AdminService {
   async fetchOrdersByStatus(status: string, page: number = 0, size: number = 20): Promise<PageResponse<AdminOrder>> {
     try {
       const response = await apiClient.get(API_ENDPOINTS.ORDER.GET_BY_STATUS(status), { params: { page, size } });
-      return handleResponse<PageResponse<AdminOrder>>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  /**
-   * Fetch pending withdrawals
-   */
-  async fetchPendingWithdrawals(): Promise<AdminTransaction[]> {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.SETTLEMENT.ADMIN.GET_PENDING_WITHDRAWALS);
-      return handleResponse<AdminTransaction[]>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  /**
-   * Approve a withdrawal
-   */
-  async approveWithdrawal(transactionId: number): Promise<AdminTransaction> {
-    try {
-      const response = await apiClient.post(API_ENDPOINTS.SETTLEMENT.ADMIN.APPROVE_WITHDRAWAL(transactionId));
-      return handleResponse<AdminTransaction>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  /**
-   * Reject a withdrawal
-   */
-  async rejectWithdrawal(transactionId: number, reason: string): Promise<AdminTransaction> {
-    try {
-      const response = await apiClient.post(API_ENDPOINTS.SETTLEMENT.ADMIN.REJECT_WITHDRAWAL(transactionId), { reason });
-      return handleResponse<AdminTransaction>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  /**
-   * Get platform revenue
-   */
-  async fetchPlatformRevenue(): Promise<number> {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.SETTLEMENT.ADMIN.GET_REVENUE);
-      return handleResponse<number>(response);
+      return requirePage(handleResponse(response), 'orders page', parseAdminOrder);
     } catch (error) {
       return handleError(error);
     }
@@ -142,10 +167,10 @@ class AdminService {
   /**
    * Fetch all shippers
    */
-  async fetchAllShippers(): Promise<AdminShipper[]> {
+  async fetchAllShippers(page: number = 0, size: number = 100): Promise<PageResponse<AdminShipper>> {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.SHIPPER.GET_ALL);
-      return handleResponse<AdminShipper[]>(response);
+      const response = await apiClient.get(API_ENDPOINTS.SHIPPER.GET_ALL, { params: { page, size } });
+      return requirePage(handleResponse(response), 'shippers page', parseAdminShipper);
     } catch (error) {
       return handleError(error);
     }
@@ -157,57 +182,7 @@ class AdminService {
   async fetchOnlineShippers(): Promise<AdminShipper[]> {
     try {
       const response = await apiClient.get(API_ENDPOINTS.SHIPPER.GET_ONLINE);
-      return handleResponse<AdminShipper[]>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  /**
-   * Block a shipper account (via Auth Service)
-   */
-  async blockShipper(authAccountId: number, reason: string): Promise<void> {
-    try {
-      const response = await apiClient.post(API_ENDPOINTS.AUTH_ADMIN.BLOCK_ACCOUNT(authAccountId), { reason });
-      return handleResponse<void>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  /**
-   * Unblock a shipper account (via Auth Service)
-   */
-  async unblockShipper(authAccountId: number): Promise<void> {
-    try {
-      const response = await apiClient.post(API_ENDPOINTS.AUTH_ADMIN.UNBLOCK_ACCOUNT(authAccountId));
-      return handleResponse<void>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  // ==================== DASHBOARD STATISTICS ====================
-
-  /**
-   * Fetch user statistics (totals by role)
-   */
-  async fetchUserStatistics(): Promise<UserStatistics> {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.USER_ADMIN.GET_STATISTICS);
-      return handleResponse<UserStatistics>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  /**
-   * Fetch all restaurants (for count)
-   */
-  async fetchAllRestaurants(): Promise<AdminRestaurant[]> {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.GET_ALL);
-      return handleResponse<AdminRestaurant[]>(response);
+      return requireArray(handleResponse(response), 'online shippers', parseAdminShipper);
     } catch (error) {
       return handleError(error);
     }
@@ -221,7 +196,7 @@ class AdminService {
   async fetchAllRatings(): Promise<AdminRating[]> {
     try {
       const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.ADMIN_GET_ALL_RATINGS);
-      return handleResponse<AdminRating[]>(response);
+      return requireArray(handleResponse(response), 'ratings', parseAdminRating);
     } catch (error) {
       return handleError(error);
     }
@@ -235,7 +210,7 @@ class AdminService {
       const response = await apiClient.put(API_ENDPOINTS.RESTAURANT.ADMIN_UPDATE_RATING_STATUS(ratingId), null, {
         params: { status }
       });
-      return handleResponse<AdminRating>(response);
+      return parseAdminRating(handleResponse(response), 'rating');
     } catch (error) {
       return handleError(error);
     }
@@ -246,7 +221,7 @@ class AdminService {
   async fetchAllCoupons(): Promise<AdminCoupon[]> {
     try {
       const response = await apiClient.get(API_ENDPOINTS.PROMOTION.ADMIN_GET_ALL);
-      return handleResponse<AdminCoupon[]>(response);
+      return requireArray(handleResponse(response), 'coupons', parseAdminCoupon);
     } catch (error) {
       return handleError(error);
     }
@@ -255,10 +230,10 @@ class AdminService {
   /**
    * Create a new platform coupon
    */
-  async createCoupon(data: any): Promise<AdminCoupon> {
+  async createCoupon(data: CreateAdminCouponRequest): Promise<AdminCoupon> {
     try {
       const response = await apiClient.post(API_ENDPOINTS.PROMOTION.CREATE_PLATFORM, data);
-      return handleResponse<AdminCoupon>(response);
+      return parseAdminCoupon(handleResponse(response), 'coupon');
     } catch (error) {
       return handleError(error);
     }
@@ -276,120 +251,6 @@ class AdminService {
     }
   }
 
-  /**
-   * Manual assign shipper to an order
-   */
-  async assignShipper(orderId: number, shipperId: number): Promise<AdminOrder> {
-    try {
-      const response = await apiClient.put(API_ENDPOINTS.ORDER.ASSIGN_SHIPPER(orderId, shipperId));
-      return handleResponse<AdminOrder>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  /**
-   * Cancel an order by admin
-   */
-  async cancelOrder(orderId: number, reason: string): Promise<AdminOrder> {
-    try {
-      const response = await apiClient.put(API_ENDPOINTS.ORDER.CANCEL(orderId), { reason });
-      return handleResponse<AdminOrder>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  // ==================== DASHBOARD STATISTICS ====================
-
-  /**
-   * Fetch admin dashboard statistics
-   */
-  async fetchAdminDashboard(period: string = 'month', year?: number): Promise<AdminDashboardResponse> {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.DASHBOARD.ADMIN(period, year));
-      return handleResponse<AdminDashboardResponse>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  /**
-   * Fetch restaurant dashboard statistics
-   */
-  async fetchRestaurantDashboard(restaurantId: number, period: string = 'month', year?: number): Promise<RestaurantDashboardResponse> {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.DASHBOARD.RESTAURANT(restaurantId, period, year));
-      return handleResponse<RestaurantDashboardResponse>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-
-  /**
-   * Fetch my restaurant dashboard statistics
-   */
-  async fetchMyRestaurantDashboard(period: string = 'month', year?: number, restaurantId?: number): Promise<RestaurantDashboardResponse> {
-    try {
-      const response = await apiClient.get(API_ENDPOINTS.DASHBOARD.MY_RESTAURANT(period, year, restaurantId));
-      return handleResponse<RestaurantDashboardResponse>(response);
-    } catch (error) {
-      return handleError(error);
-    }
-  }
-}
-
-// ==================== DASHBOARD TYPES ====================
-
-export interface TimeSeriesPoint {
-  label: string;
-  orderCount: number;
-  revenue: number;
-}
-
-export interface OrderStatusBreakdown {
-  status: string;
-  count: number;
-}
-
-export interface OverviewStats {
-  totalOrders: number;
-  totalRevenue: number;
-  deliveredOrders: number;
-  cancelledOrders: number;
-  pendingOrders: number;
-  processingOrders: number;
-  avgOrderValue: number;
-  deliveryRate: number;
-}
-
-export interface TopRestaurant {
-  restaurantId: number;
-  restaurantName: string;
-  orderCount: number;
-  revenue: number;
-}
-
-export interface TopMenuItem {
-  itemName: string;
-  quantity: number;
-  revenue: number;
-}
-
-export interface AdminDashboardResponse {
-  overview: OverviewStats;
-  revenueTimeSeries: TimeSeriesPoint[];
-  orderTimeSeries: TimeSeriesPoint[];
-  statusBreakdown: OrderStatusBreakdown[];
-  topRestaurants: TopRestaurant[];
-}
-
-export interface RestaurantDashboardResponse {
-  overview: OverviewStats;
-  revenueTimeSeries: TimeSeriesPoint[];
-  orderTimeSeries: TimeSeriesPoint[];
-  statusBreakdown: OrderStatusBreakdown[];
-  topMenuItems: TopMenuItem[];
 }
 
 export interface AdminCoupon {
@@ -399,13 +260,28 @@ export interface AdminCoupon {
   description: string;
   rewardType: string;
   discountValue: number;
-  maxDiscountValue: number;
+  maxDiscountValue: number | null;
   totalQuantity: number;
   usedQuantity: number;
   startTime: string;
   endTime: string;
   minOrderValue: number;
   active: boolean;
+}
+
+export interface CreateAdminCouponRequest {
+  code: string;
+  name: string;
+  description: string;
+  rewardType: string;
+  discountValue: number;
+  maxDiscountValue: number;
+  totalQuantity: number;
+  usageLimitPerUser: number;
+  startTime: string;
+  endTime: string;
+  minOrderValue: number;
+  scopeType: string;
 }
 
 export interface AdminRating {

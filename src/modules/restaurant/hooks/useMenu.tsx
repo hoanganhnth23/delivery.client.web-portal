@@ -1,299 +1,147 @@
-/**
- * useMenu Hook
- * Custom hook để quản lý state và actions cho Menu Items
- * Theo pattern: Context API + Custom Hook với useMemo & useCallback
- */
-
-import { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as menuService from '../services/menuService';
-import type { CreateMenuItemRequest } from '../services/menuService';
 import type {
+  DeleteActionResult,
   MenuItem,
   MenuItemActionResult,
   MenuItemListActionResult,
-  DeleteActionResult,
 } from '@/types/api.types';
 import { ROUTES } from '@/utils/constants';
-
-interface MenuContextValue {
-  // States
-  menuItems: MenuItem[];
-  currentMenuItem: MenuItem | null;
-  loading: boolean;
-  error: string | null;
-  
-  // Actions
-  createMenuItem: (data: CreateMenuItemRequest, options?: ActionOptions) => Promise<MenuItemActionResult>;
-  updateMenuItem: (id: number, data: CreateMenuItemRequest, options?: ActionOptions) => Promise<MenuItemActionResult>;
-  deleteMenuItem: (id: number, options?: ActionOptions) => Promise<DeleteActionResult>;
-  getMenuItemById: (id: number) => Promise<MenuItemActionResult>;
-  getMenuItemsByRestaurant: (restaurantId: number) => Promise<MenuItemListActionResult>;
-  getAllMenuItems: () => Promise<MenuItemListActionResult>;
-  searchMenuItems: (params: Record<string, unknown>) => Promise<MenuItemListActionResult>;
-  getMyMenuItems: () => Promise<MenuItemListActionResult>;
-  
-  // Setters
-  setCurrentMenuItem: (menuItem: MenuItem | null) => void;
-  setError: (error: string | null) => void;
-}
+import * as menuService from '../services/menuService';
+import type { CreateMenuItemRequest } from '../services/menuService';
 
 interface ActionOptions {
   skipRedirect?: boolean;
 }
 
-interface MenuProviderProps {
-  children: ReactNode;
+interface MenuContextValue {
+  menuItems: MenuItem[];
+  currentMenuItem: MenuItem | null;
+  loading: boolean;
+  error: string | null;
+  createMenuItem: (
+    data: CreateMenuItemRequest,
+    options?: ActionOptions,
+  ) => Promise<MenuItemActionResult>;
+  updateMenuItem: (
+    id: number,
+    data: CreateMenuItemRequest,
+    options?: ActionOptions,
+  ) => Promise<MenuItemActionResult>;
+  deleteMenuItem: (id: number, options?: ActionOptions) => Promise<DeleteActionResult>;
+  getMyMenuItems: () => Promise<MenuItemListActionResult>;
+  setCurrentMenuItem: (menuItem: MenuItem | null) => void;
+  setError: (error: string | null) => void;
 }
 
 const MenuContext = createContext<MenuContextValue | null>(null);
 
-export const MenuProvider = ({ children }: MenuProviderProps) => {
+export const MenuProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
-  
-  // States
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [currentMenuItem, setCurrentMenuItem] = useState<MenuItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Tạo món ăn mới
-   */
-  const createMenuItem = useCallback(async (
-    data: CreateMenuItemRequest, 
-    options: ActionOptions = {}
-  ): Promise<MenuItemActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await menuService.createMenuItem(data);
-      
-      if (response.status === 1) {
-        // Thêm vào danh sách
-        setMenuItems(prev => [response.data, ...prev]);
-        setCurrentMenuItem(response.data);
-        
-        // Navigation logic (Hybrid)
-        if (!options.skipRedirect) {
-          navigate(ROUTES.RESTAURANT_MENU);
-        }
-        
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
+  const runMutation = useCallback(
+    async (
+      operation: () => Promise<MenuItem>,
+      failureMessage: string,
+      options: ActionOptions,
+    ): Promise<MenuItemActionResult> => {
+      try {
+        setLoading(true);
+        setError(null);
+        const menuItem = await operation();
+        setCurrentMenuItem(menuItem);
+        if (!options.skipRedirect) navigate(ROUTES.RESTAURANT_MENU);
+        return { success: true, data: menuItem };
+      } catch (caught) {
+        const message =
+          (caught as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          failureMessage;
+        setError(message);
+        return { success: false, message };
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Tạo món ăn thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
+    },
+    [navigate],
+  );
 
-  /**
-   * Cập nhật thông tin món ăn
-   */
-  const updateMenuItem = useCallback(async (
-    id: number,
-    data: CreateMenuItemRequest,
-    options: ActionOptions = {}
-  ): Promise<MenuItemActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await menuService.updateMenuItem(id, data);
-      
-      if (response.status === 1) {
-        // Cập nhật trong danh sách
-        setMenuItems(prev => 
-          prev.map(item => item.id === id ? response.data : item)
+  const createMenuItem = useCallback(
+    async (data: CreateMenuItemRequest, options: ActionOptions = {}) => {
+      const result = await runMutation(
+        () => menuService.createMenuItem(data),
+        'Tạo món ăn thất bại',
+        options,
+      );
+      if (result.success && result.data) {
+        setMenuItems((current) => [result.data!, ...current]);
+      }
+      return result;
+    },
+    [runMutation],
+  );
+
+  const updateMenuItem = useCallback(
+    async (id: number, data: CreateMenuItemRequest, options: ActionOptions = {}) => {
+      const result = await runMutation(
+        () => menuService.updateMenuItem(id, data),
+        'Cập nhật món ăn thất bại',
+        options,
+      );
+      if (result.success && result.data) {
+        setMenuItems((current) =>
+          current.map((item) => (item.id === id ? result.data! : item)),
         );
-        setCurrentMenuItem(response.data);
-        
-        if (!options.skipRedirect) {
-          navigate(ROUTES.RESTAURANT_MENU);
-        }
-        
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
       }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Cập nhật món ăn thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
+      return result;
+    },
+    [runMutation],
+  );
 
-  /**
-   * Xóa món ăn
-   */
-  const deleteMenuItem = useCallback(async (
-    id: number,
-    options: ActionOptions = {}
-  ): Promise<DeleteActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await menuService.deleteMenuItem(id);
-      
-      if (response.status === 1) {
-        // Xóa khỏi danh sách
-        setMenuItems(prev => prev.filter(item => item.id !== id));
-        if (currentMenuItem?.id === id) {
-          setCurrentMenuItem(null);
-        }
-        
-        if (!options.skipRedirect) {
-          navigate(ROUTES.RESTAURANT_MENU);
-        }
-        
+  const deleteMenuItem = useCallback(
+    async (id: number, options: ActionOptions = {}): Promise<DeleteActionResult> => {
+      try {
+        setLoading(true);
+        setError(null);
+        await menuService.deleteMenuItem(id);
+        setMenuItems((current) => current.filter((item) => item.id !== id));
+        setCurrentMenuItem((current) => (current?.id === id ? null : current));
+        if (!options.skipRedirect) navigate(ROUTES.RESTAURANT_MENU);
         return { success: true };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
+      } catch (caught) {
+        const message =
+          (caught as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          'Xóa món ăn thất bại';
+        setError(message);
+        return { success: false, message };
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Xóa món ăn thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, [currentMenuItem, navigate]);
+    },
+    [navigate],
+  );
 
-  /**
-   * Lấy thông tin chi tiết món ăn
-   */
-  const getMenuItemById = useCallback(async (id: number): Promise<MenuItemActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await menuService.getMenuItemById(id);
-      
-      if (response.status === 1) {
-        setCurrentMenuItem(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy thông tin món ăn thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Lấy danh sách món ăn theo nhà hàng
-   */
-  const getMenuItemsByRestaurant = useCallback(async (restaurantId: number): Promise<MenuItemListActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await menuService.getMenuItemsByRestaurant(restaurantId);
-      
-      if (response.status === 1) {
-        setMenuItems(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy danh sách món ăn thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Lấy tất cả món ăn
-   */
-  const getAllMenuItems = useCallback(async (): Promise<MenuItemListActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await menuService.getAllMenuItems();
-      
-      if (response.status === 1) {
-        setMenuItems(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy danh sách món ăn thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Tìm kiếm món ăn
-   */
-  const searchMenuItems = useCallback(async (params: Record<string, unknown>): Promise<MenuItemListActionResult> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await menuService.searchMenuItems(params);
-      
-      if (response.status === 1) {
-        setMenuItems(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Tìm kiếm thất bại';
-      setError(message);
-      return { success: false, message };
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Lấy danh sách món ăn của nhà hàng hiện tại
-   */
   const getMyMenuItems = useCallback(async (): Promise<MenuItemListActionResult> => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await menuService.getMyMenuItems();
-      
-      if (response.status === 1) {
-        setMenuItems(response.data);
-        return { success: true, data: response.data };
-      } else {
-        setError(response.message);
-        return { success: false, message: response.message };
-      }
-    } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Lấy danh sách món ăn thất bại';
+      const menuItems = await menuService.getMyMenuItems();
+      setMenuItems(menuItems);
+      return { success: true, data: menuItems };
+    } catch (caught) {
+      const message =
+        (caught as { response?: { data?: { message?: string } } }).response?.data?.message ||
+        'Lấy danh sách món ăn thất bại';
       setError(message);
       return { success: false, message };
     } finally {
@@ -301,55 +149,36 @@ export const MenuProvider = ({ children }: MenuProviderProps) => {
     }
   }, []);
 
-  // Context Value wrapped in useMemo (CRITICAL for performance)
-  const value = useMemo<MenuContextValue>(() => ({
-    // States
-    menuItems,
-    currentMenuItem,
-    loading,
-    error,
-    // Actions
-    createMenuItem,
-    updateMenuItem,
-    deleteMenuItem,
-    getMenuItemById,
-    getMenuItemsByRestaurant,
-    getAllMenuItems,
-    searchMenuItems,
-    getMyMenuItems,
-    // Setters
-    setCurrentMenuItem,
-    setError
-  }), [
-    menuItems,
-    currentMenuItem,
-    loading,
-    error,
-    createMenuItem,
-    updateMenuItem,
-    deleteMenuItem,
-    getMenuItemById,
-    getMenuItemsByRestaurant,
-    getAllMenuItems,
-    searchMenuItems,
-    getMyMenuItems
-  ]);
-
-  return (
-    <MenuContext.Provider value={value}>
-      {children}
-    </MenuContext.Provider>
+  const value = useMemo<MenuContextValue>(
+    () => ({
+      menuItems,
+      currentMenuItem,
+      loading,
+      error,
+      createMenuItem,
+      updateMenuItem,
+      deleteMenuItem,
+      getMyMenuItems,
+      setCurrentMenuItem,
+      setError,
+    }),
+    [
+      menuItems,
+      currentMenuItem,
+      loading,
+      error,
+      createMenuItem,
+      updateMenuItem,
+      deleteMenuItem,
+      getMyMenuItems,
+    ],
   );
+
+  return <MenuContext.Provider value={value}>{children}</MenuContext.Provider>;
 };
 
-/**
- * Custom hook để sử dụng Menu Context
- * @throws {Error} Nếu sử dụng ngoài MenuProvider
- */
-export const useMenu = (): MenuContextValue => {
+export const useMenu = () => {
   const context = useContext(MenuContext);
-  if (!context) {
-    throw new Error('useMenu must be used within MenuProvider');
-  }
+  if (!context) throw new Error('useMenu must be used within MenuProvider');
   return context;
 };
