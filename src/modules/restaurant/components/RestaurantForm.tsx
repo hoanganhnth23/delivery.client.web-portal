@@ -153,11 +153,12 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Tên nhà hàng */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="restaurant-name" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           Tên nhà hàng <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
+          id="restaurant-name"
           name="name"
           value={formData.name}
           onChange={handleChange}
@@ -171,11 +172,12 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
 
       {/* Địa chỉ */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="restaurant-address" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           Địa chỉ <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
+          id="restaurant-address"
           name="address"
           value={formData.address}
           onChange={handleChange}
@@ -190,11 +192,12 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
       {/* Tọa độ */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="restaurant-latitude" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Vĩ độ (Latitude)
           </label>
           <input
             type="number"
+            id="restaurant-latitude"
             step="any"
             name="addressLat"
             value={formData.addressLat}
@@ -207,11 +210,12 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
           )}
         </div>
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="restaurant-longitude" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Kinh độ (Longitude)
           </label>
           <input
             type="number"
+            id="restaurant-longitude"
             step="any"
             name="addressLng"
             value={formData.addressLng}
@@ -227,11 +231,12 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
 
       {/* Số điện thoại */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="restaurant-phone" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           Số điện thoại <span className="text-red-500">*</span>
         </label>
         <input
           type="tel"
+          id="restaurant-phone"
           name="phone"
           value={formData.phone}
           onChange={handleChange}
@@ -246,11 +251,12 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
       {/* Giờ mở cửa - đóng cửa */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="restaurant-opening-hour" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Giờ mở cửa <span className="text-red-500">*</span>
           </label>
           <input
             type="time"
+            id="restaurant-opening-hour"
             name="openingHour"
             value={formData.openingHour}
             onChange={handleChange}
@@ -261,11 +267,12 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
           )}
         </div>
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="restaurant-closing-hour" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Giờ đóng cửa <span className="text-red-500">*</span>
           </label>
           <input
             type="time"
+            id="restaurant-closing-hour"
             name="closingHour"
             value={formData.closingHour}
             onChange={handleChange}
@@ -279,11 +286,12 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
 
       {/* URL ảnh */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="restaurant-image" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           URL ảnh đại diện
         </label>
         <input
           type="url"
+          id="restaurant-image"
           name="image"
           value={formData.image}
           onChange={handleChange}
@@ -305,10 +313,11 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
 
       {/* Mô tả */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="restaurant-description" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           Mô tả
         </label>
         <textarea
+          id="restaurant-description"
           name="description"
           value={formData.description}
           onChange={handleChange}

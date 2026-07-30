@@ -8,14 +8,13 @@ import {
   type ReactNode,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import TokenStorage from '@/services/storage/localStorage';
+import { useAppDependencies } from '@/app/dependencies';
 import type {
   Restaurant,
   RestaurantActionResult,
   RestaurantListActionResult,
 } from '@/types/api.types';
 import { ROUTES } from '@/utils/constants';
-import * as restaurantService from '../services/restaurantService';
 import type { CreateRestaurantRequest } from '../services/restaurantService';
 
 interface ActionOptions {
@@ -44,6 +43,7 @@ interface RestaurantContextValue {
 const RestaurantContext = createContext<RestaurantContextValue | null>(null);
 
 export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
+  const { restaurant: restaurantService, sessionStore } = useAppDependencies();
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(null);
@@ -57,16 +57,16 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
       const data = await restaurantService.getMyRestaurants();
 
       setRestaurants(data);
-      const savedRestaurantId = TokenStorage.getCurrentRestaurantId();
+      const savedRestaurantId = sessionStore.getCurrentRestaurantId();
       const selected =
         data.find((restaurant) => restaurant.id === savedRestaurantId) ??
         data[0] ??
         null;
       setCurrentRestaurant(selected);
       if (selected) {
-        TokenStorage.setCurrentRestaurantId(selected.id);
+        sessionStore.setCurrentRestaurantId(selected.id);
       } else {
-        TokenStorage.clearRestaurantId();
+        sessionStore.clearRestaurantId();
       }
       return { success: true, data };
     } catch (caught) {
@@ -78,13 +78,13 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [restaurantService, sessionStore]);
 
   useEffect(() => {
-    if (TokenStorage.hasToken() && TokenStorage.getCurrentRestaurantId()) {
+    if (sessionStore.hasToken() && sessionStore.getCurrentRestaurantId()) {
       void getMyRestaurants();
     }
-  }, [getMyRestaurants]);
+  }, [getMyRestaurants, sessionStore]);
 
   const createRestaurant = useCallback(
     async (
@@ -97,7 +97,7 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
         const restaurant = await restaurantService.createRestaurant(data);
         setRestaurants((current) => [restaurant, ...current]);
         setCurrentRestaurant(restaurant);
-        TokenStorage.setCurrentRestaurantId(restaurant.id);
+        sessionStore.setCurrentRestaurantId(restaurant.id);
         if (!options.skipRedirect) navigate(ROUTES.RESTAURANT_DASHBOARD);
         return { success: true, data: restaurant };
       } catch (caught) {
@@ -110,7 +110,7 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     },
-    [navigate],
+    [navigate, restaurantService, sessionStore],
   );
 
   const updateRestaurant = useCallback(
@@ -141,14 +141,14 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     },
-    [navigate],
+    [navigate, restaurantService],
   );
 
   const setCurrentRestaurantWithSave = useCallback((restaurant: Restaurant | null) => {
     setCurrentRestaurant(restaurant);
-    if (restaurant) TokenStorage.setCurrentRestaurantId(restaurant.id);
-    else TokenStorage.clearRestaurantId();
-  }, []);
+    if (restaurant) sessionStore.setCurrentRestaurantId(restaurant.id);
+    else sessionStore.clearRestaurantId();
+  }, [sessionStore]);
 
   const value = useMemo<RestaurantContextValue>(
     () => ({

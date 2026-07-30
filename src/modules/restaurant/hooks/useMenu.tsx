@@ -14,8 +14,8 @@ import type {
   MenuItemListActionResult,
 } from '@/types/api.types';
 import { ROUTES } from '@/utils/constants';
-import * as menuService from '../services/menuService';
 import type { CreateMenuItemRequest } from '../services/menuService';
+import { useAppDependencies } from '@/app/dependencies';
 
 interface ActionOptions {
   skipRedirect?: boolean;
@@ -44,6 +44,7 @@ interface MenuContextValue {
 const MenuContext = createContext<MenuContextValue | null>(null);
 
 export const MenuProvider = ({ children }: { children: ReactNode }) => {
+  const { menu: menuService } = useAppDependencies();
   const navigate = useNavigate();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [currentMenuItem, setCurrentMenuItem] = useState<MenuItem | null>(null);
@@ -88,7 +89,7 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
       }
       return result;
     },
-    [runMutation],
+    [menuService, runMutation],
   );
 
   const updateMenuItem = useCallback(
@@ -105,7 +106,7 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
       }
       return result;
     },
-    [runMutation],
+    [menuService, runMutation],
   );
 
   const deleteMenuItem = useCallback(
@@ -128,7 +129,7 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     },
-    [navigate],
+    [menuService, navigate],
   );
 
   const getMyMenuItems = useCallback(async (): Promise<MenuItemListActionResult> => {
@@ -147,7 +148,7 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [menuService]);
 
   const value = useMemo<MenuContextValue>(
     () => ({

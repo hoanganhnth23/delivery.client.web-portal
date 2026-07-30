@@ -29,7 +29,7 @@ const RestaurantProfilePage = () => {
           <div className="mx-auto max-w-3xl rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
             {loading && !currentRestaurant ? (
               <p className="text-center text-gray-500">Đang tải hồ sơ nhà hàng…</p>
-            ) : error ? (
+            ) : error && !currentRestaurant ? (
               <div className="text-center">
                 <p className="text-red-600">{error}</p>
                 <button
@@ -41,11 +41,18 @@ const RestaurantProfilePage = () => {
                 </button>
               </div>
             ) : currentRestaurant ? (
-              <RestaurantForm
-                restaurant={currentRestaurant}
-                onSuccess={() => void getMyRestaurants()}
-                onCancel={() => void getMyRestaurants()}
-              />
+              <>
+                {error && (
+                  <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+                    {error}
+                  </div>
+                )}
+                <RestaurantForm
+                  restaurant={currentRestaurant}
+                  onSuccess={() => void getMyRestaurants()}
+                  onCancel={() => void getMyRestaurants()}
+                />
+              </>
             ) : (
               <p className="text-center text-gray-500">
                 Tài khoản chưa được gán nhà hàng. Vui lòng liên hệ quản trị viên.

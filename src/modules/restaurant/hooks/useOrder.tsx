@@ -5,7 +5,7 @@
  */
 
 import { createContext, useContext, useState, useMemo, useCallback, ReactNode } from 'react';
-import * as orderService from '../services/orderService';
+import { useAppDependencies } from '@/app/dependencies';
 import type {
   Order,
   OrderActionResult,
@@ -46,6 +46,7 @@ interface OrderProviderProps {
 const OrderContext = createContext<OrderContextValue | null>(null);
 
 export const OrderProvider = ({ children }: OrderProviderProps) => {
+  const { order: orderService } = useAppDependencies();
   // States
   const [orders, setOrders] = useState<Order[]>([]);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
@@ -78,7 +79,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [orderService]);
 
   /**
    * Lấy chi tiết order theo ID
@@ -98,7 +99,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [orderService]);
 
   const confirmOrder = useCallback(async (
     orderId: number,
@@ -122,7 +123,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [orderService]);
 
   const rejectOrder = useCallback(async (
     orderId: number,
@@ -142,7 +143,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [orderService]);
 
   // Context Value wrapped in useMemo (CRITICAL for performance)
   const value = useMemo<OrderContextValue>(() => ({

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import adminService, { AdminOrder } from '@/services/api/adminService';
-import { toast } from 'react-hot-toast';
+import type { AdminOrder } from '@/services/api/adminService';
+import { useAppDependencies } from '@/app/dependencies';
 
 const AdminOrdersPage = () => {
+  const { admin: adminService, notifications } = useAppDependencies();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -38,11 +39,11 @@ const AdminOrdersPage = () => {
         setTotalPages(data.totalPages);
       }
     } catch {
-      toast.error('Không thể tải danh sách đơn hàng');
+      notifications.error('Không thể tải danh sách đơn hàng');
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter]);
+  }, [adminService, notifications, page, statusFilter]);
 
   useEffect(() => {
     void loadOrders();

@@ -8,8 +8,10 @@ import { useOrder } from '../hooks/useOrder';
 import { useRestaurant } from '../hooks/useRestaurant';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
+import { useAppDependencies } from '@/app/dependencies';
 
 const RestaurantOrders = () => {
+  const { delay } = useAppDependencies();
   const { 
     orders, 
     loading, 
@@ -62,7 +64,7 @@ const RestaurantOrders = () => {
   const refreshAfterDecision = async (orderId: number) => {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       if (attempt > 0) {
-        await new Promise(resolve => window.setTimeout(resolve, 500 * attempt));
+        await delay.wait(500 * attempt);
       }
 
       const result = await getMyOrders(currentPage, 10);
@@ -180,7 +182,7 @@ const RestaurantOrders = () => {
             )}
 
             {/* Orders List */}
-            {!loading && !error && filteredOrders.length > 0 && (
+            {filteredOrders.length > 0 && (
               <div className="grid grid-cols-1 gap-4">
                 {filteredOrders.map((order) => (
                   <div key={order.id} className="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-all">
@@ -256,15 +258,21 @@ const RestaurantOrders = () => {
                           {order.status === 'PENDING' && (
                             <>
                               <button
+                                type="button"
+                                aria-label={`Xác nhận đơn #${order.id}`}
                                 onClick={() => handleConfirm(order.id, order.restaurantId)}
-                                className="flex-1 lg:flex-none px-4 py-2.5 bg-primary hover:bg-orange-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+                                disabled={loading}
+                                className="flex-1 lg:flex-none px-4 py-2.5 bg-primary hover:bg-orange-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 <span className="material-symbols-outlined text-lg">check_circle</span>
                                 Xác nhận
                               </button>
                               <button
+                                type="button"
+                                aria-label={`Từ chối đơn #${order.id}`}
                                 onClick={() => handleReject(order.id, order.restaurantId)}
-                                className="flex-1 lg:flex-none px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+                                disabled={loading}
+                                className="flex-1 lg:flex-none px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-sm transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 Từ chối
                               </button>

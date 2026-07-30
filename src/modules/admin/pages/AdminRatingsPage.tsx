@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import adminService, { AdminRating } from '@/services/api/adminService';
-import { toast } from 'react-hot-toast';
+import type { AdminRating } from '@/services/api/adminService';
+import { useAppDependencies } from '@/app/dependencies';
 
 const AdminRatingsPage = () => {
+  const { admin: adminService, notifications } = useAppDependencies();
   const [ratings, setRatings] = useState<AdminRating[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -17,11 +18,11 @@ const AdminRatingsPage = () => {
       const data = await adminService.fetchAllRatings();
       setRatings(data || []);
     } catch {
-      toast.error('Lỗi khi tải danh sách đánh giá');
+      notifications.error('Lỗi khi tải danh sách đánh giá');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [adminService, notifications]);
 
   useEffect(() => {
     void loadRatings();
@@ -30,11 +31,11 @@ const AdminRatingsPage = () => {
   const handleUpdateStatus = async (ratingId: number, status: 'APPROVED' | 'REJECTED') => {
     try {
       await adminService.updateRatingStatus(ratingId, status);
-      toast.success(status === 'APPROVED' ? 'Đã duyệt đánh giá' : 'Đã từ chối đánh giá');
+      notifications.success(status === 'APPROVED' ? 'Đã duyệt đánh giá' : 'Đã từ chối đánh giá');
       // Update local state
       setRatings(prev => prev.map(r => r.id === ratingId ? { ...r, status } : r));
     } catch {
-      toast.error('Cập nhật trạng thái thất bại');
+      notifications.error('Cập nhật trạng thái thất bại');
     }
   };
 

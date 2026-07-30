@@ -85,9 +85,12 @@ const LoginPageV2 = () => {
         )}
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-          <label className="block">
+          <div className="block">
+            <label htmlFor="restaurant-login-email">
             <span className="text-sm font-semibold text-[#1c160d] dark:text-zinc-200">Email</span>
+            </label>
             <input
+              id="restaurant-login-email"
               type="email"
               name="email"
               value={formData.email}
@@ -96,12 +99,15 @@ const LoginPageV2 = () => {
               className="mt-2 w-full rounded-lg border border-[#e8ddce] bg-[#f8f7f5] px-4 py-3 outline-none focus:ring-2 focus:ring-[#f49d25]/40 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
             />
             {errors.email && <span className="mt-1 block text-xs text-red-500">{errors.email}</span>}
-          </label>
+          </div>
 
-          <label className="block">
+          <div className="block">
+            <label htmlFor="restaurant-login-password">
             <span className="text-sm font-semibold text-[#1c160d] dark:text-zinc-200">Mật khẩu</span>
+            </label>
             <div className="relative mt-2">
               <input
+                id="restaurant-login-password"
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 value={formData.password}
@@ -121,7 +127,7 @@ const LoginPageV2 = () => {
               </button>
             </div>
             {errors.password && <span className="mt-1 block text-xs text-red-500">{errors.password}</span>}
-          </label>
+          </div>
 
           <button
             type="submit"

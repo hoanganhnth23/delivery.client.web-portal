@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import adminService, { AdminShipper } from '@/services/api/adminService';
+import type { AdminShipper } from '@/services/api/adminService';
+import { useAppDependencies } from '@/app/dependencies';
 
 const AdminShippersPage = () => {
+  const { admin: adminService } = useAppDependencies();
   const [shippers, setShippers] = useState<AdminShipper[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'ONLINE' | 'OFFLINE'>('ALL');
@@ -35,7 +37,7 @@ const AdminShippersPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, [adminService, filter]);
 
   useEffect(() => {
     void loadShippers();

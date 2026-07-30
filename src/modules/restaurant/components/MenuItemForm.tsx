@@ -121,11 +121,12 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
       {/* Restaurant ID (hidden nếu đã có) */}
       {!restaurantId && (
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="menu-restaurant-id" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Restaurant ID <span className="text-red-500">*</span>
           </label>
           <input
             type="number"
+            id="menu-restaurant-id"
             name="restaurantId"
             value={formData.restaurantId}
             onChange={handleChange}
@@ -140,11 +141,12 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
 
       {/* Tên món ăn */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="menu-name" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           Tên món ăn <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
+          id="menu-name"
           name="name"
           value={formData.name}
           onChange={handleChange}
@@ -158,11 +160,12 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
 
       {/* Giá */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="menu-price" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           Giá (VNĐ) <span className="text-red-500">*</span>
         </label>
         <input
           type="number"
+          id="menu-price"
           step="0.01"
           name="price"
           value={formData.price}
@@ -177,11 +180,12 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
 
       {/* URL ảnh */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="menu-image" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           URL ảnh món ăn
         </label>
         <input
           type="url"
+          id="menu-image"
           name="image"
           value={formData.image}
           onChange={handleChange}
@@ -203,10 +207,11 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
 
       {/* Mô tả */}
       <div>
-        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        <label htmlFor="menu-description" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
           Mô tả
         </label>
         <textarea
+          id="menu-description"
           name="description"
           value={formData.description}
           onChange={handleChange}

@@ -2,28 +2,29 @@ import { useCallback, useEffect, useState } from 'react';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import { useRestaurant } from '../hooks/useRestaurant';
-import {
-  getRestaurantRatings,
-  type RestaurantRating,
-} from '../services/restaurantService';
-import { toast } from 'react-hot-toast';
+import type { RestaurantRating } from '../services/restaurantService';
+import { useAppDependencies } from '@/app/dependencies';
 
 const RestaurantReviewsPage = () => {
+  const { restaurant: restaurantService, notifications } = useAppDependencies();
   const { currentRestaurant } = useRestaurant();
   const [reviews, setReviews] = useState<RestaurantRating[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const loadReviews = useCallback(async () => {
     if (!currentRestaurant?.id) return;
     setLoading(true);
+    setError(null);
     try {
-      setReviews(await getRestaurantRatings(currentRestaurant.id));
+      setReviews(await restaurantService.getRestaurantRatings(currentRestaurant.id));
     } catch {
-      toast.error('Lỗi khi tải danh sách đánh giá');
+      setError('Không thể tải danh sách đánh giá.');
+      notifications.error('Lỗi khi tải danh sách đánh giá');
     } finally {
       setLoading(false);
     }
-  }, [currentRestaurant]);
+  }, [currentRestaurant, notifications, restaurantService]);
 
   useEffect(() => {
     void loadReviews();
@@ -76,6 +77,17 @@ const RestaurantReviewsPage = () => {
             <div className="flex flex-col gap-4">
               {loading ? (
                 <div className="text-center py-12 text-gray-500">Đang tải đánh giá...</div>
+              ) : error ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center" role="alert">
+                  <p className="text-red-700">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => void loadReviews()}
+                    className="mt-4 rounded-lg bg-primary px-4 py-2 font-semibold text-white"
+                  >
+                    Thử lại
+                  </button>
+                </div>
               ) : reviews.length === 0 ? (
                 <div className="text-center py-12 bg-white dark:bg-surface-dark rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 text-gray-500">
                   Chưa có đánh giá nào được duyệt hiển thị.

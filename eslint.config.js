@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default [
-  { ignores: ['dist'] },
+  { ignores: ['dist', 'coverage'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
@@ -32,7 +32,16 @@ export default [
         'warn',
         {
           allowConstantExport: true,
-          allowExportNames: ['useAuth', 'useChat', 'useMenu', 'useOrder', 'useRestaurant'],
+          allowExportNames: [
+            'AppDependenciesProvider',
+            'productionDependencies',
+            'useAppDependencies',
+            'useAuth',
+            'useChat',
+            'useMenu',
+            'useOrder',
+            'useRestaurant',
+          ],
         },
       ],
     },
@@ -68,7 +77,16 @@ export default [
         'warn',
         {
           allowConstantExport: true,
-          allowExportNames: ['useAuth', 'useChat', 'useMenu', 'useOrder', 'useRestaurant'],
+          allowExportNames: [
+            'AppDependenciesProvider',
+            'productionDependencies',
+            'useAppDependencies',
+            'useAuth',
+            'useChat',
+            'useMenu',
+            'useOrder',
+            'useRestaurant',
+          ],
         },
       ],
     },

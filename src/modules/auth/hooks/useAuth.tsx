@@ -5,8 +5,8 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, createContext, useContext, ReactNode } from 'react';
-import { authService } from '../services/authService';
 import type { User } from '@/types/api.types';
+import { useAppDependencies } from '@/app/dependencies';
 
 // ============================================
 // LOCAL TYPES
@@ -55,6 +55,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  * Wrap ứng dụng với provider này để share auth state
  */
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const { auth } = useAppDependencies();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,19 +65,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const initAuth = async () => {
       try {
         // 1. Kiểm tra localStorage có token không
-        if (authService.isAuthenticated()) {
+        if (auth.isAuthenticated()) {
           // 2. Restore user từ localStorage trước (để UI không bị trắng)
-          const cachedUser = authService.getCurrentUser();
+          const cachedUser = auth.getCurrentUser();
           if (cachedUser) {
             setUser(cachedUser);
           }
 
           // 3. Gọi API get profile để lấy thông tin mới nhất
           try {
-            const freshUser = await authService.getProfile();
+            const freshUser = await auth.getProfile();
             setUser(freshUser); // Cập nhật user với data mới nhất
           } catch {
-            await authService.logout();
+            await auth.logout();
             setUser(null);
           }
         }
@@ -88,7 +89,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     initAuth();
-  }, []);
+  }, [auth]);
 
   /**
    * Đăng nhập
@@ -106,10 +107,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       // 1. Đăng nhập - Lưu tokens vào localStorage
-      const result = await authService.login(credentials);
+      const result = await auth.login(credentials);
       
       // 2. Get profile để lấy thông tin user đầy đủ từ backend
-      const freshUser = await authService.getProfile();
+      const freshUser = await auth.getProfile();
       setUser(freshUser); // Set user với data đầy đủ từ getProfile
 
       // ✅ Chỉ trả về kết quả, KHÔNG navigate
@@ -122,7 +123,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       };
     } catch (err) {
-      await authService.logout();
+      await auth.logout();
       setUser(null);
       const errorMessage = (err as Error).message || 'Login failed';
       setError(errorMessage);
@@ -130,7 +131,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [auth]);
 
   /**
    * Đăng xuất
@@ -139,7 +140,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = useCallback(async (): Promise<ActionResult> => {
     try {
       setLoading(true);
-      await authService.logout();
+      await auth.logout();
       setUser(null);
       // ✅ KHÔNG navigate, component tự xử lý
       return { success: true };
@@ -150,16 +151,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [auth]);
 
   /**
    * Kiểm tra user có role không
    */
   const hasRole = useCallback(
     (allowedRoles: string | string[]) => {
-      return authService.hasRole(allowedRoles);
+      return auth.hasRole(allowedRoles);
     },
-    []
+    [auth]
   );
 
   // ✅ PERFORMANCE OPTIMIZATION: Memoize context value

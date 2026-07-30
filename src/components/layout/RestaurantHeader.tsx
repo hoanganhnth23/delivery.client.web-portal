@@ -149,10 +149,11 @@ const RestaurantHeader = ({
                       </button>
                       <div className="h-px bg-border-light dark:bg-border-dark my-2"></div>
                       <button
+                        aria-label="Đăng xuất"
                         onClick={() => void handleLogout()}
                         className="w-full px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-red-600 dark:text-red-400"
                       >
-                        <span className="material-symbols-outlined text-xl">logout</span>
+                        <span aria-hidden="true" className="material-symbols-outlined text-xl">logout</span>
                         <span className="text-sm font-medium">Đăng xuất</span>
                       </button>
                     </div>

@@ -76,9 +76,10 @@ const MenuManagement = () => {
               type="button"
               onClick={handleCreate}
               disabled={!currentRestaurant}
+              aria-label="Thêm món"
               className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span className="material-symbols-outlined">add</span>
+              <span aria-hidden="true" className="material-symbols-outlined">add</span>
               Thêm món
             </button>
           }
@@ -110,8 +111,16 @@ const MenuManagement = () => {
             )}
 
             {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
-                {error}
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300" role="alert">
+                <span>{error}</span>
+                <button
+                  type="button"
+                  onClick={() => void getMyMenuItems()}
+                  disabled={loading}
+                  className="shrink-0 rounded-lg bg-red-700 px-3 py-2 font-semibold text-white disabled:opacity-50"
+                >
+                  Thử lại
+                </button>
               </div>
             )}
 
@@ -123,11 +132,11 @@ const MenuManagement = () => {
               </div>
             )}
 
-            {!loading && !error && menuItems.length > 0 && filteredMenuItems.length === 0 && (
+            {!loading && menuItems.length > 0 && filteredMenuItems.length === 0 && (
               <div className="py-12 text-center text-gray-500">Không có món ăn khớp từ khóa.</div>
             )}
 
-            {!loading && !error && filteredMenuItems.length > 0 && (
+            {!loading && filteredMenuItems.length > 0 && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-6">
                 {filteredMenuItems.map((item) => (
                   <article
@@ -155,9 +164,10 @@ const MenuManagement = () => {
                           type="button"
                           onClick={() => handleEdit(item)}
                           disabled={!currentRestaurant}
+                          aria-label={`Sửa ${item.name}`}
                           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-gray-100 py-2 text-sm font-medium text-gray-700 hover:bg-primary hover:text-white disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300"
                         >
-                          <span className="material-symbols-outlined text-lg">edit</span>
+                          <span aria-hidden="true" className="material-symbols-outlined text-lg">edit</span>
                           Sửa
                         </button>
                         <button
@@ -179,10 +189,15 @@ const MenuManagement = () => {
       </main>
 
       {isModalOpen && currentRestaurant && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="menu-form-title"
+        >
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
             <header className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h2 id="menu-form-title" className="text-2xl font-bold text-gray-900 dark:text-white">
                 {editingMenuItem ? 'Chỉnh sửa món ăn' : 'Thêm món ăn mới'}
               </h2>
               <button

@@ -1,0 +1,48 @@
+name: Web CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  required:
+    name: required / verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint, test, contract-check and build
+        run: npm run verify
+      - name: Coverage report
+        run: npm run test:coverage
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-reports
+          path: |
+            coverage/**
+            dist/**
+          if-no-files-found: warn
+
+  advisory-security:
+    name: advisory / filesystem-security
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          exit-code: '0'
+          severity: HIGH,CRITICAL

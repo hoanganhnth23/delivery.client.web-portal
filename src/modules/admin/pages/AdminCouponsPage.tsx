@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import adminService, { AdminCoupon } from '@/services/api/adminService';
-import { toast } from 'react-hot-toast';
+import type { AdminCoupon } from '@/services/api/adminService';
+import { useAppDependencies } from '@/app/dependencies';
 
 const AdminCouponsPage = () => {
+  const { admin: adminService, notifications, clock } = useAppDependencies();
   const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -28,18 +29,18 @@ const AdminCouponsPage = () => {
       const data = await adminService.fetchAllCoupons();
       setCoupons(data);
     } catch {
-      toast.error('Lỗi khi tải danh sách coupon');
+      notifications.error('Lỗi khi tải danh sách coupon');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [adminService, notifications]);
 
   useEffect(() => {
     void loadCoupons();
   }, [loadCoupons]);
 
   const openCreateModal = () => {
-    const start = new Date();
+    const start = clock.now();
     const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
     setNewCoupon((current) => ({
       ...current,
@@ -53,11 +54,11 @@ const AdminCouponsPage = () => {
     e.preventDefault();
     try {
       await adminService.createCoupon(newCoupon);
-      toast.success('Tạo coupon thành công');
+      notifications.success('Tạo coupon thành công');
       setShowModal(false);
       void loadCoupons();
     } catch {
-      toast.error('Lỗi khi tạo coupon');
+      notifications.error('Lỗi khi tạo coupon');
     }
   };
 
@@ -65,10 +66,10 @@ const AdminCouponsPage = () => {
     if (!confirm('Bạn có chắc muốn xóa coupon này?')) return;
     try {
       await adminService.deleteCoupon(id);
-      toast.success('Đã xóa coupon');
+      notifications.success('Đã xóa coupon');
       void loadCoupons();
     } catch {
-      toast.error('Lỗi khi xóa coupon');
+      notifications.error('Lỗi khi xóa coupon');
     }
   };
 
@@ -139,6 +140,7 @@ const AdminCouponsPage = () => {
                   <td className="px-6 py-4">
                     <button
                       onClick={() => handleDelete(coupon.id)}
+                      aria-label={`Xóa coupon ${coupon.code}`}
                       className="text-red-500 hover:text-red-700 transition-colors"
                     >
                       <span className="material-symbols-outlined">delete</span>
@@ -152,11 +154,11 @@ const AdminCouponsPage = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="coupon-modal-title">
           <div className="bg-white dark:bg-surface-dark rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden">
             <div className="px-6 py-4 border-b border-border-light dark:border-border-dark flex justify-between items-center">
-              <h3 className="text-lg font-bold">Tạo Coupon Mới</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+              <h3 id="coupon-modal-title" className="text-lg font-bold">Tạo Coupon Mới</h3>
+              <button aria-label="Đóng" onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>

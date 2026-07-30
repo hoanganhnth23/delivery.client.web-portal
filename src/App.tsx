@@ -20,6 +20,10 @@ import AdminFlashSalePage from './modules/admin/pages/AdminFlashSalePage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import RoleRoute from './routes/RoleRoute';
 import { ROUTES, USER_ROLES } from './utils/constants';
+import {
+  AppDependenciesProvider,
+  type AppDependencies,
+} from './app/dependencies';
 
 const PortalEntry = () => {
   const { user, loading } = useAuth();
@@ -46,13 +50,18 @@ const adminRoute = (element: ReactNode) => (
   </RoleRoute>
 );
 
-export default function App() {
+interface AppProps {
+  dependencies?: AppDependencies;
+}
+
+export default function App({ dependencies }: AppProps) {
   return (
-    <AuthProvider>
-      <RestaurantProvider>
-        <MenuProvider>
-          <OrderProvider>
-            <Routes>
+    <AppDependenciesProvider dependencies={dependencies}>
+      <AuthProvider>
+        <RestaurantProvider>
+          <MenuProvider>
+            <OrderProvider>
+              <Routes>
               <Route path={ROUTES.HOME} element={<PortalEntry />} />
               <Route path={ROUTES.LOGIN} element={<LoginPage />} />
               <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
@@ -87,10 +96,11 @@ export default function App() {
 
               <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
               <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
-            </Routes>
-          </OrderProvider>
-        </MenuProvider>
-      </RestaurantProvider>
-    </AuthProvider>
+              </Routes>
+            </OrderProvider>
+          </MenuProvider>
+        </RestaurantProvider>
+      </AuthProvider>
+    </AppDependenciesProvider>
   );
 }

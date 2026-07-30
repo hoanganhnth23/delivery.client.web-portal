@@ -65,10 +65,11 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
         <button
           type="button"
+          aria-label="Đăng xuất"
           onClick={() => void handleLogout()}
           className="mt-auto flex items-center gap-3 rounded-lg px-4 py-3 text-left text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20"
         >
-          <span className="material-symbols-outlined">logout</span>
+          <span aria-hidden="true" className="material-symbols-outlined">logout</span>
           <span className="text-sm font-medium">Đăng xuất</span>
         </button>
       </aside>

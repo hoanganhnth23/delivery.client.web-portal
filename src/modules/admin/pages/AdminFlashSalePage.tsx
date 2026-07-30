@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import {
-  flashSaleAdminService,
   type FlashSaleCampaign,
   type FlashSaleCampaignStatus,
   type FlashSaleItem,
 } from '@/services/api/flashSaleService';
-import { toast } from 'react-hot-toast';
+import { useAppDependencies } from '@/app/dependencies';
 
 const AdminFlashSalePage = () => {
+  const {
+    flashSaleAdmin: flashSaleAdminService,
+    notifications,
+  } = useAppDependencies();
   const [campaigns, setCampaigns] = useState<FlashSaleCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -29,11 +32,11 @@ const AdminFlashSalePage = () => {
       const data = await flashSaleAdminService.getAllCampaigns();
       setCampaigns(data);
     } catch {
-      toast.error('Lỗi khi tải danh sách Flash Sale');
+      notifications.error('Lỗi khi tải danh sách Flash Sale');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [flashSaleAdminService, notifications]);
 
   useEffect(() => {
     void loadCampaigns();
@@ -46,7 +49,7 @@ const AdminFlashSalePage = () => {
       const data = await flashSaleAdminService.getCampaignItems(campaignId);
       setCampaignItems(data);
     } catch {
-      toast.error('Lỗi khi tải danh sách món ăn');
+      notifications.error('Lỗi khi tải danh sách món ăn');
     } finally {
       setItemsLoading(false);
     }
@@ -63,31 +66,31 @@ const AdminFlashSalePage = () => {
       };
       
       await flashSaleAdminService.createCampaign(payload);
-      toast.success('Tạo chiến dịch thành công');
+      notifications.success('Tạo chiến dịch thành công');
       setShowModal(false);
       void loadCampaigns();
     } catch {
-      toast.error('Lỗi khi tạo chiến dịch');
+      notifications.error('Lỗi khi tạo chiến dịch');
     }
   };
 
   const handleUpdateStatus = async (id: number, status: FlashSaleCampaignStatus) => {
     try {
       await flashSaleAdminService.updateCampaignStatus(id, status);
-      toast.success(`Đã đổi trạng thái thành ${status}`);
+      notifications.success(`Đã đổi trạng thái thành ${status}`);
       void loadCampaigns();
     } catch {
-      toast.error('Lỗi khi đổi trạng thái');
+      notifications.error('Lỗi khi đổi trạng thái');
     }
   };
 
   const handleApproveItem = async (itemId: number) => {
     try {
       await flashSaleAdminService.approveItem(itemId);
-      toast.success('Đã duyệt món ăn');
+      notifications.success('Đã duyệt món ăn');
       if (showItemsModal) void loadItems(showItemsModal);
     } catch {
-      toast.error('Lỗi duyệt món ăn');
+      notifications.error('Lỗi duyệt món ăn');
     }
   };
 

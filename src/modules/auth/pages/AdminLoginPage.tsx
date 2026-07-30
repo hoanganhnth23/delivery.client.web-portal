@@ -69,9 +69,12 @@ const AdminLoginPage = () => {
         )}
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-          <label className="block">
+          <div className="block">
+            <label htmlFor="admin-login-email">
             <span className="text-sm font-semibold text-gray-800">Email</span>
+            </label>
             <input
+              id="admin-login-email"
               type="email"
               name="email"
               value={formData.email}
@@ -80,12 +83,15 @@ const AdminLoginPage = () => {
               className="mt-2 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 outline-none focus:ring-2 focus:ring-red-500/30"
             />
             {errors.email && <span className="mt-1 block text-xs text-red-500">{errors.email}</span>}
-          </label>
+          </div>
 
-          <label className="block">
+          <div className="block">
+            <label htmlFor="admin-login-password">
             <span className="text-sm font-semibold text-gray-800">Mật khẩu</span>
+            </label>
             <div className="relative mt-2">
               <input
+                id="admin-login-password"
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 value={formData.password}
@@ -105,7 +111,7 @@ const AdminLoginPage = () => {
               </button>
             </div>
             {errors.password && <span className="mt-1 block text-xs text-red-500">{errors.password}</span>}
-          </label>
+          </div>
 
           <button
             type="submit"
