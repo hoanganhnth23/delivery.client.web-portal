@@ -166,8 +166,8 @@ export const authService = {
       const newRefreshToken = requireNonBlankString(refreshData?.refreshToken, 'refresh token');
 
       // Cập nhật tokens
-      TokenStorage.setAccessToken(accessToken);
       TokenStorage.setRefreshToken(newRefreshToken);
+      TokenStorage.setAccessToken(accessToken);
 
       return accessToken;
     } catch (error) {

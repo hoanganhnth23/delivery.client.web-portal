@@ -161,4 +161,24 @@ describe('authentication and role routing journey', () => {
     expect(await screen.findByText('Admin Fresh')).toBeInTheDocument();
     expect(auth.getProfile).toHaveBeenCalledOnce();
   });
+
+  it('does not expose a customer checkout surface in the admin/restaurant portal', async () => {
+    const owner = buildUser();
+    const auth = createAuthFake({
+      isAuthenticated: vi.fn(() => true),
+      getCurrentUser: vi.fn(() => owner),
+      getProfile: vi.fn(async () => owner),
+    });
+    const restaurant = createRestaurantFake();
+
+    renderApp({
+      route: '/checkout',
+      dependencies: createTestDependencies({ auth, restaurant }),
+    });
+
+    expect(
+      await screen.findByRole('heading', { name: 'Tổng quan' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Chọn voucher')).not.toBeInTheDocument();
+  });
 });

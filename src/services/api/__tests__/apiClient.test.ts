@@ -105,6 +105,8 @@ describe('createApiClient session boundary', () => {
     );
     expect(sessionStore.setAccessToken).toHaveBeenCalledWith('new-access-token');
     expect(sessionStore.setRefreshToken).toHaveBeenCalledWith('rotated-refresh-token');
+    expect(vi.mocked(sessionStore.setRefreshToken).mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(sessionStore.setAccessToken).mock.invocationCallOrder[0]);
     expect(authorizationHeaders).toEqual([
       'Bearer old-access-token',
       'Bearer new-access-token',
@@ -147,6 +149,38 @@ describe('createApiClient session boundary', () => {
     expect(refreshRequest).toHaveBeenCalledOnce();
   });
 
+  it('terminates every queued request after one rejected retry', async () => {
+    const sessionStore = createSessionStore();
+    const onSessionExpired = vi.fn();
+    let releaseRefresh!: (value: AxiosResponse) => void;
+    const refreshRequest = vi.fn<RefreshRequest>(() => new Promise((resolve) => {
+      releaseRefresh = resolve;
+    }));
+    const client = createApiClient({
+      baseUrl: 'http://gateway.test',
+      sessionStore,
+      refreshRequest,
+      onSessionExpired,
+    });
+    client.defaults.adapter = async (config) => {
+      throw unauthorized(config);
+    };
+
+    const userRequest = client.get('/api/users');
+    const orderRequest = client.get('/api/orders/all');
+    await vi.waitFor(() => expect(refreshRequest).toHaveBeenCalledOnce());
+    releaseRefresh(refreshResponse());
+
+    const results = await Promise.allSettled([userRequest, orderRequest]);
+    expect(results).toEqual([
+      expect.objectContaining({ status: 'rejected' }),
+      expect.objectContaining({ status: 'rejected' }),
+    ]);
+    expect(refreshRequest).toHaveBeenCalledOnce();
+    expect(sessionStore.clearAll).toHaveBeenCalledOnce();
+    expect(onSessionExpired).toHaveBeenCalledOnce();
+  });
+
   it('clears and reports an expired session when refresh cannot start', async () => {
     const sessionStore = createSessionStore({ refreshToken: null });
     const onSessionExpired = vi.fn();
@@ -163,6 +197,26 @@ describe('createApiClient session boundary', () => {
 
     await expect(client.get('/api/users')).rejects.toThrow('No refresh token available');
     expect(refreshRequest).not.toHaveBeenCalled();
+    expect(sessionStore.clearAll).toHaveBeenCalledOnce();
+    expect(onSessionExpired).toHaveBeenCalledOnce();
+  });
+
+  it('clears and reports one expired session when a rotated access token is rejected', async () => {
+    const sessionStore = createSessionStore();
+    const onSessionExpired = vi.fn();
+    const refreshRequest = vi.fn<RefreshRequest>(async () => refreshResponse());
+    const client = createApiClient({
+      baseUrl: 'http://gateway.test',
+      sessionStore,
+      refreshRequest,
+      onSessionExpired,
+    });
+    client.defaults.adapter = async (config) => {
+      throw unauthorized(config);
+    };
+
+    await expect(client.get('/api/users')).rejects.toBeInstanceOf(AxiosError);
+    expect(refreshRequest).toHaveBeenCalledOnce();
     expect(sessionStore.clearAll).toHaveBeenCalledOnce();
     expect(onSessionExpired).toHaveBeenCalledOnce();
   });

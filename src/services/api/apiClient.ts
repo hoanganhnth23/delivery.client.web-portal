@@ -119,6 +119,8 @@ export function createApiClient({
   });
   const requestRefresh = refreshRequest ?? defaultRefreshRequest(timeoutMs);
   let isRefreshing = false;
+  let sessionInvalidated = false;
+  let lastAccessToken = sessionStore.getAccessToken();
   let failedQueue: Array<{
     resolve: (value: string) => void;
     reject: (reason?: unknown) => void;
@@ -132,10 +134,24 @@ export function createApiClient({
     failedQueue = [];
   };
 
+  const expireSession = () => {
+    if (sessionInvalidated) return;
+    sessionInvalidated = true;
+    sessionStore.clearAll();
+    lastAccessToken = null;
+    onSessionExpired?.();
+  };
+
   client.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
       const token = sessionStore.getAccessToken();
-      if (token) config.headers.Authorization = `Bearer ${token}`;
+      if (token) {
+        if (token !== lastAccessToken) {
+          sessionInvalidated = false;
+        }
+        lastAccessToken = token;
+        config.headers.Authorization = `Bearer ${token}`;
+      }
       return config;
     },
     (error: AxiosError) => Promise.reject(error),
@@ -168,10 +184,15 @@ export function createApiClient({
     },
     async (error: AxiosError) => {
       const originalRequest = error.config as ExtendedAxiosRequestConfig | undefined;
+      if (error.response?.status === HTTP_STATUS.UNAUTHORIZED && originalRequest?._retry) {
+        expireSession();
+        return Promise.reject(error);
+      }
       if (!shouldAttemptWebTokenRefresh(error.response?.status, originalRequest)) {
         return Promise.reject(error);
       }
 
+      originalRequest._retry = true;
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -181,7 +202,6 @@ export function createApiClient({
         });
       }
 
-      originalRequest._retry = true;
       isRefreshing = true;
 
       try {
@@ -200,16 +220,19 @@ export function createApiClient({
           throw new Error('Refresh response is missing a valid refresh token');
         }
 
-        sessionStore.setAccessToken(tokens.accessToken);
+        // Persist the rotated refresh token first. A crash between writes leaves
+        // a usable family successor rather than a consumed refresh token.
         sessionStore.setRefreshToken(tokens.refreshToken);
+        sessionStore.setAccessToken(tokens.accessToken);
+        lastAccessToken = tokens.accessToken;
+        sessionInvalidated = false;
         processQueue(null, tokens.accessToken);
 
         originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
         return client(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        sessionStore.clearAll();
-        onSessionExpired?.();
+        expireSession();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
