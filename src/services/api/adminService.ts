@@ -28,6 +28,8 @@ const ORDER_STATUSES = [
 ] as const;
 const RATING_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
 const REWARD_TYPES = ['FIXED', 'PERCENTAGE', 'FREESHIP'] as const;
+const VOUCHER_SCOPE_TYPES = ['ALL', 'SHOP'] as const;
+const VOUCHER_CREATOR_TYPES = ['PLATFORM'] as const;
 
 export interface PageResponse<T> {
   items: T[];
@@ -118,11 +120,20 @@ const parseAdminRating = (value: unknown, label: string): AdminRating => {
 
 const parseAdminCoupon = (value: unknown, label: string): AdminCoupon => {
   const coupon = requireRecord(value, label);
+  const creatorType = requireEnum(coupon.creatorType, VOUCHER_CREATOR_TYPES, `${label}.creatorType`);
+  const scopeType = requireEnum(coupon.scopeType, VOUCHER_SCOPE_TYPES, `${label}.scopeType`);
+  const scopeRefId = coupon.scopeRefId === null
+    ? null
+    : requireInteger(coupon.scopeRefId, `${label}.scopeRefId`, 1);
+  if ((scopeType === 'ALL' && scopeRefId !== null) || (scopeType === 'SHOP' && scopeRefId === null)) {
+    throw new TypeError(`${label} has an invalid voucher scope identity`);
+  }
   return {
     id: requireInteger(coupon.id, `${label}.id`, 1),
     code: requireString(coupon.code, `${label}.code`),
     name: requireString(coupon.name, `${label}.name`),
     description: optionalString(coupon.description, `${label}.description`) ?? '',
+    creatorType,
     rewardType: requireEnum(coupon.rewardType, REWARD_TYPES, `${label}.rewardType`),
     discountValue: requireNumber(coupon.discountValue, `${label}.discountValue`),
     maxDiscountValue: coupon.maxDiscountValue === null
@@ -133,6 +144,8 @@ const parseAdminCoupon = (value: unknown, label: string): AdminCoupon => {
     startTime: requireTimestamp(coupon.startTime, `${label}.startTime`),
     endTime: requireTimestamp(coupon.endTime, `${label}.endTime`),
     minOrderValue: requireNumber(coupon.minOrderValue, `${label}.minOrderValue`),
+    scopeType,
+    scopeRefId,
     active: requireBoolean(coupon.active, `${label}.active`),
   };
 };
@@ -258,6 +271,7 @@ export interface AdminCoupon {
   code: string;
   name: string;
   description: string;
+  creatorType: 'PLATFORM';
   rewardType: string;
   discountValue: number;
   maxDiscountValue: number | null;
@@ -266,6 +280,8 @@ export interface AdminCoupon {
   startTime: string;
   endTime: string;
   minOrderValue: number;
+  scopeType: 'ALL' | 'SHOP';
+  scopeRefId: number | null;
   active: boolean;
 }
 
@@ -281,7 +297,8 @@ export interface CreateAdminCouponRequest {
   startTime: string;
   endTime: string;
   minOrderValue: number;
-  scopeType: string;
+  scopeType: 'ALL' | 'SHOP';
+  scopeRefId: number | null;
 }
 
 export interface AdminRating {

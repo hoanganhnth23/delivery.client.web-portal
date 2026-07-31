@@ -140,6 +140,7 @@ export const buildAdminCoupon = (
   code: 'TEST50',
   name: 'Coupon test',
   description: 'Canonical coupon fixture',
+  creatorType: 'PLATFORM',
   rewardType: 'FIXED',
   discountValue: 50_000,
   maxDiscountValue: 50_000,
@@ -148,6 +149,8 @@ export const buildAdminCoupon = (
   startTime: '2026-07-29T08:00:00Z',
   endTime: '2026-08-05T08:00:00Z',
   minOrderValue: 100_000,
+  scopeType: 'ALL',
+  scopeRefId: null,
   active: true,
   ...overrides,
 });

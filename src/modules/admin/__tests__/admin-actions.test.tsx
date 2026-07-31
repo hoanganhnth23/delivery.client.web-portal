@@ -213,6 +213,8 @@ describe('admin growth actions', () => {
     const dialog = screen.getByRole('dialog', { name: 'Tạo Coupon Mới' });
     await user.type(within(dialog).getByPlaceholderText('E.g. HELLO2024'), 'welcome');
     await user.type(within(dialog).getByPlaceholderText('Giảm giá chào mừng'), 'Welcome');
+    await user.selectOptions(within(dialog).getByLabelText('Phạm vi'), 'SHOP');
+    await user.type(within(dialog).getByLabelText('Restaurant ID'), '77');
     await user.click(within(dialog).getByRole('button', { name: 'Tạo Coupon' }));
 
     await waitFor(() => expect(createCoupon).toHaveBeenCalledWith(
@@ -221,6 +223,8 @@ describe('admin growth actions', () => {
         name: 'Welcome',
         startTime: '2026-07-29T08:00',
         endTime: '2026-08-05T08:00',
+        scopeType: 'SHOP',
+        scopeRefId: 77,
       }),
     ));
     expect(await screen.findByText('WELCOME')).toBeInTheDocument();

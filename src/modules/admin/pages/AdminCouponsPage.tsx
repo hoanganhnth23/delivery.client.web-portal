@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import type { AdminCoupon } from '@/services/api/adminService';
+import type { AdminCoupon, CreateAdminCouponRequest } from '@/services/api/adminService';
 import { useAppDependencies } from '@/app/dependencies';
 
 const AdminCouponsPage = () => {
@@ -8,7 +8,7 @@ const AdminCouponsPage = () => {
   const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [newCoupon, setNewCoupon] = useState({
+  const [newCoupon, setNewCoupon] = useState<CreateAdminCouponRequest>({
     code: '',
     name: '',
     description: '',
@@ -20,7 +20,8 @@ const AdminCouponsPage = () => {
     startTime: '',
     endTime: '',
     minOrderValue: 0,
-    scopeType: 'ALL'
+    scopeType: 'ALL',
+    scopeRefId: null,
   });
 
   const loadCoupons = useCallback(async () => {
@@ -78,7 +79,7 @@ const AdminCouponsPage = () => {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quản lý Coupon Hệ thống</h1>
-          <p className="text-gray-500">Tạo và quản lý các mã giảm giá toàn sàn</p>
+          <p className="text-gray-500">Tạo và quản lý voucher toàn sàn hoặc theo nhà hàng</p>
         </div>
         <button
           onClick={openCreateModal}
@@ -204,6 +205,38 @@ const AdminCouponsPage = () => {
                   <option value="FREESHIP">Miễn phí vận chuyển</option>
                 </select>
               </div>
+              <div className="col-span-1">
+                <label htmlFor="coupon-scope" className="block text-xs font-bold text-gray-500 uppercase mb-1">Phạm vi</label>
+                <select
+                  id="coupon-scope"
+                  className="w-full px-4 py-2 rounded-lg border border-border-light dark:border-border-dark bg-transparent outline-none"
+                  value={newCoupon.scopeType}
+                  onChange={(e) => {
+                    const scopeType = e.target.value as 'ALL' | 'SHOP';
+                    setNewCoupon({ ...newCoupon, scopeType, scopeRefId: null });
+                  }}
+                >
+                  <option value="ALL">Toàn sàn</option>
+                  <option value="SHOP">Theo nhà hàng</option>
+                </select>
+              </div>
+              {newCoupon.scopeType === 'SHOP' && (
+                <div className="col-span-1">
+                  <label htmlFor="coupon-restaurant-id" className="block text-xs font-bold text-gray-500 uppercase mb-1">Restaurant ID</label>
+                  <input
+                    id="coupon-restaurant-id"
+                    required
+                    min={1}
+                    type="number"
+                    className="w-full px-4 py-2 rounded-lg border border-border-light dark:border-border-dark bg-transparent outline-none"
+                    value={newCoupon.scopeRefId ?? ''}
+                    onChange={(e) => setNewCoupon({
+                      ...newCoupon,
+                      scopeRefId: e.target.value === '' ? null : Number(e.target.value),
+                    })}
+                  />
+                </div>
+              )}
               <div className="col-span-1">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Giá trị giảm</label>
                 <input
