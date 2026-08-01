@@ -89,6 +89,58 @@ const assertTreeClean = (relativeDir, forbiddenPatterns, label) => {
   }
 };
 
+const assertActionContractMatrix = () => {
+  const relativePath = 'docs/action-contract-matrix.md';
+  const absolutePath = path.join(root, relativePath);
+  if (!fs.existsSync(absolutePath)) {
+    failures.push(`action-contract matrix: ${relativePath} is missing`);
+    return;
+  }
+
+  const source = fs.readFileSync(absolutePath, 'utf8');
+  const requiredIds = [
+    ...Array.from({ length: 6 }, (_, index) => `AUTH-${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 11 }, (_, index) => `OWNER-${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 15 }, (_, index) => `ADMIN-${String(index + 1).padStart(2, '0')}`),
+  ];
+
+  for (const id of requiredIds) {
+    if (!source.includes(`| ${id} |`)) {
+      failures.push(`action-contract matrix: ${relativePath} is missing row ${id}`);
+    }
+  }
+
+  for (const requiredText of [
+    'Canonical Gateway request',
+    'Success `data`',
+    'Error behavior',
+    'BaseResponse',
+    'PageData',
+    '## Explicit exclusions',
+  ]) {
+    if (!source.includes(requiredText)) {
+      failures.push(`action-contract matrix: ${relativePath} is missing ${JSON.stringify(requiredText)}`);
+    }
+  }
+
+  for (const line of source.split('\n').filter((item) => /^\| (AUTH|OWNER|ADMIN)-\d+ \|/.test(item))) {
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    if (cells.length !== 8 || cells.some((cell) => cell.length === 0)) {
+      failures.push(`action-contract matrix: malformed action row ${line}`);
+    }
+  }
+
+  const proofPaths = [...source.matchAll(/(?:^|[; ])(src\/[A-Za-z0-9_./-]+\.(?:tsx?|jsx?|mjs))/gm)]
+    .map((match) => match[1]);
+  for (const proofPath of new Set(proofPaths)) {
+    if (!fs.existsSync(path.join(root, proofPath))) {
+      failures.push(`action-contract matrix: proof path does not exist: ${proofPath}`);
+    }
+  }
+};
+
+assertActionContractMatrix();
+
 // Auth/login/logout actions.
 assertContains('src/services/api/endpoints.ts', [
   "LOGIN: '/api/auth/login'",
