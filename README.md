@@ -1,3 +1,16 @@
+# Delivery Web
+
+## System architecture boundary
+
+The admin/restaurant portal uses one Gateway origin configured by
+VITE_API_BASE_URL. Axios attaches the session Bearer token and performs a
+single-flight refresh; browser code must not call backend service ports or use
+Internal-Token. Role and ownership are enforced by the target resource service
+through Auth JWKS, not by a client-provided role header.
+
+See the editable system diagrams and cross-repository contract in
+[../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
