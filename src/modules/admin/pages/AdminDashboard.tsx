@@ -3,6 +3,7 @@ import AdminLayout from '@/components/layouts/AdminLayout';
 import { ROUTES } from '@/utils/constants';
 
 const actions = [
+  { label: 'Kiến trúc hệ thống', icon: 'architecture', to: ROUTES.ADMIN_SYSTEM_OVERVIEW },
   { label: 'Đơn hàng', icon: 'receipt_long', to: ROUTES.ADMIN_ORDERS },
   { label: 'Shipper', icon: 'local_shipping', to: ROUTES.ADMIN_SHIPPERS },
   { label: 'Đánh giá', icon: 'reviews', to: ROUTES.ADMIN_RATINGS },

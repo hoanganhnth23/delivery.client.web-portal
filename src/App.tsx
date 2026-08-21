@@ -17,6 +17,7 @@ import AdminShippersPage from './modules/admin/pages/AdminShippersPage';
 import AdminRatingsPage from './modules/admin/pages/AdminRatingsPage';
 import AdminCouponsPage from './modules/admin/pages/AdminCouponsPage';
 import AdminFlashSalePage from './modules/admin/pages/AdminFlashSalePage';
+import SystemOverviewPage from './modules/admin/pages/SystemOverviewPage';
 import UnauthorizedPage from './pages/UnauthorizedPage';
 import RoleRoute from './routes/RoleRoute';
 import { ROUTES, USER_ROLES } from './utils/constants';
@@ -88,6 +89,7 @@ export default function App({ dependencies }: AppProps) {
               />
 
               <Route path={ROUTES.ADMIN_DASHBOARD} element={adminRoute(<AdminDashboard />)} />
+              <Route path={ROUTES.ADMIN_SYSTEM_OVERVIEW} element={adminRoute(<SystemOverviewPage />)} />
               <Route path={ROUTES.ADMIN_ORDERS} element={adminRoute(<AdminOrdersPage />)} />
               <Route path={ROUTES.ADMIN_SHIPPERS} element={adminRoute(<AdminShippersPage />)} />
               <Route path={ROUTES.ADMIN_RATINGS} element={adminRoute(<AdminRatingsPage />)} />
