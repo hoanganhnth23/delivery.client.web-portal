@@ -41,6 +41,24 @@ describe('authentication and role routing journey', () => {
     ).toBeInTheDocument();
   });
 
+  it('keeps the order-management page admin-only', async () => {
+    const owner = buildUser();
+    const auth = createAuthFake({
+      isAuthenticated: vi.fn(() => true),
+      getCurrentUser: vi.fn(() => owner),
+      getProfile: vi.fn(async () => owner),
+    });
+
+    renderApp({
+      route: '/admin/orders',
+      dependencies: createTestDependencies({ auth }),
+    });
+
+    expect(
+      await screen.findByRole('heading', { name: 'Không có quyền truy cập' }),
+    ).toBeInTheDocument();
+  });
+
   it('validates and completes the restaurant owner login journey', async () => {
     const user = userEvent.setup();
     const owner = buildUser();
