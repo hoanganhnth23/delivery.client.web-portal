@@ -4,11 +4,12 @@ import type { AdminShipper } from '@/services/api/adminService';
 import { useAppDependencies } from '@/app/dependencies';
 
 const AdminShippersPage = () => {
-  const { admin: adminService } = useAppDependencies();
+  const { admin: adminService, notifications } = useAppDependencies();
   const [shippers, setShippers] = useState<AdminShipper[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'ONLINE' | 'OFFLINE'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const filterTabs: Array<{ key: 'ALL' | 'ONLINE' | 'OFFLINE'; label: string }> = [
     { key: 'ALL', label: 'Tất cả' },
@@ -18,6 +19,7 @@ const AdminShippersPage = () => {
 
   const loadShippers = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       let data: AdminShipper[];
       if (filter === 'ONLINE') {
@@ -33,11 +35,12 @@ const AdminShippersPage = () => {
 
       setShippers(data || []);
     } catch {
-      setShippers([]);
+      setError('Không thể tải danh sách shipper');
+      notifications.error('Không thể tải danh sách shipper');
     } finally {
       setLoading(false);
     }
-  }, [adminService, filter]);
+  }, [adminService, filter, notifications]);
 
   useEffect(() => {
     void loadShippers();
@@ -78,6 +81,20 @@ const AdminShippersPage = () => {
             </div>
           </div>
         </div>
+
+        {error && (
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300" role="alert">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => void loadShippers()}
+              disabled={loading}
+              className="shrink-0 rounded-lg bg-red-700 px-3 py-2 font-semibold text-white disabled:opacity-50"
+            >
+              Thử lại
+            </button>
+          </div>
+        )}
 
         {/* Filters & Search */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
@@ -132,6 +149,10 @@ const AdminShippersPage = () => {
                         Đang tải dữ liệu...
                       </div>
                     </td>
+                  </tr>
+                ) : error && filteredShippers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-gray-500">Chưa có dữ liệu để hiển thị.</td>
                   </tr>
                 ) : filteredShippers.length === 0 ? (
                   <tr>

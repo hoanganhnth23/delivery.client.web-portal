@@ -11,6 +11,7 @@ const AdminOrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   
   const statusTabs = [
     'ALL',
@@ -28,6 +29,7 @@ const AdminOrdersPage = () => {
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       if (statusFilter === 'ALL') {
         const data = await adminService.fetchAllOrders(page, 20);
@@ -39,6 +41,7 @@ const AdminOrdersPage = () => {
         setTotalPages(data.totalPages);
       }
     } catch {
+      setError('Không thể tải danh sách đơn hàng');
       notifications.error('Không thể tải danh sách đơn hàng');
     } finally {
       setLoading(false);
@@ -108,6 +111,20 @@ const AdminOrdersPage = () => {
           </div>
         </div>
 
+        {error && (
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300" role="alert">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => void loadOrders()}
+              disabled={loading}
+              className="shrink-0 rounded-lg bg-red-700 px-3 py-2 font-semibold text-white disabled:opacity-50"
+            >
+              Thử lại
+            </button>
+          </div>
+        )}
+
         {/* Orders Table */}
         <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden flex-1">
           <div className="overflow-x-auto">
@@ -130,6 +147,10 @@ const AdminOrdersPage = () => {
                         Đang tải dữ liệu...
                       </div>
                     </td>
+                  </tr>
+                ) : error && filteredOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-gray-500">Chưa có dữ liệu để hiển thị.</td>
                   </tr>
                 ) : filteredOrders.length === 0 ? (
                   <tr>

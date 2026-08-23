@@ -9,15 +9,19 @@ const AdminRatingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [updatingRatingId, setUpdatingRatingId] = useState<number | null>(null);
 
   const statusTabs = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'];
 
   const loadRatings = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await adminService.fetchAllRatings();
       setRatings(data || []);
     } catch {
+      setError('Không thể tải danh sách đánh giá');
       notifications.error('Lỗi khi tải danh sách đánh giá');
     } finally {
       setLoading(false);
@@ -29,6 +33,8 @@ const AdminRatingsPage = () => {
   }, [loadRatings]);
 
   const handleUpdateStatus = async (ratingId: number, status: 'APPROVED' | 'REJECTED') => {
+    if (updatingRatingId !== null) return;
+    setUpdatingRatingId(ratingId);
     try {
       await adminService.updateRatingStatus(ratingId, status);
       notifications.success(status === 'APPROVED' ? 'Đã duyệt đánh giá' : 'Đã từ chối đánh giá');
@@ -36,6 +42,8 @@ const AdminRatingsPage = () => {
       setRatings(prev => prev.map(r => r.id === ratingId ? { ...r, status } : r));
     } catch {
       notifications.error('Cập nhật trạng thái thất bại');
+    } finally {
+      setUpdatingRatingId(null);
     }
   };
 
@@ -94,6 +102,20 @@ const AdminRatingsPage = () => {
           </div>
         </div>
 
+        {error && (
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300" role="alert">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => void loadRatings()}
+              disabled={loading}
+              className="shrink-0 rounded-lg bg-red-700 px-3 py-2 font-semibold text-white disabled:opacity-50"
+            >
+              Thử lại
+            </button>
+          </div>
+        )}
+
         {/* Ratings Table */}
         <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden flex-1">
           <div className="overflow-x-auto">
@@ -117,6 +139,10 @@ const AdminRatingsPage = () => {
                         Đang tải dữ liệu...
                       </div>
                     </td>
+                  </tr>
+                ) : error && filteredRatings.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-8 text-center text-gray-500">Chưa có dữ liệu để hiển thị.</td>
                   </tr>
                 ) : filteredRatings.length === 0 ? (
                   <tr>
@@ -163,14 +189,18 @@ const AdminRatingsPage = () => {
                         {rating.status === 'PENDING' && (
                           <div className="flex justify-end gap-2">
                             <button 
-                              onClick={() => handleUpdateStatus(rating.id, 'APPROVED')}
+                              type="button"
+                              onClick={() => void handleUpdateStatus(rating.id, 'APPROVED')}
+                              disabled={updatingRatingId !== null}
                               className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
                               title="Duyệt"
                             >
                               <span className="material-symbols-outlined text-xl">check_circle</span>
                             </button>
                             <button 
-                              onClick={() => handleUpdateStatus(rating.id, 'REJECTED')}
+                              type="button"
+                              onClick={() => void handleUpdateStatus(rating.id, 'REJECTED')}
+                              disabled={updatingRatingId !== null}
                               className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                               title="Từ chối"
                             >

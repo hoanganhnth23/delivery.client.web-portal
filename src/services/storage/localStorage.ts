@@ -53,7 +53,23 @@ export const TokenStorage = {
    */
   getUserInfo(): User | null {
     const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO);
-    return userInfo ? JSON.parse(userInfo) : null;
+    if (!userInfo) return null;
+
+    try {
+      const parsed = JSON.parse(userInfo) as Partial<User>;
+      if (
+        typeof parsed.id !== 'number' ||
+        typeof parsed.email !== 'string' ||
+        typeof parsed.name !== 'string' ||
+        typeof parsed.role !== 'string'
+      ) {
+        throw new Error('Stored user info has an invalid shape');
+      }
+      return parsed as User;
+    } catch {
+      localStorage.removeItem(STORAGE_KEYS.USER_INFO);
+      return null;
+    }
   },
 
   /**

@@ -180,6 +180,72 @@ describe('authentication and role routing journey', () => {
     expect(auth.getProfile).toHaveBeenCalledOnce();
   });
 
+  it('restores a stored session even when the access token is already expired', async () => {
+    const admin = buildUser({
+      id: 102,
+      email: 'admin@test.dev',
+      role: USER_ROLES.ADMIN,
+    });
+    const restoreSession = vi.fn(async () => admin);
+    const auth = createAuthFake({
+      isAuthenticated: vi.fn(() => false),
+      hasStoredSession: vi.fn(() => true),
+      restoreSession,
+    });
+
+    renderApp({ dependencies: createTestDependencies({ auth }) });
+
+    expect(await screen.findByRole('heading', { name: 'Quản trị hệ thống' })).toBeInTheDocument();
+    expect(restoreSession).toHaveBeenCalledOnce();
+  });
+
+  it('keeps a session and retries bootstrap after a transient network failure', async () => {
+    const user = userEvent.setup();
+    const admin = buildUser({ role: USER_ROLES.ADMIN });
+    const restoreSession = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Không thể kết nối đến server'))
+      .mockResolvedValueOnce(admin);
+    const auth = createAuthFake({
+      isAuthenticated: vi.fn(() => true),
+      hasStoredSession: vi.fn(() => true),
+      restoreSession,
+    });
+
+    renderApp({
+      route: '/admin/dashboard',
+      dependencies: createTestDependencies({ auth }),
+    });
+
+    expect(await screen.findByRole('heading', { name: 'Không thể khôi phục phiên' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Thử lại' }));
+    expect(await screen.findByRole('heading', { name: 'Quản trị hệ thống' })).toBeInTheDocument();
+    expect(auth.logout).not.toHaveBeenCalled();
+  });
+
+  it('opens the admin mobile navigation and closes it after navigation', async () => {
+    const user = userEvent.setup();
+    const admin = buildUser({ role: USER_ROLES.ADMIN });
+    const auth = createAuthFake({
+      isAuthenticated: vi.fn(() => true),
+      hasStoredSession: vi.fn(() => true),
+      getCurrentUser: vi.fn(() => admin),
+      getProfile: vi.fn(async () => admin),
+    });
+
+    renderApp({
+      route: '/admin/dashboard',
+      dependencies: createTestDependencies({ auth }),
+    });
+
+    await screen.findByRole('heading', { name: 'Quản trị hệ thống' });
+    await user.click(screen.getByRole('button', { name: 'Mở menu' }));
+    expect(screen.getByRole('dialog', { name: 'Delivery Admin' })).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Đơn hàng' }));
+    expect(await screen.findByRole('heading', { name: 'Đơn hàng' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Delivery Admin' })).not.toBeInTheDocument();
+  });
+
   it('does not expose a customer checkout surface in the admin/restaurant portal', async () => {
     const owner = buildUser();
     const auth = createAuthFake({

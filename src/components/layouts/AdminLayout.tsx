@@ -1,36 +1,29 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/hooks/useAuth';
 import { ROUTES } from '@/utils/constants';
+import PortalMobileDrawer from '@/components/navigation/PortalMobileDrawer';
+import { adminNavigation as navigation } from '@/components/navigation/portalNavigation';
 
 interface AdminLayoutProps {
   children: ReactNode;
 }
 
-const navigation = [
-  { to: ROUTES.ADMIN_DASHBOARD, icon: 'dashboard', label: 'Dashboard' },
-  { to: ROUTES.ADMIN_SYSTEM_OVERVIEW, icon: 'architecture', label: 'Kiến trúc hệ thống' },
-  { to: ROUTES.ADMIN_ORDERS, icon: 'receipt_long', label: 'Đơn hàng' },
-  { to: ROUTES.ADMIN_SHIPPERS, icon: 'local_shipping', label: 'Shipper' },
-  { to: ROUTES.ADMIN_RATINGS, icon: 'reviews', label: 'Đánh giá' },
-  { to: ROUTES.ADMIN_COUPONS, icon: 'sell', label: 'Coupon' },
-  { to: ROUTES.ADMIN_FLASH_SALES, icon: 'bolt', label: 'Flash Sale' },
-];
-
 const pageTitles: Record<string, string> = {
   [ROUTES.ADMIN_DASHBOARD]: 'Dashboard',
-  [ROUTES.ADMIN_SYSTEM_OVERVIEW]: 'Kiến trúc hệ thống',
   [ROUTES.ADMIN_ORDERS]: 'Đơn hàng',
   [ROUTES.ADMIN_SHIPPERS]: 'Shipper',
   [ROUTES.ADMIN_RATINGS]: 'Đánh giá',
   [ROUTES.ADMIN_COUPONS]: 'Coupon',
   [ROUTES.ADMIN_FLASH_SALES]: 'Flash Sale',
+  [ROUTES.ADMIN_CATALOG_IMPORT]: 'Import dữ liệu',
 };
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const identity = user?.name || user?.email || 'Quản trị viên';
   const initial = identity.charAt(0).toUpperCase();
 
@@ -87,7 +80,15 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
       <main className="flex h-screen flex-1 flex-col overflow-y-auto">
         <header className="sticky top-0 z-10 border-b border-border-light bg-background-light/95 px-4 py-5 backdrop-blur-sm dark:border-border-dark dark:bg-background-dark/95 lg:px-8">
-          <div className="mx-auto max-w-[1400px]">
+          <div className="mx-auto flex max-w-[1400px] items-center gap-3">
+            <button
+              type="button"
+              aria-label="Mở menu"
+              onClick={() => setShowMobileMenu(true)}
+              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 lg:hidden"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined">menu</span>
+            </button>
             <h2 className="text-2xl font-bold capitalize text-gray-900 dark:text-white">
               {pageTitles[location.pathname] || location.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard'}
             </h2>
@@ -101,6 +102,15 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           </footer>
         </div>
       </main>
+      <PortalMobileDrawer
+        open={showMobileMenu}
+        title="Delivery Admin"
+        identity={identity}
+        subtitle="Quản trị viên"
+        items={navigation}
+        onClose={() => setShowMobileMenu(false)}
+        onLogout={handleLogout}
+      />
     </div>
   );
 };

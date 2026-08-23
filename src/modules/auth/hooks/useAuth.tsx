@@ -39,6 +39,7 @@ interface AuthContextValue {
   error: string | null;
   login: (credentials: LoginCredentials) => Promise<LoginResult>;
   logout: () => Promise<ActionResult>;
+  retrySession: () => Promise<void>;
   hasRole: (roles: string | string[]) => boolean;
   isAuthenticated: boolean;
 }
@@ -60,36 +61,40 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Khởi tạo: Check user đã login chưa + Get profile từ backend
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        // 1. Kiểm tra localStorage có token không
-        if (auth.isAuthenticated()) {
-          // 2. Restore user từ localStorage trước (để UI không bị trắng)
-          const cachedUser = auth.getCurrentUser();
-          if (cachedUser) {
-            setUser(cachedUser);
-          }
+  const restoreSession = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-          // 3. Gọi API get profile để lấy thông tin mới nhất
-          try {
-            const freshUser = await auth.getProfile();
-            setUser(freshUser); // Cập nhật user với data mới nhất
-          } catch {
-            await auth.logout();
-            setUser(null);
-          }
-        }
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
+    if (!auth.hasStoredSession() && !auth.isAuthenticated()) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const freshUser = await auth.restoreSession();
+      setUser(freshUser);
+    } catch (err) {
+      // The API client clears the session for an unrecoverable 401/refresh
+      // failure. Network and 5xx failures keep the credentials available for
+      // a later retry and must not log the user out.
+      if (!auth.hasStoredSession() && !auth.isAuthenticated()) {
+        setUser(null);
+      } else {
+        setUser(null);
+        setError((err as Error).message || 'Không thể khôi phục phiên đăng nhập');
       }
-    };
-
-    initAuth();
+    } finally {
+      setLoading(false);
+    }
   }, [auth]);
+
+  // Bootstrap through restoreSession so an expired access token can use the
+  // rotated refresh token before the portal decides that the user is logged
+  // out.
+  useEffect(() => {
+    void restoreSession();
+  }, [restoreSession]);
 
   /**
    * Đăng nhập
@@ -173,9 +178,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       isAuthenticated: !!user,
       login,
       logout,
+      retrySession: restoreSession,
       hasRole,
     }),
-    [user, loading, error, login, logout, hasRole]
+    [user, loading, error, login, logout, restoreSession, hasRole]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

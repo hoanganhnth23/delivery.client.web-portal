@@ -7,7 +7,9 @@ import {
   type FlashSaleAdminServicePort,
   type MenuServicePort,
   type OrderServicePort,
+  type PromotionServicePort,
   type RestaurantServicePort,
+  type AddressServicePort,
   type SessionStorePort,
   type NotificationPort,
 } from '@/app/dependencies';
@@ -17,17 +19,33 @@ export function createAuthFake(
   overrides: Partial<AuthServicePort> = {},
 ): AuthServicePort {
   const user = buildUser();
+  const getProfile = overrides.getProfile ?? vi.fn(async () => user);
   return {
     getCurrentUser: vi.fn(() => null),
-    getProfile: vi.fn(async () => user),
+    getProfile,
     hasRole: vi.fn(() => false),
+    hasStoredSession: vi.fn(() => false),
     isAuthenticated: vi.fn(() => false),
     login: vi.fn(async () => ({
       accessToken: 'access.test.token',
       refreshToken: 'refresh.test.token',
       user,
     })),
+    registerCustomer: vi.fn(async () => ({
+      principalId: user.id,
+      profileCreated: true,
+      lifecycleStatus: 'PENDING_EMAIL_VERIFICATION',
+    })),
+    getRegistrationStatus: vi.fn(async () => ({
+      principalId: user.id,
+      status: 'PENDING_EMAIL_VERIFICATION',
+      nextAction: 'VERIFY_EMAIL',
+      profileLinked: true,
+    })),
+    requestEmailVerification: vi.fn(async () => undefined),
+    confirmEmailVerification: vi.fn(async () => undefined),
     logout: vi.fn(async () => undefined),
+    restoreSession: vi.fn(async () => getProfile()),
     ...overrides,
   };
 }
@@ -40,6 +58,9 @@ export function createRestaurantFake(
     createRestaurant: vi.fn(async () => restaurant),
     getMyRestaurants: vi.fn(async () => [restaurant]),
     getRestaurantRatings: vi.fn(async () => []),
+    getAllRestaurants: vi.fn(async () => [restaurant]),
+    searchRestaurants: vi.fn(async () => [restaurant]),
+    getRestaurantById: vi.fn(async () => restaurant),
     updateRestaurant: vi.fn(async () => restaurant),
     ...overrides,
   };
@@ -53,6 +74,7 @@ export function createMenuFake(
     createMenuItem: vi.fn(async () => menuItem),
     deleteMenuItem: vi.fn(async () => undefined),
     getMyMenuItems: vi.fn(async () => [menuItem]),
+    getMenuItemsByRestaurant: vi.fn(async () => [menuItem]),
     updateMenuItem: vi.fn(async () => menuItem),
     ...overrides,
   };
@@ -63,7 +85,30 @@ export function createOrderFake(
 ): OrderServicePort {
   const order = buildOrder();
   return {
-    confirmOrder: vi.fn(async () => 'CONFIRMED'),
+    confirmOrder: vi.fn(async () => 'CONFIRMED' as const),
+    checkoutPreview: vi.fn(async () => ({
+      quoteId: '00000000-0000-4000-8000-000000000001',
+      expiresAt: '2026-07-29T08:05:00Z',
+      restaurantId: 201,
+      restaurantName: 'Bếp test',
+      items: [{ menuItemId: 301, menuItemName: 'Cơm test', unitPrice: 50_000, quantity: 1, lineTotal: 50_000 }],
+      subtotal: 50_000,
+      shippingFee: 15_000,
+      discountAmount: 0,
+      totalPrice: 65_000,
+      priceChanges: [],
+      unavailableItemIds: [],
+    })),
+    createCustomerOrder: vi.fn(async () => ({ order, idempotencyKey: '00000000-0000-4000-8000-000000000002' })),
+    cancelOrder: vi.fn(async () => ({ ...order, status: 'CANCELLED' as const })),
+    getCustomerOrders: vi.fn(async () => ({
+      items: [order],
+      page: 0,
+      size: 10,
+      totalItems: 1,
+      totalPages: 1,
+      hasNext: false,
+    })),
     getMyOrders: vi.fn(async () => ({
       items: [order],
       page: 0,
@@ -73,7 +118,69 @@ export function createOrderFake(
       hasNext: false,
     })),
     getOrderById: vi.fn(async () => order),
-    rejectOrder: vi.fn(async () => 'REJECTED'),
+    rejectOrder: vi.fn(async () => 'REJECTED' as const),
+    ...overrides,
+  };
+}
+
+export function createPromotionFake(
+  overrides: Partial<PromotionServicePort> = {},
+): PromotionServicePort {
+  return {
+    getMyVouchers: vi.fn(async () => []),
+    getVoucherCapability: vi.fn(async () => ({
+      enabled: false,
+      maxVouchers: 3,
+      layers: ['SHOP_DISCOUNT', 'PLATFORM_DISCOUNT', 'FREESHIP'],
+      selectionModes: ['AUTO', 'MANUAL'],
+      conflictsWithFlashSale: true,
+    })),
+    collectVoucher: vi.fn(async () => undefined),
+    createShopVoucher: vi.fn(async (data) => ({
+      id: 802,
+      code: data.code,
+      name: data.name,
+      description: data.description ?? '',
+      creatorType: 'SHOP' as const,
+      rewardType: data.rewardType,
+      discountValue: data.discountValue,
+      maxDiscountValue: data.maxDiscountValue ?? null,
+      minOrderValue: data.minOrderValue,
+      scopeType: 'SHOP' as const,
+      scopeRefId: data.restaurantId,
+      active: false,
+      layer: 'SHOP_DISCOUNT' as const,
+      fundingSource: 'SHOP' as const,
+      approvalStatus: 'PENDING',
+    })),
+    listShopVouchers: vi.fn(async () => []),
+    ...overrides,
+  };
+}
+
+export function createAddressFake(
+  overrides: Partial<AddressServicePort> = {},
+): AddressServicePort {
+  const address = {
+    id: 1001,
+    userId: 101,
+    label: 'Nhà',
+    recipientName: 'Customer Test',
+    phoneNumber: '0900000002',
+    addressLine: '2 Đường Khách',
+    ward: 'Phường Bến Nghé',
+    district: 'Quận 1',
+    city: 'TP.HCM',
+    latitude: 10.78,
+    longitude: 106.71,
+    isDefault: true,
+  };
+  return {
+    getUserAddresses: vi.fn(async () => [address]),
+    createAddress: vi.fn(async () => address),
+    updateAddress: vi.fn(async () => address),
+    deleteAddress: vi.fn(async () => undefined),
+    setDefaultAddress: vi.fn(async () => address),
     ...overrides,
   };
 }
@@ -87,6 +194,7 @@ export function createAdminFake(
       code: data.code,
       name: data.name,
       description: data.description,
+      creatorType: 'PLATFORM' as const,
       rewardType: data.rewardType,
       discountValue: data.discountValue,
       maxDiscountValue: data.maxDiscountValue,
@@ -95,9 +203,52 @@ export function createAdminFake(
       startTime: data.startTime,
       endTime: data.endTime,
       minOrderValue: data.minOrderValue,
+      scopeType: data.scopeType,
+      scopeRefId: data.scopeRefId,
       active: true,
     })),
     deleteCoupon: vi.fn(async () => undefined),
+    fetchPendingShopCoupons: vi.fn(async () => []),
+    approveShopCoupon: vi.fn(async (id) => ({
+      id, code: 'SHOP', name: 'Shop', description: '', creatorType: 'SHOP' as const,
+      rewardType: 'FIXED', discountValue: 0, maxDiscountValue: null, totalQuantity: 1,
+      usedQuantity: 0, startTime: '2026-07-29T08:00:00Z', endTime: '2026-07-30T08:00:00Z',
+      minOrderValue: 0, scopeType: 'SHOP' as const, scopeRefId: 201, active: true,
+    })),
+    rejectShopCoupon: vi.fn(async (id) => ({
+      id, code: 'SHOP', name: 'Shop', description: '', creatorType: 'SHOP' as const,
+      rewardType: 'FIXED', discountValue: 0, maxDiscountValue: null, totalQuantity: 1,
+      usedQuantity: 0, startTime: '2026-07-29T08:00:00Z', endTime: '2026-07-30T08:00:00Z',
+      minOrderValue: 0, scopeType: 'SHOP' as const, scopeRefId: 201, active: false,
+    })),
+    pauseCoupon: vi.fn(async (id) => ({
+      id, code: 'SHOP', name: 'Shop', description: '', creatorType: 'SHOP' as const,
+      rewardType: 'FIXED', discountValue: 0, maxDiscountValue: null, totalQuantity: 1,
+      usedQuantity: 0, startTime: '2026-07-29T08:00:00Z', endTime: '2026-07-30T08:00:00Z',
+      minOrderValue: 0, scopeType: 'ALL' as const, scopeRefId: null, active: false,
+    })),
+    resumeCoupon: vi.fn(async (id) => ({
+      id, code: 'SHOP', name: 'Shop', description: '', creatorType: 'SHOP' as const,
+      rewardType: 'FIXED', discountValue: 0, maxDiscountValue: null, totalQuantity: 1,
+      usedQuantity: 0, startTime: '2026-07-29T08:00:00Z', endTime: '2026-07-30T08:00:00Z',
+      minOrderValue: 0, scopeType: 'ALL' as const, scopeRefId: null, active: true,
+    })),
+    fetchAdminDashboard: vi.fn(async () => ({
+      overview: {
+        totalOrders: 0,
+        totalRevenue: 0,
+        deliveredOrders: 0,
+        cancelledOrders: 0,
+        pendingOrders: 0,
+        processingOrders: 0,
+        avgOrderValue: 0,
+        deliveryRate: 0,
+      },
+      revenueTimeSeries: [],
+      orderTimeSeries: [],
+      statusBreakdown: [],
+      topRestaurants: [],
+    })),
     fetchAllCoupons: vi.fn(async () => []),
     fetchAllOrders: vi.fn(async () => ({
       items: [], page: 0, size: 20, totalItems: 0, totalPages: 0, hasNext: false,
@@ -177,10 +328,12 @@ export function createTestDependencies(
     restaurant: createRestaurantFake(),
     menu: createMenuFake(),
     order: createOrderFake(),
+    promotion: createPromotionFake(),
+    address: createAddressFake(),
     admin: createAdminFake(),
     flashSaleAdmin: createFlashSaleAdminFake(),
     notifications: createNotificationFake(),
-    clock: { now: vi.fn(() => new Date('2026-07-29T08:00:00Z')) },
+    clock: { now: vi.fn(() => new Date(2026, 6, 29, 8, 0, 0)) },
     delay: { wait: vi.fn(async () => undefined) },
     sessionStore: createSessionStoreFake(),
     ...overrides,

@@ -6,6 +6,8 @@
 import { useState } from 'react';
 import { useRestaurant } from '../hooks/useRestaurant';
 import type { Restaurant } from '@/types/api.types';
+import JsonFixtureImporter from '@/components/forms/JsonFixtureImporter';
+import { fixtureText, fixtureTime, type JsonFixtureRecord } from '@/utils/jsonFixture';
 
 // ============================================
 // LOCAL TYPES
@@ -63,6 +65,30 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
   }));
 
   const [errors, setErrors] = useState<FormErrors>({});
+
+  const handleFixtureImport = (fixture: JsonFixtureRecord) => {
+    setFormData((previous) => ({
+      ...previous,
+      name: fixtureText(fixture, 'name', previous.name),
+      address: fixtureText(fixture, 'address', previous.address),
+      phone: fixtureText(fixture, 'phone', previous.phone),
+      openingHour: fixtureTime(fixture, 'openingHour', previous.openingHour),
+      closingHour: fixtureTime(fixture, 'closingHour', previous.closingHour),
+      image: fixtureText(fixture, 'image', previous.image),
+      addressLat: fixtureText(
+        fixture,
+        'addressLat',
+        fixtureText(fixture, 'latitude', previous.addressLat),
+      ),
+      addressLng: fixtureText(
+        fixture,
+        'addressLng',
+        fixtureText(fixture, 'longitude', previous.addressLng),
+      ),
+      description: fixtureText(fixture, 'description', previous.description),
+    }));
+    setErrors({});
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -151,6 +177,11 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <JsonFixtureImporter
+        label="JSON fixture nhà hàng"
+        onImport={handleFixtureImport}
+      />
+
       {/* Tên nhà hàng */}
       <div>
         <label htmlFor="restaurant-name" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">

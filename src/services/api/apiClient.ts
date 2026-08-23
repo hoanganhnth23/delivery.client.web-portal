@@ -21,6 +21,17 @@ interface BaseResponseEnvelope<T = unknown> {
   status: 0 | 1;
   message: string | null;
   data: T;
+  error?: {
+    code?: string;
+    details?: unknown;
+  } | null;
+}
+
+export interface ApiClientError extends Error {
+  status: number;
+  code?: string;
+  details?: unknown;
+  originalError: unknown;
 }
 
 interface RefreshTokens {
@@ -246,12 +257,24 @@ export function createApiClient({
 export const handleError = (error: unknown): never => {
   let errorMessage = 'Có lỗi xảy ra';
   let errorStatus = 0;
+  let errorCode: string | undefined;
+  let errorDetails: unknown;
 
-  if (axios.isAxiosError(error)) {
-    if (error.response) {
-      errorStatus = error.response.status;
-      errorMessage = (error.response.data as { message?: string })?.message || error.message;
-    } else if (error.request) {
+  const response = axios.isAxiosError(error)
+    ? error.response
+    : (error as { response?: AxiosResponse } | null)?.response;
+
+  if (response) {
+      errorStatus = response.status;
+      const payload = response.data as {
+        message?: string | null;
+        error?: { code?: string; details?: unknown } | null;
+      } | undefined;
+      errorMessage = payload?.message || (error instanceof Error ? error.message : errorMessage);
+      errorCode = payload?.error?.code;
+      errorDetails = payload?.error?.details;
+  } else if (axios.isAxiosError(error)) {
+    if (error.request) {
       errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối.';
     } else {
       errorMessage = error.message || errorMessage;
@@ -260,20 +283,28 @@ export const handleError = (error: unknown): never => {
     errorMessage = error.message;
   }
 
-  const mapped = new Error(errorMessage) as Error & {
-    status: number;
-    originalError: unknown;
-  };
+  const mapped = new Error(errorMessage) as ApiClientError;
   mapped.status = errorStatus;
+  mapped.code = errorCode;
+  mapped.details = errorDetails;
   mapped.originalError = error;
   throw mapped;
 };
+
+export const getSessionLoginPath = (pathname: string): string =>
+  pathname.startsWith('/admin')
+    ? ROUTES.ADMIN_LOGIN
+    : pathname.startsWith('/customer/') || pathname === ROUTES.CUSTOMER_CHECKOUT
+      ? ROUTES.CUSTOMER_LOGIN
+      : ROUTES.LOGIN;
 
 const apiClient = createApiClient({
   baseUrl: API_BASE_URL,
   sessionStore: TokenStorage,
   onSessionExpired: () => {
-    if (typeof window !== 'undefined') window.location.href = ROUTES.LOGIN;
+    if (typeof window !== 'undefined') {
+      window.location.href = getSessionLoginPath(window.location.pathname);
+    }
   },
 });
 

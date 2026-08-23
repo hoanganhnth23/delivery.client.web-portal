@@ -100,8 +100,9 @@ const assertActionContractMatrix = () => {
   const source = fs.readFileSync(absolutePath, 'utf8');
   const requiredIds = [
     ...Array.from({ length: 6 }, (_, index) => `AUTH-${String(index + 1).padStart(2, '0')}`),
-    ...Array.from({ length: 11 }, (_, index) => `OWNER-${String(index + 1).padStart(2, '0')}`),
-    ...Array.from({ length: 15 }, (_, index) => `ADMIN-${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 15 }, (_, index) => `CUSTOMER-${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 12 }, (_, index) => `OWNER-${String(index + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 16 }, (_, index) => `ADMIN-${String(index + 1).padStart(2, '0')}`),
   ];
 
   for (const id of requiredIds) {
@@ -160,6 +161,40 @@ assertContains('src/modules/auth/pages/AdminLoginPage.tsx', [
   'navigate(ROUTES.ADMIN_DASHBOARD, { replace: true })',
   'type="submit"',
 ], 'admin login action');
+
+assertContains('src/services/api/endpoints.ts', [
+  "REGISTER: '/api/auth/register'",
+  "REGISTER_PROFILE: '/api/users/registrations'",
+  "GET_ALL: '/api/restaurants'",
+  "CHECKOUT_PREVIEW: '/api/orders/checkout-preview'",
+  "CREATE: '/api/orders'",
+  "GET_CUSTOMER_ORDERS: '/api/orders/my-orders'",
+], 'customer ordering endpoints');
+
+assertContains('src/modules/customer/pages/CustomerLoginPage.tsx', [
+  'role: USER_ROLES.USER',
+  'type="submit"',
+], 'customer login action');
+
+assertContains('src/modules/customer/pages/CustomerRegisterPage.tsx', [
+  'auth.registerCustomer',
+  'navigate(`${ROUTES.CUSTOMER_LOGIN}?registered=1`',
+  'type="submit"',
+], 'customer registration action');
+
+assertContains('src/modules/customer/pages/CustomerCheckoutPage.tsx', [
+  'orderService.checkoutPreview',
+  'orderService.createCustomerOrder',
+  "paymentMethod: 'COD'",
+  "code === 'PRICE_CHANGED'",
+  "code === 'IDEMPOTENCY_IN_PROGRESS'",
+], 'customer checkout action');
+
+assertContains('src/modules/customer/pages/CustomerOrderDetailPage.tsx', [
+  'orderService.cancelOrder',
+  'cancelableStatuses',
+  'window.setInterval',
+], 'customer order detail action');
 
 assertContains('src/components/layouts/AdminLayout.tsx', [
   'await logout();',

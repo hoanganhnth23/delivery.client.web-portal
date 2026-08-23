@@ -59,26 +59,47 @@ export const STORAGE_KEYS = {
 export const ROUTES = {
   // Public routes
   HOME: '/',
+  SYSTEM_OVERVIEW: '/system-overview',
+  SYSTEM_OVERVIEW_SECTION: (section: string) => `/system-overview/${section}`,
+  SYSTEM_OVERVIEW_SERVICE: (serviceId: string) => `/system-overview/services/${serviceId}`,
+  SYSTEM_OVERVIEW_WORKFLOW: (workflowId: string) => `/system-overview/workflows/${workflowId}`,
   LOGIN: '/login',
   ADMIN_LOGIN: '/admin/login',
+  CUSTOMER_LOGIN: '/customer/login',
+  CUSTOMER_REGISTER: '/customer/register',
+  VERIFY_EMAIL: '/verify-email',
+  CUSTOMER_RESTAURANTS: '/restaurants',
+  CUSTOMER_CART: '/cart',
+  CUSTOMER_CHECKOUT: '/customer/checkout',
+  CUSTOMER_ADDRESSES: '/customer/addresses',
+  CUSTOMER_ORDERS: '/customer/orders',
+  CUSTOMER_ORDER: (id: number | string) => `/customer/orders/${id}`,
   
   // Admin routes
   ADMIN_DASHBOARD: '/admin/dashboard',
-  ADMIN_SYSTEM_OVERVIEW: '/admin/system-overview',
   ADMIN_ORDERS: '/admin/orders',
   ADMIN_SHIPPERS: '/admin/shippers',
   ADMIN_RATINGS: '/admin/ratings',
   ADMIN_COUPONS: '/admin/coupons',
   ADMIN_FLASH_SALES: '/admin/flash-sales',
+  ADMIN_CATALOG_IMPORT: '/admin/catalog-import',
   RESTAURANT_DASHBOARD: '/restaurant/dashboard', // Shop Owner dashboard
   RESTAURANT_PROFILE: '/restaurant/profile',
   RESTAURANT_MENU: '/restaurant/menu',
   RESTAURANT_ORDERS: '/restaurant/orders',
   RESTAURANT_REVIEWS: '/restaurant/reviews',
+  RESTAURANT_VOUCHERS: '/restaurant/vouchers',
+  RESTAURANT_CATALOG_IMPORT: '/restaurant/catalog-import',
   
   // Error pages
   UNAUTHORIZED: '/unauthorized',
 } as const;
+
+export const isCustomerRoute = (pathname: string): boolean =>
+  pathname.startsWith('/customer/') ||
+  pathname === ROUTES.CUSTOMER_CART ||
+  pathname === ROUTES.CUSTOMER_RESTAURANTS ||
+  pathname.startsWith(`${ROUTES.CUSTOMER_RESTAURANTS}/`);
 
 // Validation Rules
 export const VALIDATION = {

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -87,6 +87,34 @@ afterEach(() => {
 });
 
 describe('restaurant profile actions', () => {
+  it('prefills the restaurant form from a pasted JSON fixture', async () => {
+    const user = userEvent.setup();
+    const createRestaurant = vi.fn();
+    renderCreateRestaurantForm(createRestaurantFake({ createRestaurant }));
+
+    await user.click(screen.getByText('Nạp JSON fixture'));
+    fireEvent.change(screen.getByLabelText('JSON fixture nhà hàng'), { target: { value: JSON.stringify({
+      name: 'Quán JSON',
+      address: '1 Đường Fixture, TP.HCM',
+      phone: '0900000002',
+      openingHour: '09:30:00',
+      closingHour: '21:45:00',
+      addressLat: 10.777,
+      addressLng: 106.701,
+      description: 'Dữ liệu từ file JSON',
+    }) } });
+    await user.click(screen.getByRole('button', { name: 'Nạp vào form' }));
+
+    expect(screen.getByLabelText(/Tên nhà hàng/)).toHaveValue('Quán JSON');
+    expect(screen.getByLabelText(/Địa chỉ/)).toHaveValue('1 Đường Fixture, TP.HCM');
+    expect(screen.getByLabelText(/Số điện thoại/)).toHaveValue('0900000002');
+    expect(screen.getByLabelText(/Giờ mở cửa/)).toHaveValue('09:30');
+    expect(screen.getByLabelText(/Giờ đóng cửa/)).toHaveValue('21:45');
+    expect(screen.getByLabelText(/Vĩ độ/)).toHaveValue(10.777);
+    expect(screen.getByLabelText(/Kinh độ/)).toHaveValue(106.701);
+    expect(createRestaurant).not.toHaveBeenCalled();
+  });
+
   it('validates the create form before calling the injected service', async () => {
     const user = userEvent.setup();
     const createRestaurant = vi.fn();
@@ -171,6 +199,29 @@ describe('restaurant profile actions', () => {
 });
 
 describe('menu management actions', () => {
+  it('prefills a menu form from a pasted JSON fixture', async () => {
+    const user = userEvent.setup();
+    renderApp({
+      route: '/restaurant/menu',
+      dependencies: ownerDependencies({
+        menu: createMenuFake({ getMyMenuItems: vi.fn().mockResolvedValue([]) }),
+      }),
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Thêm món' }));
+    await user.click(screen.getByText('Nạp JSON fixture'));
+    fireEvent.change(screen.getByLabelText('JSON fixture món ăn'), { target: { value: JSON.stringify({
+      name: 'Món JSON',
+      description: 'Mô tả JSON',
+      price: 65000,
+    }) } });
+    await user.click(screen.getByRole('button', { name: 'Nạp vào form' }));
+
+    expect(screen.getByLabelText(/Tên món ăn/)).toHaveValue('Món JSON');
+    expect(screen.getByLabelText('Mô tả')).toHaveValue('Mô tả JSON');
+    expect(screen.getByLabelText(/Giá/)).toHaveValue(65000);
+  });
+
   it('creates a menu item through the dialog and refreshes the backend list', async () => {
     const user = userEvent.setup();
     const current = buildMenuItem();

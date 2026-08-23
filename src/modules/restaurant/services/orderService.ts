@@ -3,7 +3,7 @@
  * Xử lý các API calls liên quan đến Orders
  */
 
-import apiClient, { handleResponse } from '@/services/api/apiClient';
+import apiClient, { handleError, handleResponse } from '@/services/api/apiClient';
 import { API_ENDPOINTS } from '@/services/api/endpoints';
 import {
   optionalPositiveInteger,
@@ -17,7 +17,19 @@ import {
   requireString,
   requireTimestamp,
 } from '@/services/api/contract';
-import type { Order, OrderItem, PageData } from '@/types/api.types';
+import type {
+  CheckoutPreview,
+  CheckoutPreviewRequest,
+  CreateCustomerOrderRequest,
+  Order,
+  OrderItem,
+  PageData,
+} from '@/types/api.types';
+
+export interface CustomerOrderCreateResult {
+  order: Order;
+  idempotencyKey: string;
+}
 
 const ORDER_STATUSES = [
   'PENDING',
@@ -79,6 +91,92 @@ const parseOrder = (value: unknown, label: string): Order => {
   };
 };
 
+const optionalNumber = (value: unknown, label: string): number | undefined => {
+  if (value === null || value === undefined) return undefined;
+  return requireNumber(value, label);
+};
+
+const parseCheckoutPreview = (value: unknown, label = 'checkout preview'): CheckoutPreview => {
+  const preview = requireRecord(value, label);
+  const parsePreviewItem = (itemValue: unknown, itemLabel: string) => {
+    const item = requireRecord(itemValue, itemLabel);
+    return {
+      menuItemId: requireInteger(item.menuItemId, `${itemLabel}.menuItemId`, 1),
+      menuItemName: requireString(item.menuItemName, `${itemLabel}.menuItemName`),
+      ...(optionalText(item.imageUrl, `${itemLabel}.imageUrl`) === null
+        ? {}
+        : { imageUrl: optionalText(item.imageUrl, `${itemLabel}.imageUrl`) ?? undefined }),
+      unitPrice: requireNumber(item.unitPrice, `${itemLabel}.unitPrice`),
+      quantity: requireInteger(item.quantity, `${itemLabel}.quantity`, 1),
+      lineTotal: requireNumber(item.lineTotal, `${itemLabel}.lineTotal`),
+    };
+  };
+  const parsePriceChange = (itemValue: unknown, itemLabel: string) => {
+    const item = requireRecord(itemValue, itemLabel);
+    const oldPrice = optionalNumber(item.oldPrice, `${itemLabel}.oldPrice`);
+    return {
+      menuItemId: requireInteger(item.menuItemId, `${itemLabel}.menuItemId`, 1),
+      menuItemName: requireString(item.menuItemName, `${itemLabel}.menuItemName`),
+      ...(oldPrice === undefined ? {} : { oldPrice }),
+      newPrice: requireNumber(item.newPrice, `${itemLabel}.newPrice`),
+    };
+  };
+  const priceChanges = requireArray(
+    preview.priceChanges ?? [],
+    `${label}.priceChanges`,
+    parsePriceChange,
+  );
+  const unavailableItemIds = requireArray(
+    preview.unavailableItemIds ?? [],
+    `${label}.unavailableItemIds`,
+    (item, itemLabel) => requireInteger(item, itemLabel, 1),
+  );
+
+  return {
+    quoteId: requireString(preview.quoteId, `${label}.quoteId`),
+    expiresAt: requireTimestamp(preview.expiresAt, `${label}.expiresAt`),
+    restaurantId: requireInteger(preview.restaurantId, `${label}.restaurantId`, 1),
+    restaurantName: requireString(preview.restaurantName, `${label}.restaurantName`),
+    items: requireArray(preview.items, `${label}.items`, parsePreviewItem),
+    subtotal: requireNumber(preview.subtotal, `${label}.subtotal`),
+    shippingFee: requireNumber(preview.shippingFee, `${label}.shippingFee`),
+    discountAmount: requireNumber(preview.discountAmount, `${label}.discountAmount`),
+    totalPrice: requireNumber(preview.totalPrice, `${label}.totalPrice`),
+    ...(optionalText(preview.couponCode, `${label}.couponCode`) === null
+      ? {}
+      : { couponCode: optionalText(preview.couponCode, `${label}.couponCode`) ?? undefined }),
+    ...(optionalText(preview.couponMessage, `${label}.couponMessage`) === null
+      ? {}
+      : { couponMessage: optionalText(preview.couponMessage, `${label}.couponMessage`) ?? undefined }),
+    ...(preview.voucherId === null || preview.voucherId === undefined
+      ? {}
+      : { voucherId: requireInteger(preview.voucherId, `${label}.voucherId`, 1) }),
+    selectedVoucherIds: Array.isArray(preview.selectedVoucherIds)
+      ? preview.selectedVoucherIds.map((id, index) => requireInteger(id, `${label}.selectedVoucherIds[${index}]`, 1))
+      : [],
+    ...(typeof preview.selectionMode === 'string' ? { selectionMode: preview.selectionMode as 'AUTO' | 'MANUAL' } : {}),
+    itemDiscount: requireNumber(preview.itemDiscount ?? preview.discountAmount, `${label}.itemDiscount`),
+    shippingDiscount: requireNumber(preview.shippingDiscount ?? 0, `${label}.shippingDiscount`),
+    customerShippingFee: requireNumber(preview.customerShippingFee ?? preview.shippingFee, `${label}.customerShippingFee`),
+    grossShippingFee: requireNumber(preview.grossShippingFee ?? preview.shippingFee, `${label}.grossShippingFee`),
+    platformSubsidy: requireNumber(preview.platformSubsidy ?? 0, `${label}.platformSubsidy`),
+    shopDiscount: requireNumber(preview.shopDiscount ?? preview.discountAmount, `${label}.shopDiscount`),
+    appliedVouchers: Array.isArray(preview.appliedVouchers) ? preview.appliedVouchers.map((entry, index) => {
+      const item = requireRecord(entry, `${label}.appliedVouchers[${index}]`);
+      return {
+        voucherId: requireInteger(item.voucherId, `${label}.appliedVouchers[${index}].voucherId`, 1),
+        code: requireString(item.code, `${label}.appliedVouchers[${index}].code`),
+        layer: requireString(item.layer, `${label}.appliedVouchers[${index}].layer`),
+        fundingSource: requireString(item.fundingSource, `${label}.appliedVouchers[${index}].fundingSource`),
+        discountBase: requireNumber(item.discountBase, `${label}.appliedVouchers[${index}].discountBase`),
+        discountAmount: requireNumber(item.discountAmount, `${label}.appliedVouchers[${index}].discountAmount`),
+      };
+    }) : [],
+    priceChanges,
+    unavailableItemIds,
+  };
+};
+
 /**
  * Lấy danh sách orders của nhà hàng hiện tại
  */
@@ -89,12 +187,68 @@ export const getMyOrders = async (page = 0, size = 10): Promise<PageData<Order>>
   return requirePage(handleResponse(response), 'orders page', parseOrder);
 };
 
+/** Customer-owned order history. */
+export const getCustomerOrders = async (page = 0, size = 10): Promise<PageData<Order>> => {
+  try {
+    const response = await apiClient.get(API_ENDPOINTS.ORDER.GET_CUSTOMER_ORDERS, {
+      params: { page, size },
+    });
+    return requirePage(handleResponse(response), 'customer orders page', parseOrder);
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
+export const checkoutPreview = async (
+  request: CheckoutPreviewRequest,
+): Promise<CheckoutPreview> => {
+  try {
+    const response = await apiClient.post(API_ENDPOINTS.ORDER.CHECKOUT_PREVIEW, request);
+    return parseCheckoutPreview(handleResponse(response));
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
+export const createCustomerOrder = async (
+  request: CreateCustomerOrderRequest,
+  idempotencyKey: string,
+): Promise<CustomerOrderCreateResult> => {
+  try {
+    const response = await apiClient.post(API_ENDPOINTS.ORDER.CREATE, request, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
+    return {
+      order: parseOrder(handleResponse(response), 'created order'),
+      idempotencyKey,
+    };
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
+export const cancelOrder = async (id: number, reason?: string): Promise<Order> => {
+  try {
+    const response = await apiClient.put(
+      API_ENDPOINTS.ORDER.CANCEL(id),
+      reason?.trim() ? { reason: reason.trim() } : undefined,
+    );
+    return parseOrder(handleResponse(response), 'cancelled order');
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
 /**
  * Lấy chi tiết order theo ID
  */
 export const getOrderById = async (id: number): Promise<Order> => {
-  const response = await apiClient.get(API_ENDPOINTS.ORDER.GET_BY_ID(id));
-  return parseOrder(handleResponse(response), 'order');
+  try {
+    const response = await apiClient.get(API_ENDPOINTS.ORDER.GET_BY_ID(id));
+    return parseOrder(handleResponse(response), 'order');
+  } catch (error) {
+    throw handleError(error);
+  }
 };
 
 export const confirmOrder = async (

@@ -11,7 +11,10 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:actions": "node scripts/verify-action-contracts.mjs",
-    "verify": "npm run lint && npm test && npm run test:actions && npm run build"
+    "handbook:generate": "node scripts/generate-system-handbook.mjs --workspace-root .. --write",
+    "handbook:check": "node scripts/generate-system-handbook.mjs --workspace-root .. --check",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run test:actions && npm run handbook:check && npm run build"
   },
   "dependencies": {
     "axios": "^1.18.1",

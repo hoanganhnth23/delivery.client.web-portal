@@ -1,18 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ROUTES } from '@/utils/constants';
+import { restaurantNavigation as navigation } from '@/components/navigation/portalNavigation';
 
 interface RestaurantSidebarProps {
   restaurantName?: string;
   restaurantImage?: string;
 }
-
-const navigation = [
-  { icon: 'dashboard', label: 'Dashboard', to: ROUTES.RESTAURANT_DASHBOARD },
-  { icon: 'shopping_bag', label: 'Đơn hàng', to: ROUTES.RESTAURANT_ORDERS },
-  { icon: 'menu_book', label: 'Quản lý Menu', to: ROUTES.RESTAURANT_MENU },
-  { icon: 'storefront', label: 'Hồ sơ cửa hàng', to: ROUTES.RESTAURANT_PROFILE },
-  { icon: 'reviews', label: 'Đánh giá', to: ROUTES.RESTAURANT_REVIEWS },
-];
 
 const RestaurantSidebar = ({ restaurantName, restaurantImage }: RestaurantSidebarProps) => {
   const location = useLocation();
@@ -25,6 +17,8 @@ const RestaurantSidebar = ({ restaurantName, restaurantImage }: RestaurantSideba
           <img
             src={restaurantImage}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="size-12 rounded-full border-2 border-primary object-cover"
           />
         ) : (

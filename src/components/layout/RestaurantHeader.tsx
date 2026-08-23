@@ -8,6 +8,8 @@ import { useRestaurant } from '@/modules/restaurant/hooks/useRestaurant';
 import { useAuth } from '@/modules/auth/hooks/useAuth';
 import { ROUTES } from '@/utils/constants';
 import { useNavigate } from 'react-router-dom';
+import PortalMobileDrawer from '@/components/navigation/PortalMobileDrawer';
+import { restaurantNavigation } from '@/components/navigation/portalNavigation';
 
 interface RestaurantHeaderProps {
   title: string;
@@ -31,6 +33,7 @@ const RestaurantHeader = ({
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +55,14 @@ const RestaurantHeader = ({
         <div className="flex items-center justify-between">
           {/* Left: Title & Restaurant Info */}
           <div className="flex items-center gap-4">
+            <button
+              type="button"
+              aria-label="Mở menu"
+              onClick={() => setShowMobileMenu(true)}
+              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 lg:hidden"
+            >
+              <span aria-hidden="true" className="material-symbols-outlined">menu</span>
+            </button>
             {/* Title Section */}
             <div>
               <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
@@ -87,7 +98,7 @@ const RestaurantHeader = ({
 
             {/* Custom Actions */}
             {actions && (
-              <div className="hidden md:flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 {actions}
               </div>
             )}
@@ -95,6 +106,7 @@ const RestaurantHeader = ({
             {/* User Menu */}
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
               >
@@ -138,6 +150,7 @@ const RestaurantHeader = ({
                     {/* Menu Items */}
                     <div className="py-2">
                       <button
+                        type="button"
                         onClick={() => {
                           navigate(ROUTES.RESTAURANT_PROFILE);
                           setShowUserMenu(false);
@@ -149,6 +162,7 @@ const RestaurantHeader = ({
                       </button>
                       <div className="h-px bg-border-light dark:bg-border-dark my-2"></div>
                       <button
+                        type="button"
                         aria-label="Đăng xuất"
                         onClick={() => void handleLogout()}
                         className="w-full px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-red-600 dark:text-red-400"
@@ -164,6 +178,15 @@ const RestaurantHeader = ({
           </div>
         </div>
       </div>
+      <PortalMobileDrawer
+        open={showMobileMenu}
+        title="Quản lý cửa hàng"
+        identity={currentRestaurant?.name || 'Nhà hàng chưa được gán'}
+        subtitle="Delivery Restaurant"
+        items={restaurantNavigation}
+        onClose={() => setShowMobileMenu(false)}
+        onLogout={handleLogout}
+      />
     </header>
   );
 };

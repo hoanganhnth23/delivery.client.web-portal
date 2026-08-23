@@ -47,6 +47,36 @@ function adminDependencies({
 }
 
 describe('admin read and moderation actions', () => {
+  it('shows a retryable error instead of an empty shipper list after a failed read', async () => {
+    const user = userEvent.setup();
+    const notifications = createNotificationFake();
+    const shipper = buildAdminShipper();
+    const fetchAllShippers = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('temporary failure'))
+      .mockResolvedValueOnce({
+        items: [shipper],
+        page: 0,
+        size: 100,
+        totalItems: 1,
+        totalPages: 1,
+        hasNext: false,
+      });
+
+    renderApp({
+      route: '/admin/shippers',
+      dependencies: adminDependencies({
+        admin: createAdminFake({ fetchAllShippers }),
+        notifications,
+      }),
+    });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Không thể tải danh sách shipper');
+    await user.click(screen.getByRole('button', { name: 'Thử lại' }));
+    expect(await screen.findByText('Shipper Test')).toBeInTheDocument();
+    expect(fetchAllShippers).toHaveBeenCalledTimes(2);
+  });
+
   it('loads, filters, searches and paginates orders through injected services', async () => {
     const user = userEvent.setup();
     const pending = buildAdminOrder();

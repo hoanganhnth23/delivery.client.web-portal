@@ -1,61 +1,89 @@
-# Tài liệu Tính năng và Màn hình (App Features & Screens)
+# Delivery Web MVP — Tính năng và màn hình hiện tại
 
-Tài liệu này liệt kê các phân hệ (modules), màn hình (screens) và các chức năng (functions) tương ứng của ứng dụng.
+Web portal hiện phục vụ ba actor/surface: khách hàng, quản trị viên hệ thống và
+chủ nhà hàng. Trang kiến trúc hệ thống là một technical surface độc lập, không
+thuộc business portal và không yêu cầu đăng nhập. Customer Web dùng COD core; realtime map, rating, reorder,
+notification, payment online và promotion checkout vẫn chưa mở.
 
----
+## 1. Xác thực và session
 
-## 1. Phân hệ Khách hàng (Customer / Home Module)
-Phân hệ dành cho người dùng cuối (End-users) để tìm kiếm và đặt món.
-
-| Màn hình | Chức năng chính |
+| Màn hình | Chức năng |
 | :--- | :--- |
-| **Trang chủ (HomePage)** | - Chọn vị trí giao hàng.<br>- Tìm kiếm nhà hàng và món ăn.<br>- Duyệt món theo danh mục (Burger, Pizza, Coffee, Healthy...).<br>- Theo dõi Flash Sale (giảm giá giờ vàng) với đồng hồ đếm ngược.<br>- Xem danh sách nhà hàng phổ biến gần đây. |
-| **Giỏ hàng (Cart)** | - Quản lý danh sách món ăn đã chọn.<br>- Cập nhật số lượng, xóa món.<br>- Tính toán tổng tiền, phí giao hàng và giảm giá. |
-| **Tìm kiếm (Search)** | - Tìm kiếm nâng cao với bộ lọc theo đánh giá, khoảng cách và giá. |
+| **Đăng nhập nhà hàng** | Đăng nhập role `SHOP_OWNER`, khôi phục session, tải restaurant sở hữu và retry khi dữ liệu restaurant tạm thời không tải được. |
+| **Đăng nhập admin** | Đăng nhập role `ADMIN` qua portal riêng. |
+| **Đăng nhập/đăng ký khách hàng** | Đăng nhập role `USER`; đăng ký qua Auth → User handoff, xác minh email ở `/verify-email`. |
+| **Session recovery** | Refresh access token single-flight; lỗi mạng/5xx có thể retry, session chỉ bị xóa khi refresh/authentication thất bại. |
 
----
+## 2. Portal nhà hàng (`SHOP_OWNER`)
 
-## 2. Phân hệ Nhà hàng (Restaurant / Merchant Module)
-Phân hệ dành cho chủ cửa hàng quản lý hoạt động kinh doanh.
-
-| Màn hình | Chức năng chính |
+| Route | Chức năng |
 | :--- | :--- |
-| **Bảng điều khiển (Dashboard)** | - Xem thống kê nhanh: Đơn hàng chờ, Doanh thu trong ngày, Tổng đơn.<br>- Quản lý trạng thái đóng/mở cửa của nhà hàng.<br>- Theo dõi nhanh các đơn hàng mới nhất. |
-| **Quản lý Đơn hàng (Orders)** | - Tiếp nhận và xử lý đơn hàng theo quy trình: Chờ xác nhận -> Đang chuẩn bị -> Sẵn sàng -> Đang giao -> Đã giao.<br>- Xem chi tiết đơn hàng (Món ăn, thông tin khách hàng, ghi chú, địa chỉ).<br>- Hủy đơn hàng kèm lý do. |
-| **Quản lý Thực đơn (Menu)** | - Thêm món ăn mới (Tên, mô tả, giá, hình ảnh).<br>- Chỉnh sửa hoặc xóa món ăn.<br>- Cập nhật trạng thái món ăn (Còn hàng / Hết hàng).<br>- Phân loại món ăn theo danh mục. |
-| **Hồ sơ Nhà hàng (Profile)** | - Cập nhật thông tin cơ bản: Tên, số điện thoại, mô tả.<br>- Quản lý địa chỉ và vị trí trên bản đồ.<br>- Thiết lập giờ mở cửa/đóng cửa chi tiết cho từng ngày trong tuần. |
+| `/restaurant/dashboard` | Entry point và các shortcut tới nghiệp vụ MVP. Analytics/revenue dashboard chưa mở. |
+| `/restaurant/orders` | Xem đơn phân trang, lọc local theo trạng thái, confirm/reject đơn pending và retry sau lỗi. |
+| `/restaurant/menu` | Tải, tìm kiếm, tạo, sửa và xóa món ăn theo restaurant ownership. |
+| `/restaurant/profile` | Xem/cập nhật thông tin nhà hàng, địa chỉ, tọa độ, giờ mở cửa và ảnh. |
+| `/restaurant/reviews` | Xem các rating đã được admin duyệt. |
 
----
+Desktop dùng sidebar; mobile/tablet dùng navigation drawer. Các action chính
+vẫn truy cập được dưới breakpoint desktop.
 
-## 3. Phân hệ Livestream (Livestream Module)
-Tính năng hỗ trợ bán hàng trực tiếp (Social Commerce).
+## 3. Portal admin (`ADMIN`)
 
-| Màn hình | Chức năng chính |
+| Route | Chức năng |
 | :--- | :--- |
-| **Phát Livestream (Host Page)** | - Tạo phòng livestream với tiêu đề và mô tả.<br>- Xem trước camera và kiểm tra âm thanh.<br>- Bắt đầu và kết thúc phát sóng (Sử dụng Agora RTC). |
-| **Quản lý Livestream** | - Danh sách tất cả các phiên live (Đã tạo, Đang phát, Đã kết thúc).<br>- Xem thống kê thời lượng và thời gian phát sóng.<br>- Truy cập nhanh vào các phòng đang hoạt động. |
-| **Xem Livestream (Viewer)** | - Xem video livestream của nhà hàng theo thời gian thực.<br>- Xem số lượng người đang xem trực tuyến.<br>- Tương tác (Join/Leave) phiên livestream. hêm và ghim sản phẩm: Host có thể chọn món ăn từ thực đơn để hiển thị cho người xem.
-Chat thời gian thực: Tích hợp khung chat real-time trong phòng live.
-Tương tác: Thêm nút thả tim và các hiệu ứng tương tác cho người xem. |
- 
----
+| `/admin/dashboard` | KPI, xu hướng đơn/GMV, phân bổ trạng thái, top nhà hàng và shortcut nghiệp vụ; dữ liệu đọc qua analytics Gateway contract. |
+| `/admin/orders` | Xem/phân trang/lọc đơn toàn hệ thống. |
+| `/admin/shippers` | Xem danh sách shipper, filter online/offline và tìm kiếm local. |
+| `/admin/ratings` | Moderation rating: approve/reject, retry được khi backend lỗi. |
+| `/admin/coupons` | Tạo/xóa platform coupon, kiểm tra time window và scope. |
+| `/admin/flash-sales` | Tạo campaign, đổi trạng thái, xem item và approve item. |
 
-## 4. Phân hệ Quản trị (Admin Module)
-Dành cho người quản lý hệ thống (Super Admin).
+Các trang read phân biệt loading, empty, error và retry; mutation khóa submit
+trùng trong lúc request đang chạy.
 
-| Màn hình | Chức năng chính |
+## 4. Technical system handbook surface
+
+| Route | Quyền | Chức năng |
+| :--- | :--- | :--- |
+| `/system-overview` | Public, read-only | Flow-first handbook: chọn workflow, xem swimlane happy/failure path, mở inspector cho từng actor/service/API/event/state và xem architecture overlay theo flow. Không chứa business action hoặc portal navigation. |
+
+Handbook dùng 5 khu vực chính: Tổng quan, Flow Explorer, Architecture, Services &
+Contracts và Operations. Các route cũ dưới `/system-overview/*` vẫn được giữ để
+deep link tương thích; capability/actor/API được mở như context liên kết trong
+workspace mới. Flow Explorer lưu workflow, step, mode, node, operation và event
+trong URL để có thể chia sẻ đúng màn hình đang đọc.
+
+Nội dung là snapshot được generate/check từ system docs và source-derived API
+contract; event/interaction mapping được kiểm tra integrity khi test. Handbook
+không gọi runtime backend, không có Try-it console và không hiển thị secrets,
+customer data hoặc internal route như public contract.
+
+## 5. Storefront khách hàng (`USER`)
+
+| Route | Chức năng |
 | :--- | :--- |
-| **Tổng quan Admin (Dashboard)** | - Thống kê toàn hệ thống: Tổng số nhà hàng, Người dùng, Doanh thu tổng.<br>- Theo dõi trạng thái hoạt động của các dịch vụ hệ thống. |
-| **Phê duyệt Nhà hàng** | - Xem danh sách nhà hàng mới đăng ký.<br>- Duyệt hoặc từ chối yêu cầu tham gia hệ thống. |
-| **Quản lý Danh mục (Categories)** | - Quản lý danh mục món ăn dùng chung cho toàn hệ thống. |
-| **Hỗ trợ & Chat (Support)** | - Tiếp nhận và phản hồi các yêu cầu hỗ trợ từ người dùng và nhà hàng. |
+| `/` và `/restaurants/:restaurantId` | Xem công khai danh sách nhà hàng, tìm kiếm và menu món đang bán. |
+| `/cart` | Giỏ hàng localStorage, chỉ chứa món của một nhà hàng, chỉnh số lượng và ghi chú. |
+| `/customer/addresses` | Tạo/sửa/xóa/đặt mặc định địa chỉ; lấy tọa độ bằng browser Geolocation hoặc nhập tay. |
+| `/customer/checkout` | Chọn địa chỉ, gọi checkout preview server, hiển thị quote và đặt COD bằng idempotency key. |
+| `/customer/orders` | Lịch sử đơn phân trang. |
+| `/customer/orders/:orderId` | Chi tiết món/tổng tiền, REST status refresh mỗi 10 giây khi tab visible và hủy trước pickup. |
 
----
+Customer catalog là public; checkout, address và order yêu cầu role `USER`.
+Tổng tiền hiển thị trong giỏ chỉ mang tính tham khảo; quote và order service là
+authority tài chính.
 
-## 5. Phân hệ Xác thực & Chat (Auth & Chat)
+## 6. Explicit exclusions
 
-| Màn hình / Thành phần | Chức năng chính |
-| :--- | :--- |
-| **Đăng nhập / Đăng ký** | - Đăng nhập dành cho người dùng và chủ cửa hàng.<br>- Đăng ký tài khoản mới.<br>- Đăng nhập nhanh qua Google / Facebook. |
-| **Đăng nhập Admin** | - Cổng đăng nhập riêng biệt đảm bảo bảo mật cho quản trị viên. |
-| **Widget Chat** | - Nút chat trôi nổi hỗ trợ khách hàng nhanh trên mọi trang.<br>- Nhắn tin trực tiếp giữa khách hàng và nhà hàng/hỗ trợ. |
+- User administration CRUD chưa có route canonical trong Web MVP.
+- Firebase/Chat, livestream, realtime shipper map, rating, reorder và notification.
+- Dashboard nhà hàng chi tiết, export lịch sử và financial reporting nâng cao chỉ
+  mở sau khi analytics ownership/backfill gates hoàn tất.
+- Online payment, settlement, withdrawal, refund UI và voucher/flash-sale
+  checkout activation.
+- Direct service ports, Internal-Token, gRPC, STOMP và SockJS.
+- Voucher/flash-sale checkout activation; các reservation/checkout capability
+  vẫn disabled theo product architecture.
+
+Mọi capability mới phải có Gateway route canonical, actor/ownership rule,
+typed response/error contract và focused proof trước khi đưa vào router.

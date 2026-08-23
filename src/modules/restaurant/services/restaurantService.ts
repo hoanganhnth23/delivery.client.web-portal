@@ -3,7 +3,7 @@
  * Xử lý tất cả API calls liên quan đến nhà hàng
  */
 
-import apiClient, { handleResponse } from '@/services/api/apiClient';
+import apiClient, { handleError, handleResponse } from '@/services/api/apiClient';
 import { API_ENDPOINTS } from '@/services/api/endpoints';
 import {
   optionalText,
@@ -109,11 +109,41 @@ export const updateRestaurant = async (id: number, data: CreateRestaurantRequest
 
 /**
  * Lấy danh sách nhà hàng của user hiện tại
- * Sử dụng X_USER_ID từ header (được set tự động bởi apiClient)
+ * Identity được backend derive từ Bearer token qua Gateway.
  */
 export const getMyRestaurants = async (): Promise<Restaurant[]> => {
   const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.GET_MY_RESTAURANTS);
   return requireArray(handleResponse(response), 'restaurants', parseRestaurant);
+};
+
+/** Public customer catalog. No identity or ownership is inferred in Web. */
+export const getAllRestaurants = async (): Promise<Restaurant[]> => {
+  try {
+    const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.GET_ALL);
+    return requireArray(handleResponse(response), 'restaurants', parseRestaurant);
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
+export const searchRestaurants = async (keyword: string): Promise<Restaurant[]> => {
+  try {
+    const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.SEARCH, {
+      params: { keyword },
+    });
+    return requireArray(handleResponse(response), 'restaurants', parseRestaurant);
+  } catch (error) {
+    throw handleError(error);
+  }
+};
+
+export const getRestaurantById = async (id: number): Promise<Restaurant> => {
+  try {
+    const response = await apiClient.get(API_ENDPOINTS.RESTAURANT.GET_BY_ID(id));
+    return parseRestaurant(handleResponse(response), 'restaurant');
+  } catch (error) {
+    throw handleError(error);
+  }
 };
 
 /**

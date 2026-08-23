@@ -1,91 +1,49 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
-import { USER_ROLES } from '@/utils/constants';
-import { buildUser } from '@/test/builders';
-import { createAuthFake, createTestDependencies } from '@/test/createTestDependencies';
+import { describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
+import { flowDataIntegrity, getFlow } from '@/modules/system-handbook/data/flowExplorerData';
 
-function adminDependencies() {
-  const admin = buildUser({ role: USER_ROLES.ADMIN, name: 'Admin Test' });
-  return createTestDependencies({
-    auth: createAuthFake({
-      isAuthenticated: vi.fn(() => true),
-      getCurrentUser: vi.fn(() => admin),
-      getProfile: vi.fn(async () => admin),
-    }),
-  });
-}
+describe('public system handbook flow explorer', () => {
+  it('renders the flow-first public handbook without authentication', async () => {
+    renderApp({ route: '/system-overview' });
 
-describe('admin system overview', () => {
-  it('keeps the architecture view Admin-only', async () => {
-    const owner = buildUser();
-    renderApp({
-      route: '/admin/system-overview',
-      dependencies: createTestDependencies({
-        auth: createAuthFake({
-          isAuthenticated: vi.fn(() => true),
-          getCurrentUser: vi.fn(() => owner),
-          getProfile: vi.fn(async () => owner),
-        }),
-      }),
-    });
-
-    expect(await screen.findByRole('heading', { name: 'Không có quyền truy cập' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Hiểu hệ thống qua một luồng liên kết' })).toBeInTheDocument();
+    expect(screen.getByText('Delivery System Handbook')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Mục lục handbook' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Flow Explorer/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Đăng xuất' })).not.toBeInTheDocument();
   });
 
-  it('renders the architecture map and exposes its Admin navigation entry', async () => {
-    renderApp({
-      route: '/admin/system-overview',
-      dependencies: adminDependencies(),
-    });
-
-    expect(await screen.findByRole('heading', { name: 'Hiểu hệ thống Delivery' })).toBeInTheDocument();
-    expect(screen.getByText('delivery_app')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /API Gateway/ })).toBeInTheDocument();
-    expect(screen.getByText('Kafka')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Kiến trúc hệ thống/ })).toHaveAttribute(
-      'href',
-      '/admin/system-overview',
-    );
-  });
-
-  it('filters map nodes and shows the selected service contract', async () => {
+  it('explores COD happy path, step inspector and failure branches', async () => {
     const user = userEvent.setup();
-    renderApp({
-      route: '/admin/system-overview',
-      dependencies: adminDependencies(),
-    });
+    renderApp({ route: '/system-overview/workflows/cod-order' });
 
-    await screen.findByRole('heading', { name: 'Hiểu hệ thống Delivery' });
-    await user.click(screen.getByRole('button', { name: 'Backend' }));
-    expect(screen.getByRole('button', { name: /order-service/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /delivery_app/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Flow Explorer' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'COD order → delivery' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Tạo order immutable/ }));
+    expect(screen.getAllByText('/api/orders').length).toBeGreaterThan(0);
+    expect(screen.getByText('order.created')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Failure & recovery' }));
+    expect(screen.getByText('Không tìm thấy shipper')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Không tìm thấy shipper/ }));
+    expect(screen.getAllByText('Candidates/retries exhausted hoặc deadline matching hết hạn.').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Giữ terminal reason SHIPPER_NOT_FOUND và phát refund-eligible snapshot.').length).toBeGreaterThan(0);
+  });
 
-    await user.click(screen.getByRole('button', { name: /order-service/ }));
+  it('supports deep links to service and API inspector context', async () => {
+    const serviceView = renderApp({ route: '/system-overview/services/order-service' });
+    expect(await screen.findByRole('heading', { name: 'Services & Contracts' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'order-service' })).toBeInTheDocument();
-    expect(screen.getByText('Immutable money/location snapshot')).toBeInTheDocument();
-    expect(screen.getByText('order_db + transactional outbox')).toBeInTheDocument();
+    serviceView.unmount();
+
+    renderApp({ route: '/system-overview/apis?operation=order-service:OrderController.createOrder:POST:/api/orders' });
+    expect(await screen.findByRole('heading', { name: 'Services & Contracts' })).toBeInTheDocument();
+    expect(screen.getAllByText('/api/orders').length).toBeGreaterThan(0);
   });
 
-  it('switches between the order flow and service catalog views', async () => {
-    const user = userEvent.setup();
-    renderApp({
-      route: '/admin/system-overview',
-      dependencies: adminDependencies(),
-    });
-
-    await screen.findByRole('heading', { name: 'Hiểu hệ thống Delivery' });
-    await user.click(screen.getByRole('tab', { name: 'Luồng đặt hàng' }));
-    expect(screen.getByRole('heading', { name: 'Từ đặt món đến đối soát COD' })).toBeInTheDocument();
-    expect(screen.getByText('Khách tạo đơn')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Nhà hàng xác nhận/ }));
-    expect(screen.getByRole('heading', { name: 'restaurant-service' })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('tab', { name: 'Service catalog' }));
-    expect(screen.getByRole('heading', { name: 'Service catalog' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Hidden/Off' }));
-    expect(screen.getByRole('button', { name: /promotion-service/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /order-service/ })).not.toBeInTheDocument();
+  it('keeps every flow reference linked to a known API/event/step', () => {
+    expect(flowDataIntegrity()).toEqual([]);
+    expect(getFlow('cod-order').steps).toHaveLength(10);
   });
 });

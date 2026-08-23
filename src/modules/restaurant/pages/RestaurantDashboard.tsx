@@ -9,6 +9,7 @@ const actions = [
   { label: 'Thực đơn', icon: 'menu_book', to: ROUTES.RESTAURANT_MENU },
   { label: 'Hồ sơ cửa hàng', icon: 'storefront', to: ROUTES.RESTAURANT_PROFILE },
   { label: 'Đánh giá', icon: 'reviews', to: ROUTES.RESTAURANT_REVIEWS },
+  { label: 'Import dữ liệu', icon: 'upload_file', to: ROUTES.RESTAURANT_CATALOG_IMPORT },
 ];
 
 const RestaurantDashboard = () => {

@@ -18,6 +18,11 @@ const AdminFlashSalePage = () => {
   const [showItemsModal, setShowItemsModal] = useState<number | null>(null);
   const [campaignItems, setCampaignItems] = useState<FlashSaleItem[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [itemsError, setItemsError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [statusMutationId, setStatusMutationId] = useState<number | null>(null);
+  const [approvingItemId, setApprovingItemId] = useState<number | null>(null);
   
   const [newCampaign, setNewCampaign] = useState({
     name: '',
@@ -28,10 +33,12 @@ const AdminFlashSalePage = () => {
 
   const loadCampaigns = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await flashSaleAdminService.getAllCampaigns();
       setCampaigns(data);
     } catch {
+      setError('Không thể tải danh sách Flash Sale');
       notifications.error('Lỗi khi tải danh sách Flash Sale');
     } finally {
       setLoading(false);
@@ -44,11 +51,14 @@ const AdminFlashSalePage = () => {
 
   const loadItems = async (campaignId: number) => {
     setItemsLoading(true);
+    setItemsError(null);
     setShowItemsModal(campaignId);
+    setCampaignItems([]);
     try {
       const data = await flashSaleAdminService.getCampaignItems(campaignId);
       setCampaignItems(data);
     } catch {
+      setItemsError('Không thể tải danh sách món ăn');
       notifications.error('Lỗi khi tải danh sách món ăn');
     } finally {
       setItemsLoading(false);
@@ -57,6 +67,13 @@ const AdminFlashSalePage = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
+    if (!newCampaign.name.trim() || !newCampaign.startTime || !newCampaign.endTime) {
+      notifications.error('Vui lòng nhập đủ thông tin chiến dịch');
+      return;
+    }
+
+    setCreating(true);
     try {
       // Backend expects proper time strings
       const payload = {
@@ -68,29 +85,39 @@ const AdminFlashSalePage = () => {
       await flashSaleAdminService.createCampaign(payload);
       notifications.success('Tạo chiến dịch thành công');
       setShowModal(false);
-      void loadCampaigns();
+      await loadCampaigns();
     } catch {
       notifications.error('Lỗi khi tạo chiến dịch');
+    } finally {
+      setCreating(false);
     }
   };
 
   const handleUpdateStatus = async (id: number, status: FlashSaleCampaignStatus) => {
+    if (statusMutationId !== null) return;
+    setStatusMutationId(id);
     try {
       await flashSaleAdminService.updateCampaignStatus(id, status);
       notifications.success(`Đã đổi trạng thái thành ${status}`);
-      void loadCampaigns();
+      await loadCampaigns();
     } catch {
       notifications.error('Lỗi khi đổi trạng thái');
+    } finally {
+      setStatusMutationId(null);
     }
   };
 
   const handleApproveItem = async (itemId: number) => {
+    if (approvingItemId !== null) return;
+    setApprovingItemId(itemId);
     try {
       await flashSaleAdminService.approveItem(itemId);
       notifications.success('Đã duyệt món ăn');
-      if (showItemsModal) void loadItems(showItemsModal);
+      if (showItemsModal) await loadItems(showItemsModal);
     } catch {
       notifications.error('Lỗi duyệt món ăn');
+    } finally {
+      setApprovingItemId(null);
     }
   };
 
@@ -110,6 +137,20 @@ const AdminFlashSalePage = () => {
         </button>
       </div>
 
+      {error && (
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300" role="alert">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void loadCampaigns()}
+            disabled={loading}
+            className="shrink-0 rounded-lg bg-red-700 px-3 py-2 font-semibold text-white disabled:opacity-50"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+
       <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-border-light dark:border-border-dark overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -124,6 +165,8 @@ const AdminFlashSalePage = () => {
           <tbody className="divide-y divide-border-light dark:divide-border-dark">
             {loading ? (
               <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-500">Đang tải...</td></tr>
+            ) : error && campaigns.length === 0 ? (
+              <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-500">Chưa có dữ liệu để hiển thị.</td></tr>
             ) : campaigns.length === 0 ? (
               <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-500">Chưa có chiến dịch Flash Sale nào</td></tr>
             ) : (
@@ -162,7 +205,9 @@ const AdminFlashSalePage = () => {
                       
                       {campaign.status === 'UPCOMING' && (
                         <button
-                          onClick={() => handleUpdateStatus(campaign.id, 'ACTIVE')}
+                          type="button"
+                          onClick={() => void handleUpdateStatus(campaign.id, 'ACTIVE')}
+                          disabled={statusMutationId !== null}
                           className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
                           title="Kích hoạt"
                         >
@@ -171,7 +216,9 @@ const AdminFlashSalePage = () => {
                       )}
                       {campaign.status === 'ACTIVE' && (
                         <button
-                          onClick={() => handleUpdateStatus(campaign.id, 'ENDED')}
+                          type="button"
+                          onClick={() => void handleUpdateStatus(campaign.id, 'ENDED')}
+                          disabled={statusMutationId !== null}
                           className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                           title="Kết thúc"
                         >
@@ -249,8 +296,8 @@ const AdminFlashSalePage = () => {
                 <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2 rounded-lg border border-gray-300 font-bold hover:bg-gray-50 transition-colors">
                   Hủy
                 </button>
-                <button type="submit" className="px-6 py-2 rounded-lg bg-primary text-white font-bold hover:bg-primary/90 transition-colors">
-                  Tạo
+                <button type="submit" disabled={creating} className="px-6 py-2 rounded-lg bg-primary text-white font-bold hover:bg-primary/90 transition-colors disabled:cursor-not-allowed disabled:opacity-50">
+                  {creating ? 'Đang tạo…' : 'Tạo'}
                 </button>
               </div>
             </form>
@@ -284,6 +331,15 @@ const AdminFlashSalePage = () => {
                 <tbody className="divide-y divide-border-light dark:divide-border-dark">
                   {itemsLoading ? (
                     <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">Đang tải...</td></tr>
+                  ) : itemsError ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-10 text-center text-red-600">
+                        <p>{itemsError}</p>
+                        <button type="button" onClick={() => void loadItems(showItemsModal)} className="mt-3 rounded-lg bg-primary px-3 py-2 font-semibold text-white">
+                          Thử lại
+                        </button>
+                      </td>
+                    </tr>
                   ) : campaignItems.length === 0 ? (
                     <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">Chưa có món ăn nào đăng ký</td></tr>
                   ) : (
@@ -315,8 +371,10 @@ const AdminFlashSalePage = () => {
                           {item.status === 'PENDING' && (
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleApproveItem(item.id)}
-                                className="px-2 py-1 text-xs font-bold bg-green-500 text-white rounded hover:bg-green-600"
+                                type="button"
+                                onClick={() => void handleApproveItem(item.id)}
+                                disabled={approvingItemId !== null}
+                                className="px-2 py-1 text-xs font-bold bg-green-500 text-white rounded hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 Duyệt
                               </button>

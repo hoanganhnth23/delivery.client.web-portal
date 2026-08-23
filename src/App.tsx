@@ -1,24 +1,9 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './modules/auth/hooks/useAuth';
 import { RestaurantProvider } from './modules/restaurant/hooks/useRestaurant';
 import { MenuProvider } from './modules/restaurant/hooks/useMenu';
 import { OrderProvider } from './modules/restaurant/hooks/useOrder';
-import LoginPage from './modules/auth/pages/LoginPageV2';
-import AdminLoginPage from './modules/auth/pages/AdminLoginPage';
-import RestaurantDashboard from './modules/restaurant/pages/RestaurantDashboard';
-import RestaurantProfilePage from './modules/restaurant/pages/RestaurantProfilePage';
-import RestaurantOrders from './modules/restaurant/pages/RestaurantOrders';
-import MenuManagement from './modules/restaurant/pages/MenuManagement';
-import RestaurantReviewsPage from './modules/restaurant/pages/RestaurantReviewsPage';
-import AdminDashboard from './modules/admin/pages/AdminDashboard';
-import AdminOrdersPage from './modules/admin/pages/AdminOrdersPage';
-import AdminShippersPage from './modules/admin/pages/AdminShippersPage';
-import AdminRatingsPage from './modules/admin/pages/AdminRatingsPage';
-import AdminCouponsPage from './modules/admin/pages/AdminCouponsPage';
-import AdminFlashSalePage from './modules/admin/pages/AdminFlashSalePage';
-import SystemOverviewPage from './modules/admin/pages/SystemOverviewPage';
-import UnauthorizedPage from './pages/UnauthorizedPage';
 import RoleRoute from './routes/RoleRoute';
 import { ROUTES, USER_ROLES } from './utils/constants';
 import {
@@ -26,83 +11,117 @@ import {
   type AppDependencies,
 } from './app/dependencies';
 
-const PortalEntry = () => {
-  const { user, loading } = useAuth();
+const LoginPage = lazy(() => import('./modules/auth/pages/LoginPageV2'));
+const AdminLoginPage = lazy(() => import('./modules/auth/pages/AdminLoginPage'));
+const RestaurantDashboard = lazy(() => import('./modules/restaurant/pages/RestaurantDashboard'));
+const RestaurantProfilePage = lazy(() => import('./modules/restaurant/pages/RestaurantProfilePage'));
+const RestaurantOrders = lazy(() => import('./modules/restaurant/pages/RestaurantOrders'));
+const MenuManagement = lazy(() => import('./modules/restaurant/pages/MenuManagement'));
+const RestaurantReviewsPage = lazy(() => import('./modules/restaurant/pages/RestaurantReviewsPage'));
+const RestaurantVouchersPage = lazy(() => import('./modules/restaurant/pages/RestaurantVouchersPage'));
+const AdminDashboard = lazy(() => import('./modules/admin/pages/AdminDashboard'));
+const AdminOrdersPage = lazy(() => import('./modules/admin/pages/AdminOrdersPage'));
+const AdminShippersPage = lazy(() => import('./modules/admin/pages/AdminShippersPage'));
+const AdminRatingsPage = lazy(() => import('./modules/admin/pages/AdminRatingsPage'));
+const AdminCouponsPage = lazy(() => import('./modules/admin/pages/AdminCouponsPage'));
+const AdminFlashSalePage = lazy(() => import('./modules/admin/pages/AdminFlashSalePage'));
+const CatalogImportPage = lazy(() => import('./modules/restaurant/pages/CatalogImportPage'));
+const UnauthorizedPage = lazy(() => import('./pages/UnauthorizedPage'));
+const SystemHandbookPage = lazy(() => import('./modules/system-handbook/pages/SystemHandbookPage'));
+const CustomerHomePage = lazy(() => import('./modules/customer/pages/CustomerHomePage'));
+const CustomerRestaurantPage = lazy(() => import('./modules/customer/pages/CustomerRestaurantPage'));
+const CustomerCartPage = lazy(() => import('./modules/customer/pages/CustomerCartPage'));
+const CustomerLoginPage = lazy(() => import('./modules/customer/pages/CustomerLoginPage'));
+const CustomerRegisterPage = lazy(() => import('./modules/customer/pages/CustomerRegisterPage'));
+const VerifyEmailPage = lazy(() => import('./modules/customer/pages/VerifyEmailPage'));
+const CustomerAddressesPage = lazy(() => import('./modules/customer/pages/CustomerAddressesPage'));
+const CustomerCheckoutPage = lazy(() => import('./modules/customer/pages/CustomerCheckoutPage'));
+const CustomerOrdersPage = lazy(() => import('./modules/customer/pages/CustomerOrdersPage'));
+const CustomerOrderDetailPage = lazy(() => import('./modules/customer/pages/CustomerOrderDetailPage'));
 
-  if (loading) {
-    return <div className="p-8 text-center text-gray-500">Đang tải cổng quản trị…</div>;
+const PortalEntry = () => {
+  const { user, loading, error, retrySession } = useAuth();
+
+  if (loading) return <div className="p-8 text-center text-gray-500">Đang tải cổng quản trị…</div>;
+  if (error && !user) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background-light px-4 dark:bg-background-dark">
+        <section className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-6 text-center shadow-sm dark:border-red-900 dark:bg-surface-dark">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Không thể khôi phục phiên</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{error}</p>
+          <button type="button" onClick={() => void retrySession()} className="mt-5 rounded-lg bg-primary px-4 py-2 font-semibold text-white">Thử lại</button>
+        </section>
+      </main>
+    );
   }
-  if (user?.role === USER_ROLES.ADMIN) {
-    return <Navigate to={ROUTES.ADMIN_DASHBOARD} replace />;
-  }
-  if (user?.role === USER_ROLES.RESTAURANT_OWNER) {
-    return <Navigate to={ROUTES.RESTAURANT_DASHBOARD} replace />;
-  }
-  return <Navigate to={ROUTES.LOGIN} replace />;
+  if (user?.role === USER_ROLES.ADMIN) return <Navigate to={ROUTES.ADMIN_DASHBOARD} replace />;
+  if (user?.role === USER_ROLES.RESTAURANT_OWNER) return <Navigate to={ROUTES.RESTAURANT_DASHBOARD} replace />;
+  return <CustomerHomePage />;
 };
 
-const restaurantRoute = (element: ReactNode) => (
-  <RoleRoute allowedRoles={[USER_ROLES.RESTAURANT_OWNER]}>{element}</RoleRoute>
-);
+const restaurantRoute = (element: ReactNode) => <RoleRoute allowedRoles={[USER_ROLES.RESTAURANT_OWNER]}>{element}</RoleRoute>;
+const adminRoute = (element: ReactNode) => <RoleRoute allowedRoles={[USER_ROLES.ADMIN]} loginPath={ROUTES.ADMIN_LOGIN}>{element}</RoleRoute>;
+const customerRoute = (element: ReactNode) => <RoleRoute allowedRoles={[USER_ROLES.USER]} loginPath={ROUTES.CUSTOMER_LOGIN}>{element}</RoleRoute>;
 
-const adminRoute = (element: ReactNode) => (
-  <RoleRoute allowedRoles={[USER_ROLES.ADMIN]} loginPath={ROUTES.ADMIN_LOGIN}>
-    {element}
-  </RoleRoute>
-);
+const RouteFallback = () => <div className="loading-container" role="status" aria-live="polite"><div className="spinner" /><p>Đang tải trang…</p></div>;
+
+function PortalRoutes() {
+  return (
+    <AuthProvider>
+      <Suspense fallback={<RouteFallback />}>
+        <RestaurantProvider>
+          <MenuProvider>
+            <OrderProvider>
+              <Routes>
+                <Route path={ROUTES.HOME} element={<PortalEntry />} />
+                <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+                <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
+                <Route path={ROUTES.CUSTOMER_LOGIN} element={<CustomerLoginPage />} />
+                <Route path={ROUTES.CUSTOMER_REGISTER} element={<CustomerRegisterPage />} />
+                <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
+                <Route path={ROUTES.CUSTOMER_RESTAURANTS} element={<CustomerHomePage />} />
+                <Route path={`${ROUTES.CUSTOMER_RESTAURANTS}/:restaurantId`} element={<CustomerRestaurantPage />} />
+                <Route path={ROUTES.CUSTOMER_CART} element={<CustomerCartPage />} />
+                <Route path={ROUTES.CUSTOMER_CHECKOUT} element={customerRoute(<CustomerCheckoutPage />)} />
+                <Route path={ROUTES.CUSTOMER_ADDRESSES} element={customerRoute(<CustomerAddressesPage />)} />
+                <Route path={ROUTES.CUSTOMER_ORDERS} element={customerRoute(<CustomerOrdersPage />)} />
+                <Route path="/customer/orders/:orderId" element={customerRoute(<CustomerOrderDetailPage />)} />
+                <Route path={ROUTES.RESTAURANT_DASHBOARD} element={restaurantRoute(<RestaurantDashboard />)} />
+                <Route path={ROUTES.RESTAURANT_PROFILE} element={restaurantRoute(<RestaurantProfilePage />)} />
+                <Route path={ROUTES.RESTAURANT_MENU} element={restaurantRoute(<MenuManagement />)} />
+                <Route path={ROUTES.RESTAURANT_ORDERS} element={restaurantRoute(<RestaurantOrders />)} />
+                <Route path={ROUTES.RESTAURANT_REVIEWS} element={restaurantRoute(<RestaurantReviewsPage />)} />
+                <Route path={ROUTES.RESTAURANT_VOUCHERS} element={restaurantRoute(<RestaurantVouchersPage />)} />
+                <Route path={ROUTES.RESTAURANT_CATALOG_IMPORT} element={restaurantRoute(<CatalogImportPage portal="restaurant" />)} />
+                <Route path={ROUTES.ADMIN_DASHBOARD} element={adminRoute(<AdminDashboard />)} />
+                <Route path={ROUTES.ADMIN_ORDERS} element={adminRoute(<AdminOrdersPage />)} />
+                <Route path={ROUTES.ADMIN_SHIPPERS} element={adminRoute(<AdminShippersPage />)} />
+                <Route path={ROUTES.ADMIN_RATINGS} element={adminRoute(<AdminRatingsPage />)} />
+                <Route path={ROUTES.ADMIN_COUPONS} element={adminRoute(<AdminCouponsPage />)} />
+                <Route path={ROUTES.ADMIN_FLASH_SALES} element={adminRoute(<AdminFlashSalePage />)} />
+                <Route path={ROUTES.ADMIN_CATALOG_IMPORT} element={adminRoute(<CatalogImportPage portal="admin" />)} />
+                <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
+                <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+              </Routes>
+            </OrderProvider>
+          </MenuProvider>
+        </RestaurantProvider>
+      </Suspense>
+    </AuthProvider>
+  );
+}
+
+function PublicHandbookRoutes() {
+  return <Suspense fallback={<RouteFallback />}><Routes><Route path={`${ROUTES.SYSTEM_OVERVIEW}/*`} element={<SystemHandbookPage />} /></Routes></Suspense>;
+}
 
 interface AppProps {
   dependencies?: AppDependencies;
 }
 
 export default function App({ dependencies }: AppProps) {
-  return (
-    <AppDependenciesProvider dependencies={dependencies}>
-      <AuthProvider>
-        <RestaurantProvider>
-          <MenuProvider>
-            <OrderProvider>
-              <Routes>
-              <Route path={ROUTES.HOME} element={<PortalEntry />} />
-              <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-              <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLoginPage />} />
+  const location = useLocation();
+  const isPublicHandbook = location.pathname === ROUTES.SYSTEM_OVERVIEW || location.pathname.startsWith(`${ROUTES.SYSTEM_OVERVIEW}/`);
 
-              <Route
-                path={ROUTES.RESTAURANT_DASHBOARD}
-                element={restaurantRoute(<RestaurantDashboard />)}
-              />
-              <Route
-                path={ROUTES.RESTAURANT_PROFILE}
-                element={restaurantRoute(<RestaurantProfilePage />)}
-              />
-              <Route
-                path={ROUTES.RESTAURANT_MENU}
-                element={restaurantRoute(<MenuManagement />)}
-              />
-              <Route
-                path={ROUTES.RESTAURANT_ORDERS}
-                element={restaurantRoute(<RestaurantOrders />)}
-              />
-              <Route
-                path={ROUTES.RESTAURANT_REVIEWS}
-                element={restaurantRoute(<RestaurantReviewsPage />)}
-              />
-
-              <Route path={ROUTES.ADMIN_DASHBOARD} element={adminRoute(<AdminDashboard />)} />
-              <Route path={ROUTES.ADMIN_SYSTEM_OVERVIEW} element={adminRoute(<SystemOverviewPage />)} />
-              <Route path={ROUTES.ADMIN_ORDERS} element={adminRoute(<AdminOrdersPage />)} />
-              <Route path={ROUTES.ADMIN_SHIPPERS} element={adminRoute(<AdminShippersPage />)} />
-              <Route path={ROUTES.ADMIN_RATINGS} element={adminRoute(<AdminRatingsPage />)} />
-              <Route path={ROUTES.ADMIN_COUPONS} element={adminRoute(<AdminCouponsPage />)} />
-              <Route path={ROUTES.ADMIN_FLASH_SALES} element={adminRoute(<AdminFlashSalePage />)} />
-
-              <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
-              <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
-              </Routes>
-            </OrderProvider>
-          </MenuProvider>
-        </RestaurantProvider>
-      </AuthProvider>
-    </AppDependenciesProvider>
-  );
+  return <AppDependenciesProvider dependencies={dependencies}>{isPublicHandbook ? <PublicHandbookRoutes /> : <PortalRoutes />}</AppDependenciesProvider>;
 }

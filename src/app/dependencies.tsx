@@ -3,36 +3,85 @@ import authService from '@/modules/auth/services/authService';
 import * as menuService from '@/modules/restaurant/services/menuService';
 import * as orderService from '@/modules/restaurant/services/orderService';
 import * as restaurantService from '@/modules/restaurant/services/restaurantService';
+import * as addressService from '@/services/api/addressService';
 import adminService from '@/services/api/adminService';
 import { flashSaleAdminService } from '@/services/api/flashSaleService';
+import * as promotionService from '@/services/api/promotionService';
 import TokenStorage from '@/services/storage/localStorage';
 import { toast } from 'react-hot-toast';
 
 export type AuthServicePort = Pick<
   typeof authService,
-  'getCurrentUser' | 'getProfile' | 'hasRole' | 'isAuthenticated' | 'login' | 'logout'
+  | 'getCurrentUser'
+  | 'getProfile'
+  | 'hasRole'
+  | 'hasStoredSession'
+  | 'isAuthenticated'
+  | 'login'
+  | 'registerCustomer'
+  | 'getRegistrationStatus'
+  | 'requestEmailVerification'
+  | 'confirmEmailVerification'
+  | 'logout'
+  | 'restoreSession'
 >;
 
 export type RestaurantServicePort = Pick<
   typeof restaurantService,
-  'createRestaurant' | 'getMyRestaurants' | 'getRestaurantRatings' | 'updateRestaurant'
+  | 'createRestaurant'
+  | 'getMyRestaurants'
+  | 'getRestaurantRatings'
+  | 'updateRestaurant'
+  | 'getAllRestaurants'
+  | 'searchRestaurants'
+  | 'getRestaurantById'
 >;
 
 export type MenuServicePort = Pick<
   typeof menuService,
-  'createMenuItem' | 'deleteMenuItem' | 'getMyMenuItems' | 'updateMenuItem'
+  | 'createMenuItem'
+  | 'deleteMenuItem'
+  | 'getMyMenuItems'
+  | 'getMenuItemsByRestaurant'
+  | 'updateMenuItem'
 >;
 
 export type OrderServicePort = Pick<
   typeof orderService,
-  'confirmOrder' | 'getMyOrders' | 'getOrderById' | 'rejectOrder'
+  | 'confirmOrder'
+  | 'checkoutPreview'
+  | 'createCustomerOrder'
+  | 'cancelOrder'
+  | 'getCustomerOrders'
+  | 'getMyOrders'
+  | 'getOrderById'
+  | 'rejectOrder'
+>;
+
+export type PromotionServicePort = Pick<typeof promotionService,
+  'getMyVouchers' | 'getVoucherCapability' | 'collectVoucher' |
+  'createShopVoucher' | 'listShopVouchers'>;
+
+export type AddressServicePort = Pick<
+  typeof addressService,
+  | 'getUserAddresses'
+  | 'createAddress'
+  | 'updateAddress'
+  | 'deleteAddress'
+  | 'setDefaultAddress'
 >;
 
 export type AdminServicePort = Pick<
   typeof adminService,
   | 'createCoupon'
   | 'deleteCoupon'
+  | 'fetchPendingShopCoupons'
+  | 'approveShopCoupon'
+  | 'rejectShopCoupon'
+  | 'pauseCoupon'
+  | 'resumeCoupon'
   | 'fetchAllCoupons'
+  | 'fetchAdminDashboard'
   | 'fetchAllOrders'
   | 'fetchAllRatings'
   | 'fetchAllShippers'
@@ -76,6 +125,8 @@ export interface AppDependencies {
   restaurant: RestaurantServicePort;
   menu: MenuServicePort;
   order: OrderServicePort;
+  promotion: PromotionServicePort;
+  address: AddressServicePort;
   admin: AdminServicePort;
   flashSaleAdmin: FlashSaleAdminServicePort;
   notifications: NotificationPort;
@@ -89,6 +140,8 @@ export const productionDependencies: AppDependencies = {
   restaurant: restaurantService,
   menu: menuService,
   order: orderService,
+  promotion: promotionService,
+  address: addressService,
   admin: adminService,
   flashSaleAdmin: flashSaleAdminService,
   notifications: toast,

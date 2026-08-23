@@ -3,7 +3,7 @@
  * Xử lý tất cả API calls liên quan đến món ăn
  */
 
-import apiClient, { handleResponse } from '@/services/api/apiClient';
+import apiClient, { handleError, handleResponse } from '@/services/api/apiClient';
 import { API_ENDPOINTS } from '@/services/api/endpoints';
 import {
   optionalText,
@@ -74,9 +74,25 @@ export const deleteMenuItem = async (id: number): Promise<void> => {
 
 /**
  * Lấy danh sách món ăn của nhà hàng hiện tại
- * Sử dụng X_USER_ID từ header (được set tự động bởi apiClient)
+ * Identity/ownership được backend derive từ Bearer token qua Gateway.
  */
 export const getMyMenuItems = async (): Promise<MenuItem[]> => {
   const response = await apiClient.get(API_ENDPOINTS.MENU.GET_MY_MENU_ITEMS);
   return requireArray(handleResponse(response), 'menu items', parseMenuItem);
+};
+
+/** Public menu read for the customer storefront. */
+export const getMenuItemsByRestaurant = async (
+  restaurantId: number,
+  availableOnly = true,
+): Promise<MenuItem[]> => {
+  try {
+    const endpoint = availableOnly
+      ? API_ENDPOINTS.MENU.GET_AVAILABLE_BY_RESTAURANT(restaurantId)
+      : API_ENDPOINTS.MENU.GET_BY_RESTAURANT(restaurantId);
+    const response = await apiClient.get(endpoint);
+    return requireArray(handleResponse(response), 'menu items', parseMenuItem);
+  } catch (error) {
+    throw handleError(error);
+  }
 };

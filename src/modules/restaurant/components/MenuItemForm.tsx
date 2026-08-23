@@ -6,6 +6,8 @@
 import { useState } from 'react';
 import { useMenu } from '../hooks/useMenu';
 import type { MenuItem } from '@/types/api.types';
+import JsonFixtureImporter from '@/components/forms/JsonFixtureImporter';
+import { fixtureText, type JsonFixtureRecord } from '@/utils/jsonFixture';
 
 // ============================================
 // LOCAL TYPES
@@ -46,6 +48,18 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
   }));
 
   const [errors, setErrors] = useState<FormErrors>({});
+
+  const handleFixtureImport = (fixture: JsonFixtureRecord) => {
+    setFormData((previous) => ({
+      ...previous,
+      restaurantId: fixtureText(fixture, 'restaurantId', previous.restaurantId),
+      name: fixtureText(fixture, 'name', previous.name),
+      description: fixtureText(fixture, 'description', previous.description),
+      price: fixtureText(fixture, 'price', previous.price),
+      image: fixtureText(fixture, 'image', previous.image),
+    }));
+    setErrors({});
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -118,6 +132,11 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <JsonFixtureImporter
+        label="JSON fixture món ăn"
+        onImport={handleFixtureImport}
+      />
+
       {/* Restaurant ID (hidden nếu đã có) */}
       {!restaurantId && (
         <div>

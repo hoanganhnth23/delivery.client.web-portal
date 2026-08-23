@@ -29,7 +29,14 @@ const ORDER_STATUSES = [
 const RATING_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
 const REWARD_TYPES = ['FIXED', 'PERCENTAGE', 'FREESHIP'] as const;
 const VOUCHER_SCOPE_TYPES = ['ALL', 'SHOP'] as const;
-const VOUCHER_CREATOR_TYPES = ['PLATFORM'] as const;
+const VOUCHER_CREATOR_TYPES = ['PLATFORM', 'SHOP'] as const;
+const DASHBOARD_STATUS_TYPES = [
+  'DELIVERED',
+  'CANCELLED',
+  'PENDING',
+  'PROCESSING',
+  'SHIPPER_NOT_FOUND',
+] as const;
 
 export interface PageResponse<T> {
   items: T[];
@@ -64,6 +71,43 @@ export interface AdminShipper {
   rating: number | null;
   completedDeliveries: number;
   createdAt: string;
+}
+
+export interface AdminDashboardOverview {
+  totalOrders: number;
+  totalRevenue: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  pendingOrders: number;
+  processingOrders: number;
+  avgOrderValue: number;
+  deliveryRate: number;
+}
+
+export interface AdminDashboardTimeSeriesPoint {
+  label: string;
+  orderCount: number;
+  revenue: number;
+}
+
+export interface AdminDashboardStatusBreakdown {
+  status: string;
+  count: number;
+}
+
+export interface AdminDashboardTopRestaurant {
+  restaurantId: number;
+  restaurantName: string;
+  orderCount: number;
+  revenue: number;
+}
+
+export interface AdminDashboard {
+  overview: AdminDashboardOverview;
+  revenueTimeSeries: AdminDashboardTimeSeriesPoint[];
+  orderTimeSeries: AdminDashboardTimeSeriesPoint[];
+  statusBreakdown: AdminDashboardStatusBreakdown[];
+  topRestaurants: AdminDashboardTopRestaurant[];
 }
 
 const parseAdminOrder = (value: unknown, label: string): AdminOrder => {
@@ -101,6 +145,61 @@ const parseAdminShipper = (value: unknown, label: string): AdminShipper => {
       `${label}.completedDeliveries`,
     ),
     createdAt: requireTimestamp(shipper.createdAt, `${label}.createdAt`),
+  };
+};
+
+const parseDashboard = (value: unknown, label: string): AdminDashboard => {
+  const dashboard = requireRecord(value, label);
+  const overview = requireRecord(dashboard.overview, `${label}.overview`);
+  const parseOverview = (): AdminDashboardOverview => ({
+    totalOrders: requireInteger(overview.totalOrders, `${label}.overview.totalOrders`),
+    totalRevenue: requireNumber(overview.totalRevenue, `${label}.overview.totalRevenue`),
+    deliveredOrders: requireInteger(overview.deliveredOrders, `${label}.overview.deliveredOrders`),
+    cancelledOrders: requireInteger(overview.cancelledOrders, `${label}.overview.cancelledOrders`),
+    pendingOrders: requireInteger(overview.pendingOrders, `${label}.overview.pendingOrders`),
+    processingOrders: requireInteger(overview.processingOrders, `${label}.overview.processingOrders`),
+    avgOrderValue: requireNumber(overview.avgOrderValue, `${label}.overview.avgOrderValue`),
+    deliveryRate: requireNumber(overview.deliveryRate, `${label}.overview.deliveryRate`, 0),
+  });
+  const parseSeries = (raw: unknown, seriesLabel: string): AdminDashboardTimeSeriesPoint[] =>
+    requireArray(raw, seriesLabel, (item, itemLabel) => {
+      const point = requireRecord(item, itemLabel);
+      return {
+        label: requireString(point.label, `${itemLabel}.label`),
+        orderCount: requireInteger(point.orderCount, `${itemLabel}.orderCount`),
+        revenue: requireNumber(point.revenue, `${itemLabel}.revenue`),
+      };
+    });
+  const statusBreakdown = requireArray(
+    dashboard.statusBreakdown,
+    `${label}.statusBreakdown`,
+    (item, itemLabel) => {
+      const status = requireRecord(item, itemLabel);
+      return {
+        status: requireEnum(status.status, DASHBOARD_STATUS_TYPES, `${itemLabel}.status`),
+        count: requireInteger(status.count, `${itemLabel}.count`),
+      };
+    },
+  );
+  const topRestaurants = requireArray(
+    dashboard.topRestaurants,
+    `${label}.topRestaurants`,
+    (item, itemLabel) => {
+      const restaurant = requireRecord(item, itemLabel);
+      return {
+        restaurantId: requireInteger(restaurant.restaurantId, `${itemLabel}.restaurantId`, 1),
+        restaurantName: requireString(restaurant.restaurantName, `${itemLabel}.restaurantName`),
+        orderCount: requireInteger(restaurant.orderCount, `${itemLabel}.orderCount`),
+        revenue: requireNumber(restaurant.revenue, `${itemLabel}.revenue`),
+      };
+    },
+  );
+  return {
+    overview: parseOverview(),
+    revenueTimeSeries: parseSeries(dashboard.revenueTimeSeries, `${label}.revenueTimeSeries`),
+    orderTimeSeries: parseSeries(dashboard.orderTimeSeries, `${label}.orderTimeSeries`),
+    statusBreakdown,
+    topRestaurants,
   };
 };
 
@@ -147,10 +246,24 @@ const parseAdminCoupon = (value: unknown, label: string): AdminCoupon => {
     scopeType,
     scopeRefId,
     active: requireBoolean(coupon.active, `${label}.active`),
+    ...(typeof coupon.layer === 'string' ? { layer: coupon.layer } : {}),
+    ...(typeof coupon.fundingSource === 'string' ? { fundingSource: coupon.fundingSource } : {}),
+    ...(typeof coupon.approvalStatus === 'string' ? { approvalStatus: coupon.approvalStatus } : {}),
   };
 };
 
 class AdminService {
+  async fetchAdminDashboard(period: 'month' | 'quarter' | 'year' = 'month', year?: number): Promise<AdminDashboard> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.ANALYTICS.ADMIN_DASHBOARD, {
+        params: { period, ...(year ? { year } : {}) },
+      });
+      return parseDashboard(handleResponse(response), 'admin dashboard');
+    } catch (error) {
+      return handleError(error);
+    }
+  }
+
   /**
    * Fetch all orders
    */
@@ -264,6 +377,33 @@ class AdminService {
     }
   }
 
+  async fetchPendingShopCoupons(): Promise<AdminCoupon[]> {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.PROMOTION.ADMIN_PENDING_SHOP);
+      return requireArray(handleResponse(response), 'pending shop coupons', parseAdminCoupon);
+    } catch (error) { return handleError(error); }
+  }
+
+  async approveShopCoupon(id: number): Promise<AdminCoupon> {
+    try { return parseAdminCoupon(handleResponse(await apiClient.post(API_ENDPOINTS.PROMOTION.ADMIN_APPROVE(id))), 'approved coupon'); }
+    catch (error) { return handleError(error); }
+  }
+
+  async rejectShopCoupon(id: number, reason?: string): Promise<AdminCoupon> {
+    try { return parseAdminCoupon(handleResponse(await apiClient.post(API_ENDPOINTS.PROMOTION.ADMIN_REJECT(id), null, { params: reason ? { reason } : undefined })), 'rejected coupon'); }
+    catch (error) { return handleError(error); }
+  }
+
+  async pauseCoupon(id: number): Promise<AdminCoupon> {
+    try { return parseAdminCoupon(handleResponse(await apiClient.post(API_ENDPOINTS.PROMOTION.ADMIN_PAUSE(id))), 'paused coupon'); }
+    catch (error) { return handleError(error); }
+  }
+
+  async resumeCoupon(id: number): Promise<AdminCoupon> {
+    try { return parseAdminCoupon(handleResponse(await apiClient.post(API_ENDPOINTS.PROMOTION.ADMIN_RESUME(id))), 'resumed coupon'); }
+    catch (error) { return handleError(error); }
+  }
+
 }
 
 export interface AdminCoupon {
@@ -271,7 +411,7 @@ export interface AdminCoupon {
   code: string;
   name: string;
   description: string;
-  creatorType: 'PLATFORM';
+  creatorType: 'PLATFORM' | 'SHOP';
   rewardType: string;
   discountValue: number;
   maxDiscountValue: number | null;
@@ -283,6 +423,9 @@ export interface AdminCoupon {
   scopeType: 'ALL' | 'SHOP';
   scopeRefId: number | null;
   active: boolean;
+  layer?: string;
+  fundingSource?: string;
+  approvalStatus?: string;
 }
 
 export interface CreateAdminCouponRequest {

@@ -14,7 +14,11 @@
 export interface BaseResponse<T = unknown> {
   status: 1 | 0; // 1 = success, 0 = error
   data: T;
-  message: string;
+  message: string | null;
+  error?: {
+    code?: string;
+    details?: unknown;
+  } | null;
 }
 
 /**
@@ -114,6 +118,95 @@ export interface User {
   name: string;
   role: string;
   createdAt?: string;
+}
+
+export interface UserAddress {
+  id: number;
+  userId: number;
+  label: string;
+  recipientName: string;
+  phoneNumber: string;
+  addressLine: string;
+  ward: string;
+  district: string;
+  city: string;
+  postalCode?: string;
+  latitude?: number;
+  longitude?: number;
+  isDefault?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CheckoutPreviewItem {
+  menuItemId: number;
+  menuItemName: string;
+  imageUrl?: string;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+}
+
+export interface CheckoutPreview {
+  quoteId: string;
+  expiresAt: string;
+  restaurantId: number;
+  restaurantName: string;
+  items: CheckoutPreviewItem[];
+  subtotal: number;
+  shippingFee: number;
+  discountAmount: number;
+  totalPrice: number;
+  couponCode?: string;
+  couponMessage?: string;
+  voucherId?: number;
+  selectedVoucherIds?: number[];
+  selectionMode?: 'AUTO' | 'MANUAL';
+  itemDiscount?: number;
+  shippingDiscount?: number;
+  customerShippingFee?: number;
+  grossShippingFee?: number;
+  platformSubsidy?: number;
+  shopDiscount?: number;
+  appliedVouchers?: Array<{
+    voucherId: number;
+    code: string;
+    layer: string;
+    fundingSource: string;
+    discountBase: number;
+    discountAmount: number;
+  }>;
+  priceChanges: Array<{
+    menuItemId: number;
+    menuItemName: string;
+    oldPrice?: number;
+    newPrice: number;
+  }>;
+  unavailableItemIds: number[];
+}
+
+export interface CheckoutPreviewRequest {
+  restaurantId: number;
+  deliveryLat: number;
+  deliveryLng: number;
+  items: Array<{ menuItemId: number; quantity: number }>;
+  selectedVoucherIds?: number[];
+  selectionMode?: 'AUTO' | 'MANUAL';
+}
+
+export interface CreateCustomerOrderRequest {
+  quoteId: string;
+  restaurantId: number;
+  deliveryAddress: string;
+  deliveryLat: number;
+  deliveryLng: number;
+  customerName: string;
+  customerPhone: string;
+  paymentMethod: 'COD';
+  notes?: string;
+  voucherIds?: number[];
+  selectionMode?: 'AUTO' | 'MANUAL';
+  items: Array<{ menuItemId: number; quantity: number; notes?: string }>;
 }
 
 // ============================================

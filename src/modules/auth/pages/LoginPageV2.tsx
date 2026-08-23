@@ -25,6 +25,8 @@ const LoginPageV2 = () => {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<LoginErrors>({});
+  const [restaurantLoading, setRestaurantLoading] = useState(false);
+  const [restaurantLoadFailed, setRestaurantLoadFailed] = useState(false);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
@@ -58,11 +60,23 @@ const LoginPageV2 = () => {
         return;
       }
 
-      await getMyRestaurants();
-      navigate(ROUTES.RESTAURANT_DASHBOARD);
+      await loadRestaurantAndNavigate();
     } catch (error) {
       setErrors({ general: (error as Error).message || 'Login failed' });
     }
+  };
+
+  const loadRestaurantAndNavigate = async () => {
+    setRestaurantLoading(true);
+    setRestaurantLoadFailed(false);
+    const result = await getMyRestaurants();
+    if (result.success) {
+      navigate(ROUTES.RESTAURANT_DASHBOARD);
+    } else {
+      setRestaurantLoadFailed(true);
+      setErrors({ general: result.message || 'Không thể tải nhà hàng của bạn' });
+    }
+    setRestaurantLoading(false);
   };
 
   return (
@@ -131,12 +145,23 @@ const LoginPageV2 = () => {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || restaurantLoading}
             className="w-full rounded-lg bg-[#f49d25] px-5 py-3 font-bold text-white transition hover:bg-[#e38b14] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
+            {loading ? 'Đang đăng nhập…' : restaurantLoading ? 'Đang tải nhà hàng…' : 'Đăng nhập'}
           </button>
         </form>
+
+        {restaurantLoadFailed && (
+          <button
+            type="button"
+            onClick={() => void loadRestaurantAndNavigate()}
+            disabled={restaurantLoading}
+            className="mt-4 w-full rounded-lg border border-[#f49d25] px-5 py-3 font-bold text-[#c97912] transition hover:bg-[#f49d25]/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {restaurantLoading ? 'Đang tải…' : 'Thử tải lại nhà hàng'}
+          </button>
+        )}
 
         <p className="mt-6 text-center text-sm text-[#9c7a49]">
           Quản trị viên?{' '}

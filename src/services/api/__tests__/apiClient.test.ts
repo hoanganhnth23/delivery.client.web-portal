@@ -7,6 +7,7 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 import {
   createApiClient,
+  getSessionLoginPath,
   type ApiSessionStore,
   type RefreshRequest,
 } from '../apiClient';
@@ -76,6 +77,11 @@ function refreshResponse(accessToken = 'new-access-token'): AxiosResponse {
 }
 
 describe('createApiClient session boundary', () => {
+  it('keeps expired-session redirects inside the active portal', () => {
+    expect(getSessionLoginPath('/admin/orders')).toBe('/admin/login');
+    expect(getSessionLoginPath('/restaurant/menu')).toBe('/login');
+  });
+
   it('refreshes once, rotates both tokens and retries with the new bearer', async () => {
     const sessionStore = createSessionStore();
     const refreshRequest = vi.fn<RefreshRequest>(async () => refreshResponse());

@@ -1,6 +1,7 @@
 export type SystemNodeKind = 'client' | 'edge' | 'service' | 'infrastructure';
 export type SystemNodeStatus = 'active' | 'hidden' | 'private' | 'test-only';
 export type SystemMapColumn = 'client' | 'edge' | 'service' | 'infrastructure';
+export type SystemConnectionKind = 'sync' | 'async' | 'storage' | 'external' | 'control';
 
 export interface SystemNode {
   id: string;
@@ -15,6 +16,15 @@ export interface SystemNode {
   dataStore?: string;
   status: SystemNodeStatus;
   mapColumn: SystemMapColumn;
+}
+
+export interface SystemConnection {
+  id: string;
+  source: string;
+  target: string;
+  label: string;
+  kind: SystemConnectionKind;
+  detail: string;
 }
 
 export interface OrderFlowStep {
@@ -499,6 +509,182 @@ export const SYSTEM_PRINCIPLES = [
     detail: 'State commit cùng outbox; consumer deduplicate, retry và fail closed khi replay mâu thuẫn.',
   },
 ];
+
+// Representative edges from docs/ARCHITECTURE.md. The page intentionally
+// shows contract boundaries, not a business workflow or every topic name.
+export const SYSTEM_CONNECTIONS: SystemConnection[] = [
+  {
+    id: 'customer-gateway-rest',
+    source: 'customer-app',
+    target: 'gateway',
+    label: 'HTTPS REST',
+    kind: 'sync',
+    detail: 'Bearer token qua public Gateway origin',
+  },
+  {
+    id: 'web-gateway-rest',
+    source: 'delivery-web',
+    target: 'gateway',
+    label: 'HTTPS REST',
+    kind: 'sync',
+    detail: 'Admin và restaurant portal dùng canonical Gateway contract',
+  },
+  {
+    id: 'shipper-gateway-rest',
+    source: 'shipper-app',
+    target: 'gateway',
+    label: 'REST + WS',
+    kind: 'sync',
+    detail: 'REST request và raw WebSocket location qua Gateway',
+  },
+  {
+    id: 'customer-mapbox',
+    source: 'customer-app',
+    target: 'mapbox',
+    label: 'Maps',
+    kind: 'external',
+    detail: 'Bản đồ và directions ở client',
+  },
+  {
+    id: 'shipper-mapbox',
+    source: 'shipper-app',
+    target: 'mapbox',
+    label: 'Maps',
+    kind: 'external',
+    detail: 'Bản đồ và directions ở client',
+  },
+  ...[
+    'auth-service',
+    'user-service',
+    'shipper-service',
+    'restaurant-service',
+    'order-service',
+    'delivery-service',
+    'tracking-service',
+    'notification-service',
+    'search-service',
+    'settlement-service',
+    'promotion-service',
+    'flashsale-service',
+  ].map((serviceId) => ({
+    id: `gateway-${serviceId}`,
+    source: 'gateway',
+    target: serviceId,
+    label: 'HTTP contract',
+    kind: 'sync' as const,
+    detail: 'Public route được allow-list theo path và method',
+  })),
+  ...[
+    'order-service',
+    'restaurant-service',
+    'delivery-service',
+    'tracking-service',
+  ].map((serviceId) => ({
+    id: `${serviceId}-kafka-producer`,
+    source: serviceId,
+    target: 'kafka',
+    label: 'Events / commands',
+    kind: 'async' as const,
+    detail: 'Transactional outbox và consumer receipt/dedup',
+  })),
+  ...[
+    'saga-service',
+    'match-service',
+    'notification-service',
+    'settlement-service',
+    'search-service',
+    'promotion-service',
+    'flashsale-service',
+    'analytics-service',
+  ].map((serviceId) => ({
+    id: `kafka-${serviceId}`,
+    source: 'kafka',
+    target: serviceId,
+    label: 'Async consumer',
+    kind: 'async' as const,
+    detail: 'Private event network; retry và DLT theo owner',
+  })),
+  ...[
+    'auth-service',
+    'user-service',
+    'restaurant-service',
+    'order-service',
+    'delivery-service',
+    'shipper-service',
+    'saga-service',
+    'settlement-service',
+    'notification-service',
+    'tracking-service',
+    'promotion-service',
+    'flashsale-service',
+    'analytics-service',
+    'livestream-service',
+  ].map((serviceId) => ({
+    id: `${serviceId}-postgresql`,
+    source: serviceId,
+    target: 'postgresql',
+    label: 'Owned state',
+    kind: 'storage' as const,
+    detail: 'Logical database/schema riêng của service',
+  })),
+  ...[
+    'gateway',
+    'restaurant-service',
+    'tracking-service',
+    'match-service',
+    'notification-service',
+  ].map((serviceId) => ({
+    id: `${serviceId}-redis`,
+    source: serviceId,
+    target: 'redis',
+    label: 'Cache / GEO',
+    kind: 'storage' as const,
+    detail: 'Rate limit, cache, GEO, lease, room hoặc Pub/Sub',
+  })),
+  {
+    id: 'search-elasticsearch',
+    source: 'search-service',
+    target: 'elasticsearch',
+    label: 'Projection',
+    kind: 'storage',
+    detail: 'Search projection cho nhà hàng và món ăn',
+  },
+  {
+    id: 'notification-fcm',
+    source: 'notification-service',
+    target: 'fcm',
+    label: 'Wake-up only',
+    kind: 'external',
+    detail: 'FCM best effort; inbox bền vững mới là source of truth',
+  },
+  {
+    id: 'config-gateway',
+    source: 'config-server',
+    target: 'gateway',
+    label: 'Bootstrap config',
+    kind: 'control',
+    detail: 'Versioned non-secret configuration trong private control plane',
+  },
+  {
+    id: 'config-auth',
+    source: 'config-server',
+    target: 'auth-service',
+    label: 'Bootstrap config',
+    kind: 'control',
+    detail: 'Versioned non-secret configuration trong private control plane',
+  },
+  {
+    id: 'eureka-gateway',
+    source: 'eureka',
+    target: 'gateway',
+    label: 'Discovery',
+    kind: 'control',
+    detail: 'Logical service names; không phải public edge',
+  },
+];
+
+export const getSystemConnections = (nodeId: string): SystemConnection[] =>
+  SYSTEM_CONNECTIONS.filter(({ source, target }) => source === nodeId || target === nodeId);
 
 export const getSystemNode = (nodeId: string): SystemNode =>
   SYSTEM_NODES.find((node) => node.id === nodeId) ?? SYSTEM_NODES[0];

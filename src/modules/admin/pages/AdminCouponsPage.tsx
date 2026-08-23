@@ -2,12 +2,17 @@ import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import type { AdminCoupon, CreateAdminCouponRequest } from '@/services/api/adminService';
 import { useAppDependencies } from '@/app/dependencies';
+import { formatDateTimeLocal, isValidDateTimeRange } from '@/utils/dateTime';
 
 const AdminCouponsPage = () => {
   const { admin: adminService, notifications, clock } = useAppDependencies();
   const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
+  const [pendingShopCoupons, setPendingShopCoupons] = useState<AdminCoupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [deletingCouponId, setDeletingCouponId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [newCoupon, setNewCoupon] = useState<CreateAdminCouponRequest>({
     code: '',
     name: '',
@@ -26,10 +31,16 @@ const AdminCouponsPage = () => {
 
   const loadCoupons = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await adminService.fetchAllCoupons();
+      const [data, pending] = await Promise.all([
+        adminService.fetchAllCoupons(),
+        adminService.fetchPendingShopCoupons(),
+      ]);
       setCoupons(data);
+      setPendingShopCoupons(pending);
     } catch {
+      setError('Không thể tải danh sách coupon');
       notifications.error('Lỗi khi tải danh sách coupon');
     } finally {
       setLoading(false);
@@ -45,33 +56,63 @@ const AdminCouponsPage = () => {
     const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
     setNewCoupon((current) => ({
       ...current,
-      startTime: start.toISOString().slice(0, 16),
-      endTime: end.toISOString().slice(0, 16),
+      startTime: formatDateTimeLocal(start),
+      endTime: formatDateTimeLocal(end),
     }));
     setShowModal(true);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (creating) return;
+    if (
+      !newCoupon.code.trim() ||
+      !newCoupon.name.trim() ||
+      newCoupon.discountValue < 0 ||
+      newCoupon.totalQuantity < 1 ||
+      newCoupon.minOrderValue < 0 ||
+      (newCoupon.scopeType === 'SHOP' && (!newCoupon.scopeRefId || newCoupon.scopeRefId < 1)) ||
+      !isValidDateTimeRange(newCoupon.startTime, newCoupon.endTime)
+    ) {
+      notifications.error('Vui lòng kiểm tra thông tin và thời gian coupon');
+      return;
+    }
+
+    setCreating(true);
     try {
       await adminService.createCoupon(newCoupon);
       notifications.success('Tạo coupon thành công');
       setShowModal(false);
-      void loadCoupons();
+      await loadCoupons();
     } catch {
       notifications.error('Lỗi khi tạo coupon');
+    } finally {
+      setCreating(false);
     }
   };
 
   const handleDelete = async (id: number) => {
+    if (deletingCouponId !== null) return;
     if (!confirm('Bạn có chắc muốn xóa coupon này?')) return;
+    setDeletingCouponId(id);
     try {
       await adminService.deleteCoupon(id);
       notifications.success('Đã xóa coupon');
-      void loadCoupons();
+      await loadCoupons();
     } catch {
       notifications.error('Lỗi khi xóa coupon');
+    } finally {
+      setDeletingCouponId(null);
     }
+  };
+
+  const reviewShopCoupon = async (id: number, action: 'approve' | 'reject') => {
+    try {
+      if (action === 'approve') await adminService.approveShopCoupon(id);
+      else await adminService.rejectShopCoupon(id);
+      notifications.success(action === 'approve' ? 'Đã duyệt voucher nhà hàng' : 'Đã từ chối voucher nhà hàng');
+      await loadCoupons();
+    } catch { notifications.error('Không thể cập nhật trạng thái voucher nhà hàng'); }
   };
 
   return (
@@ -90,6 +131,22 @@ const AdminCouponsPage = () => {
         </button>
       </div>
 
+      {error && (
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300" role="alert">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => void loadCoupons()}
+            disabled={loading}
+            className="shrink-0 rounded-lg bg-red-700 px-3 py-2 font-semibold text-white disabled:opacity-50"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+
+      {pendingShopCoupons.length > 0 && <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-900/20"><h2 className="font-bold text-amber-900 dark:text-amber-200">Voucher nhà hàng chờ duyệt</h2><div className="mt-3 space-y-2">{pendingShopCoupons.map((coupon) => <div key={coupon.id} className="flex items-center justify-between gap-3 rounded-lg bg-white p-3 dark:bg-surface-dark"><span><b>{coupon.code}</b> · {coupon.name} <small className="text-gray-500">SHOP #{coupon.scopeRefId}</small></span><span className="flex gap-2"><button type="button" onClick={() => void reviewShopCoupon(coupon.id, 'approve')} className="rounded-lg bg-green-600 px-3 py-1 text-xs font-bold text-white">Duyệt</button><button type="button" onClick={() => void reviewShopCoupon(coupon.id, 'reject')} className="rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white">Từ chối</button></span></div>)}</div></section>}
+
       <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-border-light dark:border-border-dark overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -105,6 +162,8 @@ const AdminCouponsPage = () => {
           <tbody className="divide-y divide-border-light dark:divide-border-dark">
             {loading ? (
               <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">Đang tải...</td></tr>
+            ) : error && coupons.length === 0 ? (
+              <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">Chưa có dữ liệu để hiển thị.</td></tr>
             ) : coupons.length === 0 ? (
               <tr><td colSpan={6} className="px-6 py-10 text-center text-gray-500">Chưa có mã giảm giá nào</td></tr>
             ) : (
@@ -140,9 +199,11 @@ const AdminCouponsPage = () => {
                   </td>
                   <td className="px-6 py-4">
                     <button
-                      onClick={() => handleDelete(coupon.id)}
+                      type="button"
+                      onClick={() => void handleDelete(coupon.id)}
+                      disabled={deletingCouponId !== null}
                       aria-label={`Xóa coupon ${coupon.code}`}
-                      className="text-red-500 hover:text-red-700 transition-colors"
+                      className="text-red-500 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <span className="material-symbols-outlined">delete</span>
                     </button>
@@ -292,9 +353,10 @@ const AdminCouponsPage = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-lg bg-primary text-white font-bold hover:bg-primary/90 transition-colors"
+                  disabled={creating}
+                  className="rounded-lg bg-primary px-6 py-2 font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Tạo Coupon
+                  {creating ? 'Đang tạo…' : 'Tạo Coupon'}
                 </button>
               </div>
             </form>

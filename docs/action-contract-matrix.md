@@ -1,10 +1,10 @@
 # Web Action-Contract Matrix
 
-> Canonical reference for the visible admin and restaurant-owner actions in the
-> MVP Web portal. The public boundary is the API Gateway; service ports and
-> client-only legacy routes are not contracts.
+> Canonical reference for the visible customer, admin and restaurant-owner
+> actions in the Web portal. The public boundary is the API Gateway; service
+> ports and client-only legacy routes are not contracts.
 
-Updated: 2026-08-01
+Updated: 2026-08-21
 
 ## Contract authorities
 
@@ -44,6 +44,26 @@ demonstrates the action or its failure/retry behavior.
 | AUTH-05 | Admin logout control | `ADMIN` | `POST /api/auth/logout` | Current `refreshToken` when present | Ignored/void; local session is always cleared | Network/API failure does not retain the local session; navigate to admin login | `src/components/layouts/AdminLayout.tsx`; `src/modules/auth/services/authService.ts`; `src/modules/auth/__tests__/auth-routing.test.tsx` |
 | AUTH-06 | Restaurant-owner logout control | `SHOP_OWNER` | `POST /api/auth/logout` | Current `refreshToken` when present | Ignored/void; local session is always cleared | Network/API failure does not retain the local session; navigate to owner login | `src/components/layout/RestaurantHeader.tsx`; `src/modules/auth/services/authService.ts`; `src/modules/auth/__tests__/auth-routing.test.tsx` |
 
+## Customer ordering actions
+
+| ID | Action/control | Actor | Canonical Gateway request | Request owner | Success `data` | Error behavior | Proof |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CUSTOMER-01 | Browse restaurant catalog | Anonymous or `USER` | `GET /api/restaurants` | No identity; server catalog owns restaurant facts | `Restaurant[]` | Loading, empty, invalid envelope and retry states are visible | `src/modules/customer/pages/CustomerHomePage.tsx`; `src/modules/restaurant/services/restaurantService.ts`; `src/modules/customer/__tests__/customer-ordering.test.tsx` |
+| CUSTOMER-02 | Search restaurants | Anonymous or `USER` | `GET /api/restaurants/search?keyword={keyword}` | Trimmed search keyword | `Restaurant[]` | Empty result is distinct from request failure | `src/modules/customer/pages/CustomerHomePage.tsx`; `src/modules/restaurant/services/restaurantService.ts` |
+| CUSTOMER-03 | Open restaurant menu | Anonymous or `USER` | `GET /api/restaurants/{id}` and `GET /api/menu-items/restaurant/{id}/available` | Restaurant ID from the public catalog | `Restaurant`, `MenuItem[]` | Invalid ID/API failure remains visible; no local menu fallback | `src/modules/customer/pages/CustomerRestaurantPage.tsx`; `src/modules/restaurant/services/menuService.ts` |
+| CUSTOMER-04 | Customer login | `USER` | `POST /api/auth/login` | `email`, `password`, `role=USER`, `deviceType=WEB`, stable browser device ID | `AuthResponse` | Wrong role or invalid credentials remains on the customer login page | `src/modules/customer/pages/CustomerLoginPage.tsx`; `src/modules/auth/services/authService.ts` |
+| CUSTOMER-05 | Customer registration | Anonymous | `POST /api/auth/register`, then `POST /api/users/registrations` | `role=USER`; short-lived provisioning token is used once and never stored | Registration/profile handoff result | Admission `503`, validation and interrupted handoff remain retryable; no false login | `src/modules/customer/pages/CustomerRegisterPage.tsx`; `src/modules/auth/services/authService.ts` |
+| CUSTOMER-06 | Confirm email | Anonymous | `POST /api/auth/email-verification/confirm` | Token from verification link query string | Void | Invalid/expired token remains visible with a login link | `src/modules/customer/pages/VerifyEmailPage.tsx`; `src/modules/auth/services/authService.ts` |
+| CUSTOMER-07 | Maintain local cart | Anonymous or `USER` | No HTTP request | One restaurant, quantity 1–99, versioned localStorage | Local `CustomerCart` | Malformed storage is discarded; changing restaurant requires explicit confirmation | `src/modules/customer/cart/cart.ts`; `src/modules/customer/__tests__/cart.test.ts` |
+| CUSTOMER-08 | List customer addresses | `USER` | `GET /api/addresses/users/{userId}/addresses` | Profile ID from authenticated `GET /api/users`; backend rechecks ownership | `UserAddress[]` | Loading/error/retry states are visible | `src/modules/customer/pages/CustomerAddressesPage.tsx`; `src/services/api/addressService.ts` |
+| CUSTOMER-09 | Create/update address | `USER` | `POST /api/addresses/users/{userId}/addresses` or `PUT /api/addresses/{id}` | Address fields plus Vietnam coordinates | `UserAddress` | Validation failure does not discard the form; coordinates are required for checkout | `src/modules/customer/pages/CustomerAddressesPage.tsx`; `src/services/api/addressService.ts` |
+| CUSTOMER-10 | Delete/default address | `USER` | `DELETE /api/addresses/{id}` or `PATCH /api/addresses/{id}/default` | Selected address ID; backend owns authorization | Void or `UserAddress` | Confirmation cancel makes no request; failure keeps the row/action retryable | `src/modules/customer/pages/CustomerAddressesPage.tsx`; `src/services/api/addressService.ts` |
+| CUSTOMER-11 | Checkout preview | `USER` | `POST /api/orders/checkout-preview` | Restaurant, item IDs/quantities and delivery coordinates; no client price authority | `CheckoutPreview` with quote, expiry and canonical totals | Quote/validation failure blocks create; price/unavailable changes are shown | `src/modules/customer/pages/CustomerCheckoutPage.tsx`; `src/modules/restaurant/services/orderService.ts` |
+| CUSTOMER-12 | Create COD order | `USER` | `POST /api/orders` with UUID `Idempotency-Key` | Quote ID, COD command and exact cart/address snapshot | `Order` | `PRICE_CHANGED` requires explicit recheck; ambiguous retry keeps the same key; no duplicate order | `src/modules/customer/pages/CustomerCheckoutPage.tsx`; `src/modules/customer/__tests__/customer-ordering.test.tsx` |
+| CUSTOMER-13 | Customer order history | `USER` | `GET /api/orders/my-orders?page={page}&size={size}` | Bounded page/size; ownership derives from JWT | `PageData<Order>` | Empty/error/retry/pagination states are explicit | `src/modules/customer/pages/CustomerOrdersPage.tsx`; `src/modules/restaurant/services/orderService.ts` |
+| CUSTOMER-14 | Order detail and REST status refresh | `USER` | `GET /api/orders/{id}`; poll active orders every 10 seconds while visible | Order ID; backend enforces participant ownership | `Order` | Poll stops for hidden/terminal orders; transient failures remain retryable | `src/modules/customer/pages/CustomerOrderDetailPage.tsx`; `src/modules/customer/orderStatus.ts` |
+| CUSTOMER-15 | Cancel pre-pickup order | `USER` | `PUT /api/orders/{id}/cancel` | Optional reason up to 500 characters | Updated `Order` | UI only offers pre-pickup statuses; backend remains final authority | `src/modules/customer/pages/CustomerOrderDetailPage.tsx`; `src/modules/restaurant/services/orderService.ts` |
+
 ## Restaurant-owner actions
 
 | ID | Action/control | Actor | Canonical Gateway request | Request owner | Success `data` | Error behavior | Proof |
@@ -59,6 +79,7 @@ demonstrates the action or its failure/retry behavior.
 | OWNER-09 | Confirm pending order | `SHOP_OWNER` | `POST /api/restaurants/orders/{orderId}/confirm` | `restaurantId`, `estimatedPrepTime` | Enum result `CONFIRMED` | Action is disabled while pending; failure leaves the order decision retryable; success reloads the page | `src/modules/restaurant/services/orderService.ts`; `src/modules/restaurant/pages/RestaurantOrders.tsx`; `src/modules/restaurant/__tests__/restaurant-orders.test.tsx` |
 | OWNER-10 | Reject pending order | `SHOP_OWNER` | `POST /api/restaurants/orders/{orderId}/reject` | `restaurantId`, trimmed non-empty `reason` | Enum result `REJECTED` | Missing reason does not call the API; failure leaves the decision retryable | `src/modules/restaurant/services/orderService.ts`; `src/modules/restaurant/pages/RestaurantOrders.tsx`; `src/modules/restaurant/__tests__/restaurant-orders.test.tsx` |
 | OWNER-11 | Load approved restaurant ratings | `SHOP_OWNER` | `GET /api/restaurants/{restaurantId}/ratings` | Owner-selected restaurant ID | `RestaurantRating[]` with `status=APPROVED` | Loading, empty and error states remain visible | `src/modules/restaurant/services/restaurantService.ts`; `src/modules/restaurant/pages/RestaurantReviewsPage.tsx`; `src/modules/restaurant/__tests__/secondary-routes.test.tsx` |
+| OWNER-12 | Import restaurant and menu catalog | `SHOP_OWNER` | `POST /api/restaurants`, `PUT /api/restaurants/{id}`, `POST /api/menu-items` or `PUT /api/menu-items/{id}` | Canonical create/update payloads; `restaurantKey` is resolved to the ID returned by the restaurant request | `Restaurant` and `MenuItem` per successful record | Preview/validation runs before requests; records run sequentially with restaurant-first ordering; no file-wide transaction or name/address matching; per-record failures remain visible | `src/modules/restaurant/import/catalogImport.ts`; `src/modules/restaurant/pages/CatalogImportPage.tsx`; `src/modules/restaurant/__tests__/catalog-import.test.ts` |
 
 ## Admin actions
 
@@ -79,6 +100,8 @@ demonstrates the action or its failure/retry behavior.
 | ADMIN-13 | Change flash-sale campaign status | `ADMIN` | `PUT /api/flashsales/admin/campaigns/{id}/status?status=ACTIVE or ENDED` | Campaign ID plus typed status query | Ignored/void | Failed transition is visible; UI does not claim the new status without success | `src/services/api/flashSaleService.ts`; `src/modules/admin/pages/AdminFlashSalePage.tsx`; `src/modules/admin/__tests__/admin-actions.test.tsx` |
 | ADMIN-14 | Load campaign items for review | `ADMIN` | `GET /api/flashsales/admin/campaigns/{id}/items` | Campaign ID selected by admin | `FlashSaleItem[]` | Loading, empty and error states are explicit | `src/services/api/flashSaleService.ts`; `src/modules/admin/pages/AdminFlashSalePage.tsx`; `src/modules/admin/__tests__/admin-actions.test.tsx` |
 | ADMIN-15 | Approve flash-sale item | `ADMIN` | `PUT /api/flashsales/admin/items/{id}/approve` | Item ID selected from the loaded campaign | Ignored/void | Failure remains visible/retryable; no local approval is assumed | `src/services/api/flashSaleService.ts`; `src/modules/admin/pages/AdminFlashSalePage.tsx`; `src/modules/admin/__tests__/admin-actions.test.tsx` |
+| ADMIN-16 | Import restaurant and menu catalog | `ADMIN` | `POST /api/restaurants`, `PUT /api/restaurants/{id}`, `POST /api/menu-items` or `PUT /api/menu-items/{id}` | Canonical create/update payloads; `restaurantKey` is resolved to the ID returned by the restaurant request | `Restaurant` and `MenuItem` per successful record | Preview/validation runs before requests; records run sequentially with restaurant-first ordering; no file-wide transaction or name/address matching; per-record failures remain visible | `src/modules/restaurant/import/catalogImport.ts`; `src/modules/restaurant/pages/CatalogImportPage.tsx`; `src/modules/restaurant/__tests__/catalog-import.test.ts` |
+| ADMIN-17 | Load platform analytics dashboard | `ADMIN` | `GET /api/analytics/dashboard/admin?period=month,quarter,year` | Period plus optional bounded year; scope derives from JWT | `AdminDashboard` with overview, time series, status breakdown and top restaurants | Invalid period/year, disabled projection, invalid envelope or HTTP failure remains visible with retry; client never fabricates metrics | `src/services/api/adminService.ts`; `src/modules/admin/pages/AdminDashboard.tsx`; `src/modules/admin/__tests__/admin-dashboard.test.tsx` |
 
 ## UI-only actions
 
@@ -98,9 +121,10 @@ into guessed endpoints:
 The following are intentionally not Web MVP actions and must remain absent from
 the visible router, navigation and production API calls:
 
-- Customer checkout, payment, settlement, withdrawal and refund actions.
+- Online payment, settlement, withdrawal and refund actions.
+- Browser realtime shipper map, rating, reorder and notification actions.
 - User administration CRUD not exposed by the current Web routes.
-- Firebase/Chat, livestream, analytics and tracking pages.
+- Firebase/Chat, livestream and tracking pages.
 - Direct service ports, `/api/api` paths, gRPC, STOMP and SockJS.
 - Voucher/flash-sale checkout activation; related checkout flags remain
   disabled/default `false`.

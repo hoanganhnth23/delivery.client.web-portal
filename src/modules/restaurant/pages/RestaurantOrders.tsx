@@ -160,8 +160,16 @@ const RestaurantOrders = () => {
 
             {/* Error State */}
             {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+              <div className="flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20" role="alert">
                 <p className="text-red-600 dark:text-red-400">{error}</p>
+                <button
+                  type="button"
+                  onClick={() => void getMyOrders(currentPage, 10)}
+                  disabled={loading}
+                  className="shrink-0 rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  Thử lại
+                </button>
               </div>
             )}
 

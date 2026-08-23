@@ -145,7 +145,7 @@ const MenuManagement = () => {
                   >
                     <div className="relative flex h-48 items-center justify-center overflow-hidden bg-gray-100 dark:bg-gray-800">
                       {item.image?.trim() ? (
-                        <img src={item.image} alt="" className="h-full w-full object-cover" />
+                        <img src={item.image} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
                       ) : (
                         <span className="material-symbols-outlined text-5xl text-gray-400">restaurant</span>
                       )}
