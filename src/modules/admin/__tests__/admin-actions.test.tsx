@@ -219,6 +219,25 @@ describe('admin read and moderation actions', () => {
 });
 
 describe('admin growth actions', () => {
+  it('keeps legacy voucher rows readable for recovery and audit', async () => {
+    const legacy = buildAdminCoupon({
+      code: 'LEGACY50',
+      creatorType: 'MERCHANT',
+      scopeType: 'CATEGORY',
+      scopeRefId: 12,
+    });
+    renderApp({
+      route: '/admin/coupons',
+      dependencies: adminDependencies({
+        admin: createAdminFake({
+          fetchAllCoupons: vi.fn(async () => [legacy]),
+        }),
+      }),
+    });
+
+    expect(await screen.findByText('LEGACY50')).toBeInTheDocument();
+  });
+
   it('creates and deletes coupons with a deterministic injected clock', async () => {
     const user = userEvent.setup();
     vi.spyOn(window, 'confirm').mockReturnValue(true);

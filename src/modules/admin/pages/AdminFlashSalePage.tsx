@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import {
   type FlashSaleCampaign,
@@ -23,6 +23,8 @@ const AdminFlashSalePage = () => {
   const [creating, setCreating] = useState(false);
   const [statusMutationId, setStatusMutationId] = useState<number | null>(null);
   const [approvingItemId, setApprovingItemId] = useState<number | null>(null);
+  const statusMutationRef = useRef<number | null>(null);
+  const approvingItemRef = useRef<number | null>(null);
   
   const [newCampaign, setNewCampaign] = useState({
     name: '',
@@ -94,7 +96,10 @@ const AdminFlashSalePage = () => {
   };
 
   const handleUpdateStatus = async (id: number, status: FlashSaleCampaignStatus) => {
-    if (statusMutationId !== null) return;
+    // State updates are committed after the event handler returns. A
+    // same-tick double click must therefore use a synchronous ref guard.
+    if (statusMutationRef.current !== null) return;
+    statusMutationRef.current = id;
     setStatusMutationId(id);
     try {
       await flashSaleAdminService.updateCampaignStatus(id, status);
@@ -103,12 +108,14 @@ const AdminFlashSalePage = () => {
     } catch {
       notifications.error('Lỗi khi đổi trạng thái');
     } finally {
+      statusMutationRef.current = null;
       setStatusMutationId(null);
     }
   };
 
   const handleApproveItem = async (itemId: number) => {
-    if (approvingItemId !== null) return;
+    if (approvingItemRef.current !== null) return;
+    approvingItemRef.current = itemId;
     setApprovingItemId(itemId);
     try {
       await flashSaleAdminService.approveItem(itemId);
@@ -117,6 +124,7 @@ const AdminFlashSalePage = () => {
     } catch {
       notifications.error('Lỗi duyệt món ăn');
     } finally {
+      approvingItemRef.current = null;
       setApprovingItemId(null);
     }
   };

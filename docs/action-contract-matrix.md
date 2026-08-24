@@ -4,7 +4,7 @@
 > actions in the Web portal. The public boundary is the API Gateway; service
 > ports and client-only legacy routes are not contracts.
 
-Updated: 2026-08-21
+Updated: 2026-08-23
 
 ## Contract authorities
 
@@ -43,6 +43,7 @@ demonstrates the action or its failure/retry behavior.
 | AUTH-04 | Single-flight access-token refresh | Authenticated `SHOP_OWNER` or `ADMIN` | `POST /api/auth/refresh-token` | Current `refreshToken`; store both returned tokens before retrying queued requests | `{ accessToken, refreshToken }` | Missing/invalid rotated pair expires the local session; the failed request is not retried indefinitely | `src/services/api/apiClient.ts`; `src/services/api/__tests__/apiClient.test.ts` |
 | AUTH-05 | Admin logout control | `ADMIN` | `POST /api/auth/logout` | Current `refreshToken` when present | Ignored/void; local session is always cleared | Network/API failure does not retain the local session; navigate to admin login | `src/components/layouts/AdminLayout.tsx`; `src/modules/auth/services/authService.ts`; `src/modules/auth/__tests__/auth-routing.test.tsx` |
 | AUTH-06 | Restaurant-owner logout control | `SHOP_OWNER` | `POST /api/auth/logout` | Current `refreshToken` when present | Ignored/void; local session is always cleared | Network/API failure does not retain the local session; navigate to owner login | `src/components/layout/RestaurantHeader.tsx`; `src/modules/auth/services/authService.ts`; `src/modules/auth/__tests__/auth-routing.test.tsx` |
+| AUTH-07 | Customer logout control | `USER` | `POST /api/auth/logout` | Current `refreshToken` when present | Ignored/void; local session is always cleared | Local customer session is cleared and public catalog remains accessible | `src/modules/customer/components/CustomerShell.tsx`; `e2e/web-journeys.spec.ts` |
 
 ## Customer ordering actions
 
@@ -80,6 +81,8 @@ demonstrates the action or its failure/retry behavior.
 | OWNER-10 | Reject pending order | `SHOP_OWNER` | `POST /api/restaurants/orders/{orderId}/reject` | `restaurantId`, trimmed non-empty `reason` | Enum result `REJECTED` | Missing reason does not call the API; failure leaves the decision retryable | `src/modules/restaurant/services/orderService.ts`; `src/modules/restaurant/pages/RestaurantOrders.tsx`; `src/modules/restaurant/__tests__/restaurant-orders.test.tsx` |
 | OWNER-11 | Load approved restaurant ratings | `SHOP_OWNER` | `GET /api/restaurants/{restaurantId}/ratings` | Owner-selected restaurant ID | `RestaurantRating[]` with `status=APPROVED` | Loading, empty and error states remain visible | `src/modules/restaurant/services/restaurantService.ts`; `src/modules/restaurant/pages/RestaurantReviewsPage.tsx`; `src/modules/restaurant/__tests__/secondary-routes.test.tsx` |
 | OWNER-12 | Import restaurant and menu catalog | `SHOP_OWNER` | `POST /api/restaurants`, `PUT /api/restaurants/{id}`, `POST /api/menu-items` or `PUT /api/menu-items/{id}` | Canonical create/update payloads; `restaurantKey` is resolved to the ID returned by the restaurant request | `Restaurant` and `MenuItem` per successful record | Preview/validation runs before requests; records run sequentially with restaurant-first ordering; no file-wide transaction or name/address matching; per-record failures remain visible | `src/modules/restaurant/import/catalogImport.ts`; `src/modules/restaurant/pages/CatalogImportPage.tsx`; `src/modules/restaurant/__tests__/catalog-import.test.ts` |
+| OWNER-13 | Load shop vouchers | `SHOP_OWNER` | `GET /api/promotions/shop` | Identity derives from the authenticated owner session | `CustomerVoucher[]` | Loading, empty and error states remain visible | `src/modules/restaurant/pages/RestaurantVouchersPage.tsx`; `e2e/web-journeys.spec.ts` |
+| OWNER-14 | Submit shop voucher for approval | `SHOP_OWNER` | `POST /api/promotions/shop` | Voucher fields plus current owned restaurant ID | `CustomerVoucher` with pending approval | Validation/API failure keeps the form retryable and does not claim approval | `src/modules/restaurant/pages/RestaurantVouchersPage.tsx`; `e2e/web-journeys.spec.ts` |
 
 ## Admin actions
 
@@ -102,6 +105,9 @@ demonstrates the action or its failure/retry behavior.
 | ADMIN-15 | Approve flash-sale item | `ADMIN` | `PUT /api/flashsales/admin/items/{id}/approve` | Item ID selected from the loaded campaign | Ignored/void | Failure remains visible/retryable; no local approval is assumed | `src/services/api/flashSaleService.ts`; `src/modules/admin/pages/AdminFlashSalePage.tsx`; `src/modules/admin/__tests__/admin-actions.test.tsx` |
 | ADMIN-16 | Import restaurant and menu catalog | `ADMIN` | `POST /api/restaurants`, `PUT /api/restaurants/{id}`, `POST /api/menu-items` or `PUT /api/menu-items/{id}` | Canonical create/update payloads; `restaurantKey` is resolved to the ID returned by the restaurant request | `Restaurant` and `MenuItem` per successful record | Preview/validation runs before requests; records run sequentially with restaurant-first ordering; no file-wide transaction or name/address matching; per-record failures remain visible | `src/modules/restaurant/import/catalogImport.ts`; `src/modules/restaurant/pages/CatalogImportPage.tsx`; `src/modules/restaurant/__tests__/catalog-import.test.ts` |
 | ADMIN-17 | Load platform analytics dashboard | `ADMIN` | `GET /api/analytics/dashboard/admin?period=month,quarter,year` | Period plus optional bounded year; scope derives from JWT | `AdminDashboard` with overview, time series, status breakdown and top restaurants | Invalid period/year, disabled projection, invalid envelope or HTTP failure remains visible with retry; client never fabricates metrics | `src/services/api/adminService.ts`; `src/modules/admin/pages/AdminDashboard.tsx`; `src/modules/admin/__tests__/admin-dashboard.test.tsx` |
+| ADMIN-18 | Load pending shop vouchers | `ADMIN` | `GET /api/promotions/admin/pending-shop` | No body; admin identity is authenticated | `AdminCoupon[]` pending shop vouchers | Loading, empty and error states are explicit | `src/modules/admin/pages/AdminCouponsPage.tsx`; `e2e/web-journeys.spec.ts` |
+| ADMIN-19 | Approve shop voucher | `ADMIN` | `PUT /api/promotions/admin/{id}/approve` | Pending voucher ID | Updated `AdminCoupon` | Failure remains visible/retryable; no optimistic approval | `src/modules/admin/pages/AdminCouponsPage.tsx`; `e2e/web-journeys.spec.ts` |
+| ADMIN-20 | Reject shop voucher | `ADMIN` | `PUT /api/promotions/admin/{id}/reject` | Pending voucher ID and optional reason | Updated `AdminCoupon` | Failure remains visible/retryable; no optimistic rejection | `src/modules/admin/pages/AdminCouponsPage.tsx`; `e2e/web-journeys.spec.ts` |
 
 ## UI-only actions
 

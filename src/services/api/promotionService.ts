@@ -1,6 +1,14 @@
 import apiClient, { handleError, handleResponse } from './apiClient';
 import { API_ENDPOINTS } from './endpoints';
-import { requireArray, requireBoolean, requireInteger, requireNumber, requireRecord, requireString } from './contract';
+import {
+  requireArray,
+  requireBoolean,
+  requireEnum,
+  requireInteger,
+  requireNumber,
+  requireRecord,
+  requireString,
+} from './contract';
 
 export interface CustomerVoucher {
   id: number;
@@ -29,23 +37,45 @@ export interface VoucherCapability {
   conflictsWithFlashSale: boolean;
 }
 
+const VOUCHER_CREATOR_TYPES = ['PLATFORM', 'SHOP'] as const;
+const VOUCHER_REWARD_TYPES = ['FIXED', 'PERCENTAGE', 'FREESHIP'] as const;
+const VOUCHER_SCOPE_TYPES = ['ALL', 'SHOP'] as const;
+const VOUCHER_LAYERS = ['SHOP_DISCOUNT', 'PLATFORM_DISCOUNT', 'FREESHIP'] as const;
+const FUNDING_SOURCES = ['SHOP', 'PLATFORM'] as const;
+
 const parseVoucher = (value: unknown, label: string): CustomerVoucher => {
   const item = requireRecord(value, label);
+  const creatorType = requireEnum(item.creatorType, VOUCHER_CREATOR_TYPES, `${label}.creatorType`);
+  const rewardType = requireEnum(item.rewardType, VOUCHER_REWARD_TYPES, `${label}.rewardType`);
+  const scopeType = requireEnum(item.scopeType, VOUCHER_SCOPE_TYPES, `${label}.scopeType`);
+  const scopeRefId = item.scopeRefId == null
+    ? null
+    : requireInteger(item.scopeRefId, `${label}.scopeRefId`, 1);
+  if ((scopeType === 'ALL' && scopeRefId !== null) || (scopeType === 'SHOP' && scopeRefId === null)) {
+    throw new Error(`${label} has an invalid voucher scope identity`);
+  }
+  const rawLayer = typeof item.layerCode === 'string'
+    ? item.layerCode
+    : typeof item.layer === 'string' ? item.layer : undefined;
+  const layer = rawLayer === undefined ? undefined : requireEnum(rawLayer, VOUCHER_LAYERS, `${label}.layerCode`);
+  const fundingSource = item.fundingSource === undefined
+    ? undefined
+    : requireEnum(item.fundingSource, FUNDING_SOURCES, `${label}.fundingSource`);
   return {
     id: requireInteger(item.id, `${label}.id`, 1),
     code: requireString(item.code, `${label}.code`),
     name: requireString(item.name, `${label}.name`),
     description: typeof item.description === 'string' ? item.description : '',
-    creatorType: item.creatorType === 'SHOP' ? 'SHOP' : 'PLATFORM',
-    rewardType: item.rewardType === 'PERCENTAGE' || item.rewardType === 'FREESHIP' ? item.rewardType : 'FIXED',
+    creatorType,
+    rewardType,
     discountValue: requireNumber(item.discountValue, `${label}.discountValue`),
     maxDiscountValue: item.maxDiscountValue == null ? null : requireNumber(item.maxDiscountValue, `${label}.maxDiscountValue`),
     minOrderValue: requireNumber(item.minOrderValue ?? 0, `${label}.minOrderValue`),
-    scopeType: item.scopeType === 'SHOP' ? 'SHOP' : 'ALL',
-    scopeRefId: item.scopeRefId == null ? null : requireInteger(item.scopeRefId, `${label}.scopeRefId`, 1),
+    scopeType,
+    scopeRefId,
     active: requireBoolean(item.active, `${label}.active`),
-    ...(typeof item.layer === 'string' ? { layer: item.layer as CustomerVoucher['layer'] } : {}),
-    ...(typeof item.fundingSource === 'string' ? { fundingSource: item.fundingSource as CustomerVoucher['fundingSource'] } : {}),
+    ...(layer ? { layer } : {}),
+    ...(fundingSource ? { fundingSource } : {}),
     ...(typeof item.approvalStatus === 'string' ? { approvalStatus: item.approvalStatus } : {}),
     ...(typeof item.endTime === 'string' ? { endTime: item.endTime } : {}),
   };

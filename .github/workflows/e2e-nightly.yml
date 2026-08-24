@@ -1,0 +1,59 @@
+name: Web E2E nightly
+
+on:
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-e2e:
+    name: real sandbox / browser smoke
+    # The backend repository is private and is deliberately fetched only with
+    # a read-only token configured by the repository owner. Scheduled runs are
+    # enabled explicitly with BACKEND_E2E_ENABLED=true instead of touching
+    # shared infrastructure by default.
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.BACKEND_E2E_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: hoanganhnth/delivery_backend
+          ref: main
+          token: ${{ secrets.BACKEND_REPO_TOKEN }}
+          path: backend_delivery
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Run mocked suite on all desktop browsers
+        env:
+          E2E_JSON_REPORT: test-results/all-browsers-e2e.json
+          E2E_HTML_REPORT: playwright-report-all-browsers
+        run: npm run test:e2e:all
+      - name: Run disposable real-backend smoke
+        env:
+          E2E_BACKEND_DIR: ${{ github.workspace }}/backend_delivery
+          E2E_JSON_REPORT: test-results/live-e2e.json
+          E2E_HTML_REPORT: playwright-report-live
+          SANDBOX_STARTUP_TIMEOUT_SECONDS: '1200'
+        run: npm run test:e2e:live
+      - name: Upload live E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-live-e2e-report
+          path: |
+            test-results/all-browsers-e2e.json
+            playwright-report-all-browsers/**
+            test-results/live-e2e.json
+            test-results/live-runtime-*.log
+            playwright-report-live/**
+          if-no-files-found: warn

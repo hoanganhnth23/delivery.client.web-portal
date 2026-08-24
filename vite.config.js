@@ -9,6 +9,14 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     clearMocks: true,
     restoreMocks: true,
+    // Playwright specs are executed by `test:e2e`, not by Vitest.
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/cypress/**',
+      '**/.{idea,git,cache,output,temp}/**',
+      'e2e/**',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text-summary', 'lcov'],

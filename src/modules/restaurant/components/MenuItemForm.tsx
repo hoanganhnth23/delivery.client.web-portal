@@ -3,7 +3,7 @@
  * Form để tạo mới hoặc chỉnh sửa món ăn
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMenu } from '../hooks/useMenu';
 import type { MenuItem } from '@/types/api.types';
 import JsonFixtureImporter from '@/components/forms/JsonFixtureImporter';
@@ -48,6 +48,7 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
   }));
 
   const [errors, setErrors] = useState<FormErrors>({});
+  const submittingRef = useRef(false);
 
   const handleFixtureImport = (fixture: JsonFixtureRecord) => {
     setFormData((previous) => ({
@@ -99,10 +100,17 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // A same-tick double click can arrive before React commits the loading
+    // state from the first request. Keep the mutation invariant synchronous
+    // so one user action cannot create two menu records.
+    if (submittingRef.current) return;
     
     if (!validateForm()) {
       return;
     }
+
+    submittingRef.current = true;
 
     try {
       // Convert price to number
@@ -127,6 +135,8 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
       }
     } catch {
       // The menu hook owns the user-visible mutation error state.
+    } finally {
+      submittingRef.current = false;
     }
   };
 

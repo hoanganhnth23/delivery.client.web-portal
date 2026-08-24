@@ -5,7 +5,9 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default [
-  { ignores: ['dist', 'coverage'] },
+  // Playwright writes bundled trace assets to these directories; they are
+  // generated artifacts, not application source that ESLint should inspect.
+  { ignores: ['dist', 'coverage', 'test-results', 'playwright-report'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {

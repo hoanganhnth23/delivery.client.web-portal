@@ -7,10 +7,10 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
     "docs/system/api/http-contract.json"
   ],
   "counts": {
-    "operations": 172,
-    "services": 15,
-    "contractSourceSchemas": 136,
-    "documentedServiceRows": 20,
+    "operations": 218,
+    "services": 16,
+    "contractSourceSchemas": 190,
+    "documentedServiceRows": 21,
     "productProjects": 0
   },
   "operations": [
@@ -246,6 +246,28 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "classification": "catalog"
     },
     {
+      "id": "delivery-service:DeliveryController.acceptBatch:POST:/api/deliveries/batch/accept",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "acceptBatch",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/deliveries/batch/accept",
+      "classification": "catalog"
+    },
+    {
+      "id": "delivery-service:DeliveryController.rejectBatch:POST:/api/deliveries/batch/reject",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "rejectBatch",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/deliveries/batch/reject",
+      "classification": "catalog"
+    },
+    {
       "id": "delivery-service:DeliveryController.cancelAssignedDelivery:POST:/api/deliveries/cancel-assignment",
       "service": "delivery-service",
       "controller": "DeliveryController",
@@ -265,6 +287,105 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
         "GET"
       ],
       "path": "/api/deliveries/offers/current",
+      "classification": "catalog"
+    },
+    {
+      "id": "delivery-service:DeliveryController.getCurrentBatchOffer:GET:/api/deliveries/offers/current-batch",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "getCurrentBatchOffer",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/deliveries/offers/current-batch",
+      "classification": "catalog"
+    },
+    {
+      "id": "delivery-service:DeliveryController.getBatchSnapshot:GET:/api/deliveries/batches/{batchId}",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "getBatchSnapshot",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/deliveries/batches/{batchId}",
+      "classification": "catalog"
+    },
+    {
+      "id": "delivery-service:DeliveryController.createProofUploadIntent:POST:/api/deliveries/{deliveryId}/proofs/upload-intent",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "createProofUploadIntent",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/deliveries/{deliveryId}/proofs/upload-intent",
+      "classification": "catalog"
+    },
+    {
+      "id": "delivery-service:DeliveryController.confirmProofUpload:POST:/api/deliveries/{deliveryId}/proofs/{proofId}/confirm",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "confirmProofUpload",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/deliveries/{deliveryId}/proofs/{proofId}/confirm",
+      "classification": "catalog"
+    },
+    {
+      "id": "delivery-service:DeliveryController.createProofReadAccess:GET:/api/deliveries/{deliveryId}/proofs/{proofId}/access",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "createProofReadAccess",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/deliveries/{deliveryId}/proofs/{proofId}/access",
+      "classification": "catalog"
+    },
+    {
+      "id": "delivery-service:DeliveryController.reportDeliveryFailure:POST:/api/deliveries/{deliveryId}/exceptions/failed",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "reportDeliveryFailure",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/deliveries/{deliveryId}/exceptions/failed",
+      "classification": "catalog"
+    },
+    {
+      "id": "delivery-service:DeliveryController.useDeliveryRetry:POST:/api/deliveries/{deliveryId}/exceptions/retry",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "useDeliveryRetry",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/deliveries/{deliveryId}/exceptions/retry",
+      "classification": "catalog"
+    },
+    {
+      "id": "delivery-service:DeliveryController.confirmDeliveryReturn:POST:/api/deliveries/{deliveryId}/exceptions/return/confirm",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "confirmDeliveryReturn",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/deliveries/{deliveryId}/exceptions/return/confirm",
+      "classification": "catalog"
+    },
+    {
+      "id": "delivery-service:DeliveryController.getDeliveryException:GET:/api/deliveries/{deliveryId}/exception",
+      "service": "delivery-service",
+      "controller": "DeliveryController",
+      "handler": "getDeliveryException",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/deliveries/{deliveryId}/exception",
       "classification": "catalog"
     },
     {
@@ -708,6 +829,28 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "classification": "catalog"
     },
     {
+      "id": "notification-service:NotificationController.getPreferences:GET:/api/notifications/preferences",
+      "service": "notification-service",
+      "controller": "NotificationController",
+      "handler": "getPreferences",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/notifications/preferences",
+      "classification": "catalog"
+    },
+    {
+      "id": "notification-service:NotificationController.updateMarketingPreference:PUT:/api/notifications/preferences/marketing",
+      "service": "notification-service",
+      "controller": "NotificationController",
+      "handler": "updateMarketingPreference",
+      "verbs": [
+        "PUT"
+      ],
+      "path": "/api/notifications/preferences/marketing",
+      "classification": "catalog"
+    },
+    {
       "id": "order-service:OrderController.checkoutPreview:POST:/api/orders/checkout-preview",
       "service": "order-service",
       "controller": "OrderController",
@@ -829,6 +972,28 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "classification": "gated"
     },
     {
+      "id": "promotion-service:PromotionController.capability:GET:/api/promotions/capability",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "capability",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/promotions/capability",
+      "classification": "gated"
+    },
+    {
+      "id": "promotion-service:PromotionController.createShopVoucher:POST:/api/promotions/shop",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "createShopVoucher",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/promotions/shop",
+      "classification": "gated"
+    },
+    {
       "id": "promotion-service:PromotionController.collectVoucher:POST:/api/promotions/collect/{code}",
       "service": "promotion-service",
       "controller": "PromotionController",
@@ -862,6 +1027,17 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "classification": "gated"
     },
     {
+      "id": "promotion-service:PromotionController.listShopVouchers:GET:/api/promotions/shop",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "listShopVouchers",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/promotions/shop",
+      "classification": "gated"
+    },
+    {
       "id": "promotion-service:PromotionController.listAllVouchers:GET:/api/promotions/admin",
       "service": "promotion-service",
       "controller": "PromotionController",
@@ -870,6 +1046,61 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
         "GET"
       ],
       "path": "/api/promotions/admin",
+      "classification": "gated"
+    },
+    {
+      "id": "promotion-service:PromotionController.listPendingShopVouchers:GET:/api/promotions/admin/pending-shop",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "listPendingShopVouchers",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/promotions/admin/pending-shop",
+      "classification": "gated"
+    },
+    {
+      "id": "promotion-service:PromotionController.approveShopVoucher:POST:/api/promotions/admin/{id}/approve",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "approveShopVoucher",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/promotions/admin/{id}/approve",
+      "classification": "gated"
+    },
+    {
+      "id": "promotion-service:PromotionController.rejectShopVoucher:POST:/api/promotions/admin/{id}/reject",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "rejectShopVoucher",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/promotions/admin/{id}/reject",
+      "classification": "gated"
+    },
+    {
+      "id": "promotion-service:PromotionController.pauseVoucher:POST:/api/promotions/admin/{id}/pause",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "pauseVoucher",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/promotions/admin/{id}/pause",
+      "classification": "gated"
+    },
+    {
+      "id": "promotion-service:PromotionController.resumeVoucher:POST:/api/promotions/admin/{id}/resume",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "resumeVoucher",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/promotions/admin/{id}/resume",
       "classification": "gated"
     },
     {
@@ -906,6 +1137,17 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "classification": "internal"
     },
     {
+      "id": "promotion-service:PromotionController.reserveBulk:POST:/api/promotions/internal/reservations",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "reserveBulk",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
       "id": "promotion-service:PromotionController.commit:POST:/api/promotions/internal/reservations/{reservationId}/commit",
       "service": "promotion-service",
       "controller": "PromotionController",
@@ -921,6 +1163,28 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "service": "promotion-service",
       "controller": "PromotionController",
       "handler": "release",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "promotion-service:PromotionController.commitBulk:POST:/api/promotions/internal/promotion-reservations/{reservationId}/commit",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "commitBulk",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "promotion-service:PromotionController.releaseBulk:POST:/api/promotions/internal/promotion-reservations/{reservationId}/release",
+      "service": "promotion-service",
+      "controller": "PromotionController",
+      "handler": "releaseBulk",
       "verbs": [
         "POST"
       ],
@@ -983,6 +1247,28 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "classification": "catalog"
     },
     {
+      "id": "restaurant-service:MenuItemController.getPage:GET:/api/menu-items/restaurant/{restaurantId}/page",
+      "service": "restaurant-service",
+      "controller": "MenuItemController",
+      "handler": "getPage",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/menu-items/restaurant/{restaurantId}/page",
+      "classification": "catalog"
+    },
+    {
+      "id": "restaurant-service:MenuItemController.getAvailablePage:GET:/api/menu-items/restaurant/{restaurantId}/available/page",
+      "service": "restaurant-service",
+      "controller": "MenuItemController",
+      "handler": "getAvailablePage",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/menu-items/restaurant/{restaurantId}/available/page",
+      "classification": "catalog"
+    },
+    {
       "id": "restaurant-service:MenuItemController.getMyMenuItems:GET:/api/menu-items/my-menu-items",
       "service": "restaurant-service",
       "controller": "MenuItemController",
@@ -991,6 +1277,39 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
         "GET"
       ],
       "path": "/api/menu-items/my-menu-items",
+      "classification": "catalog"
+    },
+    {
+      "id": "restaurant-service:MenuItemController.getMyMenuItemsPage:GET:/api/menu-items/my-menu-items/page",
+      "service": "restaurant-service",
+      "controller": "MenuItemController",
+      "handler": "getMyMenuItemsPage",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/menu-items/my-menu-items/page",
+      "classification": "catalog"
+    },
+    {
+      "id": "restaurant-service:MenuItemInventoryController.get:GET:/api/menu-items/{menuItemId}/inventory",
+      "service": "restaurant-service",
+      "controller": "MenuItemInventoryController",
+      "handler": "get",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/menu-items/{menuItemId}/inventory",
+      "classification": "catalog"
+    },
+    {
+      "id": "restaurant-service:MenuItemInventoryController.update:PUT:/api/menu-items/{menuItemId}/inventory",
+      "service": "restaurant-service",
+      "controller": "MenuItemInventoryController",
+      "handler": "update",
+      "verbs": [
+        "PUT"
+      ],
+      "path": "/api/menu-items/{menuItemId}/inventory",
       "classification": "catalog"
     },
     {
@@ -1009,6 +1328,50 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "service": "restaurant-service",
       "controller": "InternalRestaurantController",
       "handler": "isOwnedBy",
+      "verbs": [
+        "GET"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "restaurant-service:InternalInventoryController.reserve:POST:/api/menu-items/internal/inventory/reservations",
+      "service": "restaurant-service",
+      "controller": "InternalInventoryController",
+      "handler": "reserve",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "restaurant-service:InternalInventoryController.commit:POST:/api/menu-items/internal/inventory/reservations/{reservationId}/commit",
+      "service": "restaurant-service",
+      "controller": "InternalInventoryController",
+      "handler": "commit",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "restaurant-service:InternalInventoryController.release:POST:/api/menu-items/internal/inventory/reservations/{reservationId}/release",
+      "service": "restaurant-service",
+      "controller": "InternalInventoryController",
+      "handler": "release",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "restaurant-service:InternalServiceabilityController.evaluate:GET:/api/restaurants/internal/{restaurantId}/serviceability",
+      "service": "restaurant-service",
+      "controller": "InternalServiceabilityController",
+      "handler": "evaluate",
       "verbs": [
         "GET"
       ],
@@ -1082,6 +1445,17 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "classification": "catalog"
     },
     {
+      "id": "restaurant-service:RestaurantController.getPage:GET:/api/restaurants/page",
+      "service": "restaurant-service",
+      "controller": "RestaurantController",
+      "handler": "getPage",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/restaurants/page",
+      "classification": "catalog"
+    },
+    {
       "id": "restaurant-service:RestaurantController.getMyRestaurants:GET:/api/restaurants/my-restaurants",
       "service": "restaurant-service",
       "controller": "RestaurantController",
@@ -1090,6 +1464,50 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
         "GET"
       ],
       "path": "/api/restaurants/my-restaurants",
+      "classification": "catalog"
+    },
+    {
+      "id": "restaurant-service:RestaurantServiceabilityController.list:GET:/api/restaurants/{restaurantId}/serviceability-zones",
+      "service": "restaurant-service",
+      "controller": "RestaurantServiceabilityController",
+      "handler": "list",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/restaurants/{restaurantId}/serviceability-zones",
+      "classification": "catalog"
+    },
+    {
+      "id": "restaurant-service:RestaurantServiceabilityController.create:POST:/api/restaurants/{restaurantId}/serviceability-zones",
+      "service": "restaurant-service",
+      "controller": "RestaurantServiceabilityController",
+      "handler": "create",
+      "verbs": [
+        "POST"
+      ],
+      "path": "/api/restaurants/{restaurantId}/serviceability-zones",
+      "classification": "catalog"
+    },
+    {
+      "id": "restaurant-service:RestaurantServiceabilityController.update:PUT:/api/restaurants/{restaurantId}/serviceability-zones/{zoneId}",
+      "service": "restaurant-service",
+      "controller": "RestaurantServiceabilityController",
+      "handler": "update",
+      "verbs": [
+        "PUT"
+      ],
+      "path": "/api/restaurants/{restaurantId}/serviceability-zones/{zoneId}",
+      "classification": "catalog"
+    },
+    {
+      "id": "restaurant-service:RestaurantServiceabilityController.delete:DELETE:/api/restaurants/{restaurantId}/serviceability-zones/{zoneId}",
+      "service": "restaurant-service",
+      "controller": "RestaurantServiceabilityController",
+      "handler": "delete",
+      "verbs": [
+        "DELETE"
+      ],
+      "path": "/api/restaurants/{restaurantId}/serviceability-zones/{zoneId}",
       "classification": "catalog"
     },
     {
@@ -1137,6 +1555,17 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "classification": "catalog"
     },
     {
+      "id": "restaurant-service:RestaurantRatingController.getRestaurantRatingsPage:GET:/api/restaurants/{restaurantId}/ratings/page",
+      "service": "restaurant-service",
+      "controller": "RestaurantRatingController",
+      "handler": "getRestaurantRatingsPage",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/restaurants/{restaurantId}/ratings/page",
+      "classification": "catalog"
+    },
+    {
       "id": "restaurant-service:RestaurantRatingController.getMyRatings:GET:/api/restaurants/me/ratings",
       "service": "restaurant-service",
       "controller": "RestaurantRatingController",
@@ -1156,6 +1585,17 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
         "GET"
       ],
       "path": "/api/restaurants/admin/ratings",
+      "classification": "catalog"
+    },
+    {
+      "id": "restaurant-service:RestaurantRatingController.getAllRatingsPage:GET:/api/restaurants/admin/ratings/page",
+      "service": "restaurant-service",
+      "controller": "RestaurantRatingController",
+      "handler": "getAllRatingsPage",
+      "verbs": [
+        "GET"
+      ],
+      "path": "/api/restaurants/admin/ratings/page",
       "classification": "catalog"
     },
     {
@@ -1385,6 +1825,39 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       "handler": "isCodEligible",
       "verbs": [
         "GET"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "settlement-service:InternalSettlementController.createCodCapacityHolds:POST:/api/settlement/internal/cod-capacity/holds",
+      "service": "settlement-service",
+      "controller": "InternalSettlementController",
+      "handler": "createCodCapacityHolds",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "settlement-service:InternalSettlementController.commitCodCapacityHold:POST:/api/settlement/internal/cod-capacity/holds/{holdId}/commit",
+      "service": "settlement-service",
+      "controller": "InternalSettlementController",
+      "handler": "commitCodCapacityHold",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "settlement-service:InternalSettlementController.releaseCodCapacityHold:POST:/api/settlement/internal/cod-capacity/holds/{holdId}/release",
+      "service": "settlement-service",
+      "controller": "InternalSettlementController",
+      "handler": "releaseCodCapacityHold",
+      "verbs": [
+        "POST"
       ],
       "path": null,
       "classification": "internal"
@@ -1708,6 +2181,39 @@ export const HANDBOOK_SOURCE_SNAPSHOT = {
       ],
       "path": "/api/tracking/shipper-locations/offline",
       "classification": "catalog"
+    },
+    {
+      "id": "routing-service:RoutingController.matrix:POST:/internal/routing/v1/matrix",
+      "service": "routing-service",
+      "controller": "RoutingController",
+      "handler": "matrix",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "routing-service:RoutingController.route:POST:/internal/routing/v1/route",
+      "service": "routing-service",
+      "controller": "RoutingController",
+      "handler": "route",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
+    },
+    {
+      "id": "routing-service:RoutingController.etaWindow:POST:/internal/routing/v1/eta-window",
+      "service": "routing-service",
+      "controller": "RoutingController",
+      "handler": "etaWindow",
+      "verbs": [
+        "POST"
+      ],
+      "path": null,
+      "classification": "internal"
     },
     {
       "id": "tracking-service:InternalShipperAvailabilityController.markOffline:POST:/api/tracking/internal/shippers/{shipperId}/offline",

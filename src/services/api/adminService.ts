@@ -28,8 +28,10 @@ const ORDER_STATUSES = [
 ] as const;
 const RATING_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'] as const;
 const REWARD_TYPES = ['FIXED', 'PERCENTAGE', 'FREESHIP'] as const;
-const VOUCHER_SCOPE_TYPES = ['ALL', 'SHOP'] as const;
-const VOUCHER_CREATOR_TYPES = ['PLATFORM', 'SHOP'] as const;
+// Read contracts retain legacy rows for admin recovery/audit. Creation
+// requests remain narrowed to the modern PLATFORM/SHOP + ALL/SHOP policy.
+const VOUCHER_SCOPE_TYPES = ['ALL', 'SHOP', 'CATEGORY'] as const;
+const VOUCHER_CREATOR_TYPES = ['PLATFORM', 'SHOP', 'MERCHANT'] as const;
 const DASHBOARD_STATUS_TYPES = [
   'DELIVERED',
   'CANCELLED',
@@ -224,7 +226,8 @@ const parseAdminCoupon = (value: unknown, label: string): AdminCoupon => {
   const scopeRefId = coupon.scopeRefId === null
     ? null
     : requireInteger(coupon.scopeRefId, `${label}.scopeRefId`, 1);
-  if ((scopeType === 'ALL' && scopeRefId !== null) || (scopeType === 'SHOP' && scopeRefId === null)) {
+  if ((scopeType === 'ALL' && scopeRefId !== null)
+    || ((scopeType === 'SHOP' || scopeType === 'CATEGORY') && scopeRefId === null)) {
     throw new TypeError(`${label} has an invalid voucher scope identity`);
   }
   return {
@@ -246,7 +249,9 @@ const parseAdminCoupon = (value: unknown, label: string): AdminCoupon => {
     scopeType,
     scopeRefId,
     active: requireBoolean(coupon.active, `${label}.active`),
-    ...(typeof coupon.layer === 'string' ? { layer: coupon.layer } : {}),
+    ...(typeof coupon.layerCode === 'string'
+      ? { layer: coupon.layerCode }
+      : typeof coupon.layer === 'string' ? { layer: coupon.layer } : {}),
     ...(typeof coupon.fundingSource === 'string' ? { fundingSource: coupon.fundingSource } : {}),
     ...(typeof coupon.approvalStatus === 'string' ? { approvalStatus: coupon.approvalStatus } : {}),
   };
@@ -411,7 +416,7 @@ export interface AdminCoupon {
   code: string;
   name: string;
   description: string;
-  creatorType: 'PLATFORM' | 'SHOP';
+  creatorType: 'PLATFORM' | 'SHOP' | 'MERCHANT';
   rewardType: string;
   discountValue: number;
   maxDiscountValue: number | null;
@@ -420,7 +425,7 @@ export interface AdminCoupon {
   startTime: string;
   endTime: string;
   minOrderValue: number;
-  scopeType: 'ALL' | 'SHOP';
+  scopeType: 'ALL' | 'SHOP' | 'CATEGORY';
   scopeRefId: number | null;
   active: boolean;
   layer?: string;
@@ -434,7 +439,7 @@ export interface CreateAdminCouponRequest {
   description: string;
   rewardType: string;
   discountValue: number;
-  maxDiscountValue: number;
+  maxDiscountValue: number | null;
   totalQuantity: number;
   usageLimitPerUser: number;
   startTime: string;

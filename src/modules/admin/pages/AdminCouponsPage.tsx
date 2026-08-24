@@ -19,7 +19,7 @@ const AdminCouponsPage = () => {
     description: '',
     rewardType: 'FIXED',
     discountValue: 0,
-    maxDiscountValue: 0,
+    maxDiscountValue: null,
     totalQuantity: 100,
     usageLimitPerUser: 1,
     startTime: '',
@@ -69,6 +69,7 @@ const AdminCouponsPage = () => {
       !newCoupon.code.trim() ||
       !newCoupon.name.trim() ||
       newCoupon.discountValue < 0 ||
+      (newCoupon.maxDiscountValue !== null && newCoupon.maxDiscountValue < 0) ||
       newCoupon.totalQuantity < 1 ||
       newCoupon.minOrderValue < 0 ||
       (newCoupon.scopeType === 'SHOP' && (!newCoupon.scopeRefId || newCoupon.scopeRefId < 1)) ||
@@ -305,6 +306,20 @@ const AdminCouponsPage = () => {
                   className="w-full px-4 py-2 rounded-lg border border-border-light dark:border-border-dark bg-transparent outline-none"
                   value={newCoupon.discountValue}
                   onChange={(e) => setNewCoupon({ ...newCoupon, discountValue: Number(e.target.value) })}
+                />
+              </div>
+              <div className="col-span-1">
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Giảm tối đa</label>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="Không giới hạn"
+                  className="w-full px-4 py-2 rounded-lg border border-border-light dark:border-border-dark bg-transparent outline-none"
+                  value={newCoupon.maxDiscountValue ?? ''}
+                  onChange={(e) => setNewCoupon({
+                    ...newCoupon,
+                    maxDiscountValue: e.target.value === '' ? null : Number(e.target.value),
+                  })}
                 />
               </div>
               <div className="col-span-1">
