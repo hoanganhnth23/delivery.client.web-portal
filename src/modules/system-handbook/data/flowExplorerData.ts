@@ -106,7 +106,7 @@ const event = (id: string, topic: string, producer: string, consumers: string[],
   consumers,
   delivery,
   rule,
-  source: source('Events and data', 'docs/system/events-and-data.md', 'Active topic map'),
+  source: source('Events and data', 'backend_delivery/docs/platform/system/events-and-data.md', 'Active topic map'),
 });
 
 export const HANDBOOK_EVENTS: FlowEventSummary[] = [
@@ -160,7 +160,7 @@ const codBranches: FlowBranch[] = [
 
 export const FLOW_EXPLORER_FLOWS: FlowExplorerDefinition[] = [
   {
-    id: 'cod-order', label: 'COD order → delivery', group: 'Core business', summary: 'Từ quote đến order, nhà hàng confirm, matching, offer, giao hàng và COD settlement.', audience: ['Customer', 'Restaurant owner', 'Shipper', 'Platform'], status: 'active', successOutcome: 'Order DELIVERED và COD ledger đã commit.', steps: codSteps, interactions, branches: codBranches, source: source('COD lifecycle', 'docs/system/workflows.md', 'COD order-to-delivery lifecycle'),
+    id: 'cod-order', label: 'COD order → delivery', group: 'Core business', summary: 'Từ quote đến order, nhà hàng confirm, matching, offer, giao hàng và COD settlement.', audience: ['Customer', 'Restaurant owner', 'Shipper', 'Platform'], status: 'active', successOutcome: 'Order DELIVERED và COD ledger đã commit.', steps: codSteps, interactions, branches: codBranches, source: source('COD lifecycle', 'backend_delivery/docs/platform/system/workflows.md', 'COD order-to-delivery lifecycle'),
   },
   {
     id: 'registration', label: 'Registration & profile', group: 'Identity', summary: 'Tạo credential identity, profile và identity link qua các request retry-safe.', audience: ['Customer', 'Restaurant owner'], status: 'active', successOutcome: 'Account ACTIVE với profile được liên kết.', steps: [
@@ -170,7 +170,7 @@ export const FLOW_EXPLORER_FLOWS: FlowExplorerDefinition[] = [
     ], interactions: [], branches: [
       { id: 'registration-partial', label: 'Crash giữa Auth và User', trigger: 'Request thứ hai chưa hoàn thành.', fromStepId: 'registration-profile', recovery: 'Retry theo principal identity; không tạo profile thứ hai.', terminalOutcome: 'Profile được resume idempotently.', stepIds: ['registration-profile'], severity: 'warning' },
       { id: 'registration-unverified', label: 'Email chưa verify', trigger: 'Login trước khi lifecycle ACTIVE.', fromStepId: 'registration-verify', recovery: 'Yêu cầu verify lại hoặc bắt đầu recovery flow.', terminalOutcome: 'Login bị chặn fail-closed.', stepIds: ['registration-verify'], severity: 'error' },
-    ], source: source('Auth workflow', 'docs/system/workflows.md', 'Password registration'),
+    ], source: source('Auth workflow', 'backend_delivery/docs/platform/system/workflows.md', 'Password registration'),
   },
   {
     id: 'authenticated-request', label: 'Authenticated request & refresh', group: 'Security', summary: 'Client qua Gateway, resource service tự verify JWT/JWKS, role và ownership.', audience: ['All clients', 'Platform'], status: 'active', successOutcome: 'Request được authorize và trả response qua Gateway.', steps: [
@@ -180,7 +180,7 @@ export const FLOW_EXPLORER_FLOWS: FlowExplorerDefinition[] = [
     ], interactions: [], branches: [
       { id: 'auth-refresh', label: '401 và refresh một lần', trigger: 'Access token hết hạn hoặc không hợp lệ.', fromStepId: 'auth-resource', recovery: 'Client gọi refresh-token một lần, lưu token mới rồi retry request một lần.', terminalOutcome: 'Nếu refresh fail, kết thúc session.', stepIds: ['auth-resource'], severity: 'warning' },
       { id: 'auth-forbidden', label: 'Sai role hoặc ownership', trigger: 'Token hợp lệ nhưng không có quyền resource.', fromStepId: 'auth-resource', recovery: 'Không retry nghiệp vụ; trả 403.', terminalOutcome: 'Không lộ dữ liệu resource.', stepIds: ['auth-resource'], severity: 'error' },
-    ], source: source('Security workflow', 'docs/system/workflows.md', 'Authenticated request and refresh'),
+    ], source: source('Security workflow', 'backend_delivery/docs/platform/system/workflows.md', 'Authenticated request and refresh'),
   },
   {
     id: 'catalog-search', label: 'Catalog & search', group: 'Commerce', summary: 'Khám phá nhà hàng/menu và truy vấn search projection qua Gateway.', audience: ['Anonymous', 'Customer'], status: 'active', successOutcome: 'Danh sách catalog hoặc search result được trả về.', steps: [
@@ -188,7 +188,7 @@ export const FLOW_EXPLORER_FLOWS: FlowExplorerDefinition[] = [
       { id: 'catalog-search', sequence: 2, phase: 'Search', title: 'Tìm kiếm projection', explanation: 'Search Service truy vấn projection; projection được cập nhật từ entity-sync.', actor: 'Customer', serviceIds: ['search-service', 'restaurant-service'], interactionIds: [], apiOperationIds: [operationIds.searchRestaurants, operationIds.restaurantSearch], eventIds: ['entity-sync'], status: 'terminal' },
     ], interactions: [], branches: [
       { id: 'catalog-stale', label: 'Projection stale hoặc rỗng', trigger: 'Search projection chưa nhận entity-sync.', fromStepId: 'catalog-search', recovery: 'Fallback catalog bounded hoặc báo kết quả chưa sẵn sàng.', terminalOutcome: 'Search không trở thành business truth.', stepIds: ['catalog-search'], severity: 'warning' },
-    ], source: source('Catalog and search', 'docs/system/service-catalog.md', 'Ownership map'),
+    ], source: source('Catalog and search', 'backend_delivery/docs/platform/system/service-catalog.md', 'Ownership map'),
   },
   {
     id: 'restaurant-management', label: 'Restaurant & menu management', group: 'Commerce', summary: 'Owner/admin cập nhật hồ sơ, menu và quyết định order trong boundary nhà hàng.', audience: ['Restaurant owner', 'Admin'], status: 'active', successOutcome: 'Restaurant/menu state được ghi bởi restaurant-service.', steps: [
@@ -206,7 +206,7 @@ export const FLOW_EXPLORER_FLOWS: FlowExplorerDefinition[] = [
     ], interactions: [], branches: [
       { id: 'tracking-stale', label: 'Stale publisher generation', trigger: 'Socket cũ gửi location sau khi socket mới đã active.', fromStepId: 'tracking-publish', recovery: 'Reject update theo lease/generation fence.', terminalOutcome: 'Location mới không bị ghi đè.', stepIds: ['tracking-publish'], severity: 'error' },
       { id: 'tracking-reconnect', label: 'Socket reconnect', trigger: 'Network disconnect hoặc Redis state mất.', fromStepId: 'tracking-connect', recovery: 'Client reconnect và publish generation mới; không restore stale GEO.', terminalOutcome: 'Viewer nhận latest fresh state.', stepIds: ['tracking-connect', 'tracking-publish'], severity: 'warning' },
-    ], source: source('Tracking workflow', 'docs/system/workflows.md', 'Tracking and realtime delivery visibility'),
+    ], source: source('Tracking workflow', 'backend_delivery/docs/platform/system/workflows.md', 'Tracking and realtime delivery visibility'),
   },
   {
     id: 'rating', label: 'Rating & moderation', group: 'Supporting', summary: 'Customer submit rating theo eligibility; owner/admin đọc và moderation trong restaurant boundary.', audience: ['Customer', 'Restaurant owner', 'Admin'], status: 'active', successOutcome: 'Rating được ghi và hiển thị theo status policy.', steps: [
@@ -223,13 +223,13 @@ export const FLOW_EXPLORER_FLOWS: FlowExplorerDefinition[] = [
     ], interactions: [], branches: [
       { id: 'settlement-duplicate', label: 'Duplicate event', trigger: 'Cùng event hoặc business key được replay.', fromStepId: 'settlement-event', recovery: 'Dedup receipt biến exact duplicate thành no-op.', terminalOutcome: 'Không nhân đôi ledger.', stepIds: ['settlement-event'], severity: 'warning' },
       { id: 'settlement-conflict', label: 'Payload mismatch', trigger: 'Cùng identity nhưng payload khác hoặc amount mismatch.', fromStepId: 'settlement-event', recovery: 'Rollback/retry/DLT và operator reconciliation.', terminalOutcome: 'Fail closed, không ACK thành công.', stepIds: ['settlement-event'], severity: 'error' },
-    ], source: source('Settlement workflow', 'docs/system/workflows.md', 'COD settlement'),
+    ], source: source('Settlement workflow', 'backend_delivery/docs/platform/system/workflows.md', 'COD settlement'),
   },
   {
     id: 'gated-boundaries', label: 'Gated & experimental boundaries', group: 'Boundary', summary: 'Các capability có source/schema nhưng chưa được coi là public MVP contract.', audience: ['Platform', 'Admin'], status: 'hidden', successOutcome: 'Capability vẫn được phân loại, không bị suy diễn thành active.', steps: [
       { id: 'gated-source', sequence: 1, phase: 'Source', title: 'Capability tồn tại trong source', explanation: 'Controller/schema/provider boundary có thể được catalog nhưng chưa đủ evidence public.', actor: 'Platform', serviceIds: ['promotion-service', 'flashsale-service', 'analytics-service', 'livestream-service'], interactionIds: [], apiOperationIds: [], eventIds: [], status: 'main' },
       { id: 'gated-closed', sequence: 2, phase: 'Policy', title: 'Gateway surface đóng', explanation: 'Checkout relay hoặc public route giữ off cho tới khi có owner policy và rollout proof.', actor: 'Platform', serviceIds: ['gateway'], interactionIds: [], apiOperationIds: [], eventIds: [], status: 'terminal' },
-    ], interactions: [], branches: [], source: source('Capability safety', 'docs/system/service-catalog.md', 'Hidden capability safety rule'),
+    ], interactions: [], branches: [], source: source('Capability safety', 'backend_delivery/docs/platform/system/service-catalog.md', 'Hidden capability safety rule'),
   },
 ];
 

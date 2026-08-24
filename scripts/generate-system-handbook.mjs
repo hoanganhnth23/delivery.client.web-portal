@@ -18,9 +18,9 @@ const read = (relativePath) => {
   return fs.readFileSync(absolutePath, 'utf8');
 };
 
-const contract = JSON.parse(read('docs/system/api/http-contract.json'));
-const serviceCatalog = read('docs/system/service-catalog.md');
-const productOverview = read('docs/product/overview.md');
+const contract = JSON.parse(read('backend_delivery/docs/platform/system/api/http-contract.json'));
+const serviceCatalog = read('backend_delivery/docs/platform/system/service-catalog.md');
+const productOverview = read('backend_delivery/docs/platform/product/overview.md');
 
 const classify = (operation) => {
   if (operation.path.includes('/internal')) return 'internal';
@@ -51,9 +51,9 @@ const operations = contract.operations.filter((operation) => {
 const snapshot = {
   generatedAt: new Date().toISOString().slice(0, 10),
   sourceRefs: [
-    'docs/product/overview.md',
-    'docs/system/service-catalog.md',
-    'docs/system/api/http-contract.json',
+    'backend_delivery/docs/platform/product/overview.md',
+    'backend_delivery/docs/platform/system/service-catalog.md',
+    'backend_delivery/docs/platform/system/api/http-contract.json',
   ],
   counts: {
     operations: operations.length,

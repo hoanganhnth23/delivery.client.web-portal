@@ -155,19 +155,19 @@ const source = (label: string, file: string, section: string): HandbookSourceRef
 
 export const HANDBOOK_CAPABILITIES: HandbookCapability[] = [
   { id: 'identity', label: 'Identity & session', group: 'Nền tảng', summary: 'Đăng ký, login, email verification, refresh rotation và session revoke.', actors: ['customer', 'restaurant-owner', 'shipper', 'admin'], clients: ['customer-app', 'delivery-web', 'shipper-app'], services: ['auth-service', 'user-service'], workflows: ['registration', 'authenticated-request'], status: 'active', classification: 'protected', source: source('Auth and users', 'backend_delivery/docs/services/auth_and_users.md', 'Identity and session') },
-  { id: 'catalog-search', label: 'Catalog & search', group: 'Commerce', summary: 'Khám phá nhà hàng, menu và tìm kiếm món ăn qua projection.', actors: ['anonymous', 'customer'], clients: ['customer-app', 'delivery-web'], services: ['restaurant-service', 'search-service'], workflows: [], status: 'active', classification: 'public', source: source('Restaurant and search', 'docs/system/api/README.md', 'Restaurant and menu / Search') },
+  { id: 'catalog-search', label: 'Catalog & search', group: 'Commerce', summary: 'Khám phá nhà hàng, menu và tìm kiếm món ăn qua projection.', actors: ['anonymous', 'customer'], clients: ['customer-app', 'delivery-web'], services: ['restaurant-service', 'search-service'], workflows: [], status: 'active', classification: 'public', source: source('Restaurant and search', 'backend_delivery/docs/platform/system/api/README.md', 'Restaurant and menu / Search') },
   { id: 'restaurant-management', label: 'Restaurant management', group: 'Commerce', summary: 'Hồ sơ cửa hàng, operating hours, menu, import và order decision.', actors: ['restaurant-owner', 'admin'], clients: ['delivery-web'], services: ['restaurant-service'], workflows: ['cod-order'], status: 'active', classification: 'protected', source: source('Web features', 'delivery_web/APP_FEATURES.md', 'Restaurant portal') },
-  { id: 'ordering', label: 'Cart → checkout COD → order', group: 'Commerce', summary: 'Cart local, quote preview, idempotent order create, read và cancel.', actors: ['customer', 'restaurant-owner', 'admin'], clients: ['customer-app', 'delivery-web'], services: ['order-service', 'restaurant-service'], workflows: ['cod-order'], status: 'active', classification: 'protected', source: source('Order contract', 'docs/system/workflows.md', 'COD order-to-delivery lifecycle') },
-  { id: 'fulfilment', label: 'Matching & delivery', group: 'Fulfilment', summary: 'Saga điều phối, Match chọn shipper, Delivery giữ offer và state machine.', actors: ['restaurant-owner', 'shipper', 'customer'], clients: ['shipper-app', 'delivery-web', 'customer-app'], services: ['saga-service', 'match-service', 'delivery-service', 'shipper-service'], workflows: ['cod-order'], status: 'active', classification: 'protected', source: source('Service ownership', 'docs/system/service-catalog.md', 'Order, Restaurant, Saga, Delivery and Match') },
-  { id: 'tracking', label: 'Realtime tracking', group: 'Realtime', summary: 'Raw WebSocket, Redis GEO/rooms, lease và authorized delivery visibility.', actors: ['customer', 'shipper'], clients: ['customer-app', 'shipper-app'], services: ['tracking-service', 'delivery-service', 'match-service'], workflows: ['tracking'], status: 'active', classification: 'protected', source: source('Tracking contract', 'docs/system/workflows.md', 'Tracking and realtime delivery visibility') },
+  { id: 'ordering', label: 'Cart → checkout COD → order', group: 'Commerce', summary: 'Cart local, quote preview, idempotent order create, read và cancel.', actors: ['customer', 'restaurant-owner', 'admin'], clients: ['customer-app', 'delivery-web'], services: ['order-service', 'restaurant-service'], workflows: ['cod-order'], status: 'active', classification: 'protected', source: source('Order contract', 'backend_delivery/docs/platform/system/workflows.md', 'COD order-to-delivery lifecycle') },
+  { id: 'fulfilment', label: 'Matching & delivery', group: 'Fulfilment', summary: 'Saga điều phối, Match chọn shipper, Delivery giữ offer và state machine.', actors: ['restaurant-owner', 'shipper', 'customer'], clients: ['shipper-app', 'delivery-web', 'customer-app'], services: ['saga-service', 'match-service', 'delivery-service', 'shipper-service'], workflows: ['cod-order'], status: 'active', classification: 'protected', source: source('Service ownership', 'backend_delivery/docs/platform/system/service-catalog.md', 'Order, Restaurant, Saga, Delivery and Match') },
+  { id: 'tracking', label: 'Realtime tracking', group: 'Realtime', summary: 'Raw WebSocket, Redis GEO/rooms, lease và authorized delivery visibility.', actors: ['customer', 'shipper'], clients: ['customer-app', 'shipper-app'], services: ['tracking-service', 'delivery-service', 'match-service'], workflows: ['tracking'], status: 'active', classification: 'protected', source: source('Tracking contract', 'backend_delivery/docs/platform/system/workflows.md', 'Tracking and realtime delivery visibility') },
   { id: 'notifications', label: 'Notifications', group: 'Realtime', summary: 'Durable inbox và FCM wake-up best effort.', actors: ['customer', 'shipper'], clients: ['customer-app', 'shipper-app'], services: ['notification-service'], workflows: ['cod-order', 'tracking'], status: 'active', classification: 'protected', source: source('Notification service', 'backend_delivery/docs/services/notification_service.md', 'Durable inbox') },
   { id: 'rating', label: 'Ratings & moderation', group: 'Supporting', summary: 'Rating thuộc restaurant boundary, admin moderation và owner/customer views theo contract.', actors: ['customer', 'restaurant-owner', 'admin'], clients: ['delivery-web', 'customer-app'], services: ['restaurant-service', 'order-service'], workflows: [], status: 'active', classification: 'protected', source: source('Web features', 'delivery_web/APP_FEATURES.md', 'Admin portal / Restaurant portal') },
-  { id: 'settlement', label: 'COD settlement', group: 'Finance', summary: 'Receipt, immutable ledger và balance projection sau delivery.completed.', actors: ['admin', 'platform'], clients: ['delivery-web'], services: ['settlement-service'], workflows: ['settlement'], status: 'active', classification: 'internal', source: source('Settlement workflow', 'docs/system/workflows.md', 'COD settlement') },
-  { id: 'campaigns', label: 'Coupon & flash sale', group: 'Gated', summary: 'Campaign/read và reservation boundary tồn tại nhưng checkout relay mặc định off.', actors: ['restaurant-owner', 'admin', 'customer'], clients: ['delivery-web', 'customer-app'], services: ['promotion-service', 'flashsale-service'], workflows: ['gated-campaigns'], status: 'hidden', classification: 'gated', source: source('Capability safety', 'docs/system/service-catalog.md', 'Hidden capability safety rule') },
+  { id: 'settlement', label: 'COD settlement', group: 'Finance', summary: 'Receipt, immutable ledger và balance projection sau delivery.completed.', actors: ['admin', 'platform'], clients: ['delivery-web'], services: ['settlement-service'], workflows: ['settlement'], status: 'active', classification: 'internal', source: source('Settlement workflow', 'backend_delivery/docs/platform/system/workflows.md', 'COD settlement') },
+  { id: 'campaigns', label: 'Coupon & flash sale', group: 'Gated', summary: 'Campaign/read và reservation boundary tồn tại nhưng checkout relay mặc định off.', actors: ['restaurant-owner', 'admin', 'customer'], clients: ['delivery-web', 'customer-app'], services: ['promotion-service', 'flashsale-service'], workflows: ['gated-campaigns'], status: 'hidden', classification: 'gated', source: source('Capability safety', 'backend_delivery/docs/platform/system/service-catalog.md', 'Hidden capability safety rule') },
   { id: 'admin-operations', label: 'Admin operations', group: 'Operations', summary: 'Dashboard, orders, shippers, ratings, coupons, flash sales và catalog import.', actors: ['admin'], clients: ['delivery-web'], services: ['analytics-service', 'restaurant-service', 'order-service', 'shipper-service'], workflows: [], status: 'active', classification: 'protected', source: source('Admin portal', 'delivery_web/APP_FEATURES.md', 'Admin portal') },
-  { id: 'messaging-data', label: 'Events & data ownership', group: 'Platform', summary: 'Kafka outbox/dedup, PostgreSQL ownership, Redis volatile state và search projection.', actors: ['platform'], clients: [], services: ['kafka', 'postgresql', 'redis', 'elasticsearch'], workflows: ['cod-order', 'settlement'], status: 'active', classification: 'internal', source: source('Events and data', 'docs/system/events-and-data.md', 'Data ownership / Active topic map') },
-  { id: 'security-operations', label: 'Security & operations', group: 'Platform', summary: 'Gateway edge, JWKS resource-server auth, control plane, observability và recovery.', actors: ['platform', 'admin'], clients: [], services: ['gateway', 'auth-service', 'config-server', 'eureka'], workflows: ['authenticated-request'], status: 'active', classification: 'internal', source: source('Security boundaries', 'docs/system/security.md', 'Trust model') },
-  { id: 'experimental', label: 'Analytics & livestream', group: 'Experimental', summary: 'Projection/dashboard và livestream provider boundary; chưa public trong MVP.', actors: ['admin', 'restaurant-owner'], clients: ['delivery-web'], services: ['analytics-service', 'livestream-service'], workflows: ['experimental'], status: 'experimental', classification: 'experimental', source: source('Experimental services', 'docs/system/service-catalog.md', 'Runtime domain services') },
+  { id: 'messaging-data', label: 'Events & data ownership', group: 'Platform', summary: 'Kafka outbox/dedup, PostgreSQL ownership, Redis volatile state và search projection.', actors: ['platform'], clients: [], services: ['kafka', 'postgresql', 'redis', 'elasticsearch'], workflows: ['cod-order', 'settlement'], status: 'active', classification: 'internal', source: source('Events and data', 'backend_delivery/docs/platform/system/events-and-data.md', 'Data ownership / Active topic map') },
+  { id: 'security-operations', label: 'Security & operations', group: 'Platform', summary: 'Gateway edge, JWKS resource-server auth, control plane, observability và recovery.', actors: ['platform', 'admin'], clients: [], services: ['gateway', 'auth-service', 'config-server', 'eureka'], workflows: ['authenticated-request'], status: 'active', classification: 'internal', source: source('Security boundaries', 'backend_delivery/docs/platform/system/security.md', 'Trust model') },
+  { id: 'experimental', label: 'Analytics & livestream', group: 'Experimental', summary: 'Projection/dashboard và livestream provider boundary; chưa public trong MVP.', actors: ['admin', 'restaurant-owner'], clients: ['delivery-web'], services: ['analytics-service', 'livestream-service'], workflows: ['experimental'], status: 'experimental', classification: 'experimental', source: source('Experimental services', 'backend_delivery/docs/platform/system/service-catalog.md', 'Runtime domain services') },
 ];
 
 export const HANDBOOK_WORKFLOWS: HandbookWorkflow[] = [
@@ -180,7 +180,7 @@ export const HANDBOOK_WORKFLOWS: HandbookWorkflow[] = [
       { id: 'registration-recovery', label: 'Retry khi partial failure', actor: 'Platform', service: 'auth-service / user-service', transport: 'Idempotent retry', detail: 'authId là identity key; không tạo profile thứ hai.', status: 'branch' },
     ],
     failureBranches: ['Email chưa verified → login bị chặn.', 'Provisioning token hết hạn → yêu cầu flow mới.', 'Contradictory identity link → fail closed.'],
-    source: source('Auth workflow', 'docs/system/workflows.md', 'Password registration'),
+    source: source('Auth workflow', 'backend_delivery/docs/platform/system/workflows.md', 'Password registration'),
   },
   {
     id: 'authenticated-request', label: 'Authenticated request & refresh', group: 'Security', status: 'active',
@@ -191,7 +191,7 @@ export const HANDBOOK_WORKFLOWS: HandbookWorkflow[] = [
       { id: 'request-refresh', label: 'Refresh một lần khi 401', actor: 'Client', service: 'auth-service', transport: 'HTTPS REST', detail: 'Refresh rotation rồi retry request một lần.', status: 'branch' },
     ],
     failureBranches: ['Invalid token → 401.', 'Sai role/ownership → 403.', 'Revoked refresh family → session kết thúc.'],
-    source: source('Security workflow', 'docs/system/workflows.md', 'Authenticated request and refresh'),
+    source: source('Security workflow', 'backend_delivery/docs/platform/system/workflows.md', 'Authenticated request and refresh'),
   },
   {
     id: 'cod-order', label: 'COD order → delivery', group: 'Core business', status: 'active',
@@ -205,7 +205,7 @@ export const HANDBOOK_WORKFLOWS: HandbookWorkflow[] = [
       { id: 'order-terminal', label: 'Delivered hoặc terminal reason', actor: 'Platform', service: 'settlement-service', transport: 'Kafka', detail: 'delivery.completed là trigger duy nhất cho COD ledger.', status: 'terminal' },
     ],
     failureBranches: ['PRICE_CHANGED/QUOTE_EXPIRED → quote mới và confirmation.', 'Restaurant reject/cancel → compensation idempotent.', 'SHIPPER_NOT_FOUND giữ terminal reason riêng.', 'Duplicate/contradictory replay → dedup hoặc fail closed.'],
-    source: source('COD lifecycle', 'docs/system/workflows.md', 'COD order-to-delivery lifecycle'),
+    source: source('COD lifecycle', 'backend_delivery/docs/platform/system/workflows.md', 'COD order-to-delivery lifecycle'),
   },
   {
     id: 'tracking', label: 'Realtime tracking', group: 'Realtime', status: 'active',
@@ -216,7 +216,7 @@ export const HANDBOOK_WORKFLOWS: HandbookWorkflow[] = [
       { id: 'tracking-view', label: 'Viewer nhận location', actor: 'Customer', service: 'tracking-service', transport: 'Authorized room', detail: 'Delivery kiểm tra participant access trước khi join room.', status: 'terminal' },
     ],
     failureBranches: ['Stale publisher generation → reject update.', 'Socket reconnect → lấy latest state, không khôi phục stale state.', 'Không có participant access → từ chối room.'],
-    source: source('Tracking workflow', 'docs/system/workflows.md', 'Tracking and realtime delivery visibility'),
+    source: source('Tracking workflow', 'backend_delivery/docs/platform/system/workflows.md', 'Tracking and realtime delivery visibility'),
   },
   {
     id: 'settlement', label: 'COD settlement', group: 'Finance', status: 'active',
@@ -227,7 +227,7 @@ export const HANDBOOK_WORKFLOWS: HandbookWorkflow[] = [
       { id: 'settlement-replay', label: 'Replay an toàn', actor: 'Platform', service: 'settlement-service', transport: 'Dedup receipt', detail: 'Exact duplicate là no-op; conflicting payload fail closed.', status: 'terminal' },
     ],
     failureBranches: ['Amount mismatch → rollback/retry/DLT.', 'Duplicate event → no-op.', 'Insufficient deposit → không ACK thành công.'],
-    source: source('Settlement workflow', 'docs/system/workflows.md', 'COD settlement'),
+    source: source('Settlement workflow', 'backend_delivery/docs/platform/system/workflows.md', 'COD settlement'),
   },
   {
     id: 'gated-campaigns', label: 'Promotion & flash-sale boundary', group: 'Gated', status: 'hidden',
@@ -237,7 +237,7 @@ export const HANDBOOK_WORKFLOWS: HandbookWorkflow[] = [
       { id: 'campaign-gate', label: 'Checkout gate', actor: 'Platform', service: 'order-service', transport: 'Feature gate', detail: 'Không đưa capability vào COD quote/order mặc định.', status: 'terminal' },
     ],
     failureBranches: ['Không suy diễn active checkout từ controller/schema.', 'Mở capability cần owner policy, auth proof, migration và rollback.'],
-    source: source('Capability safety', 'docs/system/service-catalog.md', 'Hidden capability safety rule'),
+    source: source('Capability safety', 'backend_delivery/docs/platform/system/service-catalog.md', 'Hidden capability safety rule'),
   },
   {
     id: 'experimental', label: 'Analytics & livestream boundary', group: 'Experimental', status: 'experimental',
@@ -247,18 +247,18 @@ export const HANDBOOK_WORKFLOWS: HandbookWorkflow[] = [
       { id: 'experimental-gate', label: 'Gateway surface closed', actor: 'Platform', service: 'api-gateway', transport: 'Route classification', detail: 'Chờ ownership/provider proof trước khi public.', status: 'terminal' },
     ],
     failureBranches: ['Không hiển thị như supported MVP.', 'Không gọi live provider từ handbook.'],
-    source: source('Experimental services', 'docs/system/service-catalog.md', 'Runtime domain services'),
+    source: source('Experimental services', 'backend_delivery/docs/platform/system/service-catalog.md', 'Runtime domain services'),
   },
 ];
 
 export const HANDBOOK_SOURCE_REFS: HandbookSourceRef[] = [
-  source('Product overview', 'docs/product/overview.md', 'Platform overview'),
-  source('Architecture', 'docs/ARCHITECTURE.md', 'System map'),
-  source('Service catalog', 'docs/system/service-catalog.md', 'Runtime domain services'),
-  source('Workflows', 'docs/system/workflows.md', 'Domain workflows and failure semantics'),
-  source('Events and data', 'docs/system/events-and-data.md', 'Data ownership and active topic map'),
-  source('Security', 'docs/system/security.md', 'Trust model and JWT/JWKS'),
-  source('Clients', 'docs/system/clients.md', 'Client boundaries'),
+  source('Product overview', 'backend_delivery/docs/platform/product/overview.md', 'Platform overview'),
+  source('Architecture', 'backend_delivery/docs/platform/system/architecture.md', 'System map'),
+  source('Service catalog', 'backend_delivery/docs/platform/system/service-catalog.md', 'Runtime domain services'),
+  source('Workflows', 'backend_delivery/docs/platform/system/workflows.md', 'Domain workflows and failure semantics'),
+  source('Events and data', 'backend_delivery/docs/platform/system/events-and-data.md', 'Data ownership and active topic map'),
+  source('Security', 'backend_delivery/docs/platform/system/security.md', 'Trust model and JWT/JWKS'),
+  source('Clients', 'backend_delivery/docs/platform/system/clients.md', 'Client boundaries'),
   source('Web features', 'delivery_web/APP_FEATURES.md', 'Technical architecture surface'),
 ];
 

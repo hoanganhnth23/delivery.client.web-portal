@@ -1,8 +1,9 @@
-import { screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
 import { flowDataIntegrity, getFlow } from '@/modules/system-handbook/data/flowExplorerData';
+import MarkdownDocument from '@/modules/system-handbook/components/MarkdownDocument';
 
 describe('public system handbook flow explorer', () => {
   it('renders the flow-first public handbook without authentication', async () => {
@@ -45,5 +46,42 @@ describe('public system handbook flow explorer', () => {
   it('keeps every flow reference linked to a known API/event/step', () => {
     expect(flowDataIntegrity()).toEqual([]);
     expect(getFlow('cod-order').steps).toHaveLength(10);
+  });
+
+  it('serves the searchable docs portal without authentication and supports a document deep link', async () => {
+    const user = userEvent.setup();
+    renderApp({ route: '/system-overview/docs' });
+
+    expect(await screen.findByRole('heading', { name: 'Tài liệu hệ thống' })).toBeInTheDocument();
+    expect(screen.getByText(/76 tài liệu/)).toBeInTheDocument();
+    expect(within(screen.getByRole('navigation', { name: 'Mục lục handbook' })).getByRole('button', { name: /Tài liệu.*Markdown canonical corpus/ })).toHaveAttribute('aria-current', 'page');
+
+    const search = screen.getByRole('textbox', { name: 'Tìm tài liệu' });
+    await user.type(search, 'service-catalog.md');
+    expect(screen.getByRole('button', { name: /service-catalog/ })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /service-catalog/ }));
+    expect((await screen.findAllByText('backend_delivery/docs/platform/system/service-catalog.md')).length).toBeGreaterThanOrEqual(2);
+    expect((await screen.findAllByRole('heading', { name: /Service Catalog and Ownership/i })).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('renders Markdown safely and maps internal links to the handbook', () => {
+    render(
+      <MarkdownDocument
+        source="backend_delivery/docs/platform/system/README.md"
+        documents={[{
+          id: 'doc-service-catalog',
+          source: 'backend_delivery/docs/platform/system/service-catalog.md',
+          title: 'Service catalog',
+        }]}
+        content={'# Heading\n\n| Name | Value |\n| --- | --- |\n| Gateway | :8079 |\n\n```bash\ncurl /health\n```\n\n[Service catalog](./service-catalog.md) · [Unsafe](javascript:alert(1))'}
+      />,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Heading' })).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByText('curl /health')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Service catalog' })).toHaveAttribute('href', '/system-overview/docs/doc-service-catalog');
+    expect(screen.queryByRole('link', { name: 'Unsafe' })).not.toBeInTheDocument();
+    expect(screen.getByText('Unsafe')).toBeInTheDocument();
   });
 });

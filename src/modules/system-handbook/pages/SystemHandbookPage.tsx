@@ -23,10 +23,11 @@ import {
   type FlowStep,
 } from '../data/flowExplorerData';
 import { SYSTEM_CONNECTIONS, SYSTEM_NODES, type SystemNode } from '@/modules/admin/data/systemOverviewData';
+import DocsPortalView from './DocsPortalView';
 
 const basePath = '/system-overview';
 
-type WorkspaceSection = 'overview' | 'flows' | 'architecture' | 'contracts' | 'operations';
+type WorkspaceSection = 'overview' | 'flows' | 'architecture' | 'contracts' | 'operations' | 'docs';
 type FlowVisualMode = 'tree' | 'swimlane';
 type InspectorSelection =
   | { type: 'step'; id: string }
@@ -41,6 +42,7 @@ const workspaceNav: Array<{ id: WorkspaceSection; label: string; detail: string;
   { id: 'architecture', label: 'Architecture', detail: 'Topology theo flow', icon: 'account_tree' },
   { id: 'contracts', label: 'Services & Contracts', detail: 'Ownership và API', icon: 'hub' },
   { id: 'operations', label: 'Operations', detail: 'Security và recovery', icon: 'shield' },
+  { id: 'docs', label: 'Tài liệu', detail: 'Markdown canonical corpus', icon: 'menu_book' },
 ];
 
 const sectionFromLocation = (pathname: string): WorkspaceSection => {
@@ -48,6 +50,7 @@ const sectionFromLocation = (pathname: string): WorkspaceSection => {
   if (pathname.includes('/architecture')) return 'architecture';
   if (pathname.includes('/services') || pathname.includes('/apis') || pathname.includes('/capabilities') || pathname.includes('/actors')) return 'contracts';
   if (pathname.includes('/operations')) return 'operations';
+  if (pathname.includes('/docs')) return 'docs';
   return 'overview';
 };
 
@@ -2136,7 +2139,8 @@ const SystemHandbookPage = () => {
     if (target === 'flows') return updateFlowState({ step: getFlow('cod-order').steps[0].id }, getFlow('cod-order'));
     if (target === 'architecture') return go(`${basePath}/architecture?step=${encodeURIComponent(getFlow('cod-order').steps[0].id)}`);
     if (target === 'contracts') return go(`${basePath}/services?node=order-service`);
-    return go(`${basePath}/operations`);
+    if (target === 'operations') return go(`${basePath}/operations`);
+    return go(`${basePath}/docs`);
   };
 
   const content =
@@ -2155,6 +2159,8 @@ const SystemHandbookPage = () => {
       <ArchitectureView flow={flow} selection={selection} onSelect={select} onFlow={chooseFlow} />
     ) : section === 'contracts' ? (
       <ContractsView flow={flow} selection={selection} onSelect={select} />
+    ) : section === 'docs' ? (
+      <DocsPortalView />
     ) : (
       <OperationsView />
     );
