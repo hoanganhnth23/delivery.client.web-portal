@@ -3,14 +3,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   getHandbookOperations,
   getHandbookService,
+  HANDBOOK_ACTORS,
   HANDBOOK_CAPABILITIES,
   HANDBOOK_MANIFEST,
   HANDBOOK_SOURCE_REFS,
   type HandbookApiOperation,
 } from '../data/handbookData';
 import {
-  explorerEventCount,
-  explorerOperationCount,
   FLOW_EXPLORER_FLOWS,
   getFlow,
   getFlowEvent,
@@ -76,7 +75,7 @@ function Panel({ children, className = '' }: { children: ReactNode; className?: 
 function StatusChip({ status }: { status: 'active' | 'hidden' | 'experimental' }) {
   const label = status === 'active' ? 'Active' : status === 'hidden' ? 'Hidden / off' : 'Experimental';
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${chipStyles[status]}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${chipStyles[status]}`}>
       <span className="size-1.5 rounded-full bg-current" />
       {label}
     </span>
@@ -85,7 +84,7 @@ function StatusChip({ status }: { status: 'active' | 'hidden' | 'experimental' }
 
 function MiniSource({ file, section }: { file: string; section: string }) {
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-slate-400 dark:text-slate-500">
+    <span className="inline-flex min-w-0 items-center gap-1.5 text-xs leading-5 text-slate-500 dark:text-slate-400">
       <span className="material-symbols-outlined text-sm shrink-0">description</span>
       <span className="truncate">{file} · {section}</span>
     </span>
@@ -96,26 +95,11 @@ function SectionTitle({ eyebrow, title, description, action }: { eyebrow: string
   return (
     <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">{eyebrow}</p>
         <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-950 dark:text-white sm:text-3xl">{title}</h1>
-        <p className="mt-1.5 max-w-3xl text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
+        <p className="mt-1.5 max-w-3xl text-base leading-7 text-slate-600 dark:text-slate-300">{description}</p>
       </div>
       {action && <div className="shrink-0">{action}</div>}
-    </div>
-  );
-}
-
-function Metric({ icon, value, label, detail }: { icon: string; value: string | number; label: string; detail: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs transition-all hover:shadow dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex items-start gap-3">
-        <span className="material-symbols-outlined rounded-xl bg-primary/10 p-2 text-xl text-primary">{icon}</span>
-        <div className="min-w-0">
-          <p className="text-2xl font-black tracking-tight text-slate-950 dark:text-white">{value}</p>
-          <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{label}</p>
-          <p className="mt-1 text-[11px] leading-4 text-slate-400 dark:text-slate-500">{detail}</p>
-        </div>
-      </div>
     </div>
   );
 }
@@ -1854,120 +1838,354 @@ function ContractsView({
   );
 }
 
-function Overview({ onFlow, onSection }: { onFlow: (id: string) => void; onSection: (section: WorkspaceSection) => void }) {
-  const coreFlow = getFlow('cod-order');
-  const activeCapabilities = HANDBOOK_CAPABILITIES.filter((capability) => capability.status === 'active').slice(0, 8);
+type OverviewFilter = 'core' | 'platform' | 'limited' | 'all';
+
+const OVERVIEW_CORE_CAPABILITY_IDS = new Set([
+  'identity',
+  'catalog-search',
+  'restaurant-management',
+  'ordering',
+  'fulfilment',
+  'tracking',
+  'notifications',
+  'rating',
+]);
+
+const OVERVIEW_PLATFORM_CAPABILITY_IDS = new Set([
+  'settlement',
+  'admin-operations',
+  'messaging-data',
+  'security-operations',
+]);
+
+const OVERVIEW_CAPABILITY_COPY: Record<string, { label: string; summary: string }> = {
+  identity: { label: 'Tài khoản & phiên đăng nhập', summary: 'Đăng ký, đăng nhập, xác minh email, làm mới token và thu hồi phiên.' },
+  'catalog-search': { label: 'Khám phá nhà hàng & món ăn', summary: 'Tìm nhà hàng, xem thực đơn và tìm món ăn qua search projection.' },
+  'restaurant-management': { label: 'Quản lý nhà hàng & thực đơn', summary: 'Quản lý hồ sơ, giờ mở cửa, thực đơn và quyết định nhận đơn.' },
+  ordering: { label: 'Đặt món COD', summary: 'Giỏ hàng, báo giá, tạo đơn có idempotency và theo dõi trạng thái đơn.' },
+  fulfilment: { label: 'Điều phối & giao hàng', summary: 'Điều phối saga, tìm shipper, tạo offer và quản lý vòng đời giao hàng.' },
+  tracking: { label: 'Theo dõi đơn hàng realtime', summary: 'Chia sẻ vị trí qua WebSocket, Redis GEO và delivery room có phân quyền.' },
+  notifications: { label: 'Thông báo đơn hàng', summary: 'Lưu inbox bền vững và đánh thức ứng dụng qua FCM khi có sự kiện.' },
+  rating: { label: 'Đánh giá & kiểm duyệt', summary: 'Khách đánh giá, nhà hàng xem kết quả và admin kiểm duyệt theo contract.' },
+  settlement: { label: 'Đối soát COD', summary: 'Tạo receipt, sổ cái bất biến và projection số dư sau khi giao thành công.' },
+  'admin-operations': { label: 'Quản trị nền tảng', summary: 'Theo dõi đơn, shipper, rating, coupon, flash sale và catalog.' },
+  'messaging-data': { label: 'Sự kiện & dữ liệu', summary: 'Kafka outbox/dedup, PostgreSQL ownership, Redis volatile state và search projection.' },
+  'security-operations': { label: 'Bảo mật & vận hành', summary: 'Gateway edge, JWT/JWKS, control plane, quan sát hệ thống và recovery.' },
+  campaigns: { label: 'Khuyến mãi & flash sale', summary: 'Capability voucher và campaign có tồn tại nhưng checkout relay đang tắt.' },
+  experimental: { label: 'Analytics & livestream', summary: 'Projection và provider boundary thử nghiệm, chưa mở thành MVP public.' },
+};
+
+const OVERVIEW_CLIENT_LABELS: Record<string, string> = {
+  'customer-app': 'delivery_app',
+  'delivery-web': 'delivery_web',
+  'shipper-app': 'shipper_app2',
+};
+
+const OVERVIEW_STATUS_COPY: Record<string, { label: string; className: string }> = {
+  active: { label: 'Đang hoạt động', className: 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:ring-emerald-800' },
+  protected: { label: 'Có xác thực', className: 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:ring-blue-800' },
+  hidden: { label: 'Bị giới hạn', className: 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:ring-amber-800' },
+  experimental: { label: 'Thử nghiệm', className: 'bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-950/40 dark:text-violet-300 dark:ring-violet-800' },
+};
+
+const OVERVIEW_CLASSIFICATION_COPY: Record<string, string> = {
+  public: 'Công khai',
+  protected: 'Có xác thực',
+  internal: 'Nội bộ',
+  gated: 'Bị giới hạn',
+  experimental: 'Thử nghiệm',
+  'dev-only': 'Chỉ dev',
+};
+
+const OVERVIEW_FLOW_STAGES = [
+  { number: '01', capabilityId: 'catalog-search', title: 'Khám phá món', detail: 'Khách hàng tìm nhà hàng và menu', service: 'restaurant-service · search-service', icon: 'search' },
+  { number: '02', capabilityId: 'ordering', title: 'Tạo đơn COD', detail: 'Server kiểm tra quote và tạo order', service: 'order-service', icon: 'shopping_cart' },
+  { number: '03', capabilityId: 'restaurant-management', title: 'Nhà hàng xác nhận', detail: 'Confirm hoặc reject order', service: 'restaurant-service', icon: 'storefront' },
+  { number: '04', capabilityId: 'fulfilment', title: 'Tìm shipper', detail: 'Saga phát lệnh, Match chọn candidate', service: 'saga-orchestrator-service · match-service', icon: 'near_me' },
+  { number: '05', capabilityId: 'tracking', title: 'Giao & theo dõi', detail: 'Offer, trạng thái và vị trí realtime', service: 'delivery-service · tracking-service', icon: 'local_shipping' },
+  { number: '06', capabilityId: 'settlement', title: 'Hoàn tất & đối soát', detail: 'Ghi nhận delivery.completed và COD ledger', service: 'settlement-service', icon: 'account_balance_wallet' },
+];
+
+const overviewCapabilityLabel = (id: string, fallback: string) => OVERVIEW_CAPABILITY_COPY[id]?.label ?? fallback;
+const overviewCapabilitySummary = (id: string, fallback: string) => OVERVIEW_CAPABILITY_COPY[id]?.summary ?? fallback;
+const overviewStatus = (status: string) => OVERVIEW_STATUS_COPY[status] ?? OVERVIEW_STATUS_COPY.active;
+const overviewActorLabel = (id: string) => HANDBOOK_ACTORS.find((actor) => actor.id === id)?.shortLabel ?? id;
+const overviewClientLabel = (id: string) => OVERVIEW_CLIENT_LABELS[id] ?? id;
+
+function OverviewStatusTag({ status }: { status: string }) {
+  const config = overviewStatus(status);
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-bold ring-1 ${config.className}`}>
+      <span className="size-1.5 rounded-full bg-current" />
+      {config.label}
+    </span>
+  );
+}
+
+function OverviewCapabilityCard({
+  capability,
+  onFlow,
+  onSection,
+}: {
+  capability: (typeof HANDBOOK_CAPABILITIES)[number];
+  onFlow: (id: string) => void;
+  onSection: (section: WorkspaceSection) => void;
+}) {
+  const label = overviewCapabilityLabel(capability.id, capability.label);
+  const workflowId = capability.workflows[0];
+  const actionLabel = workflowId ? `Xem luồng ${label}` : `Xem dịch vụ ${label}`;
 
   return (
-    <div className="space-y-5">
-      <SectionTitle
-        eyebrow="As-built system handbook"
-        title="Hiểu hệ thống qua một luồng liên kết"
-        description="Bắt đầu từ workflow thay vì danh sách service. Mỗi hành động dẫn tới actor, API/event, state owner, nhánh lỗi và kiến trúc phía sau."
-        action={<StatusChip status="active" />}
-      />
-
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric icon="route" value={FLOW_EXPLORER_FLOWS.length} label="Workflows chính" detail="Happy path + Failure recovery" />
-        <Metric icon="hub" value={SYSTEM_NODES.filter((node) => node.kind === 'service').length} label="Domain Services" detail="Owner-based boundaries" />
-        <Metric icon="terminal" value={explorerOperationCount} label="Flow-linked APIs" detail="Progressive contracts" />
-        <Metric icon="sync_alt" value={explorerEventCount} label="Flow-linked Events" detail="Producer, consumer, replay" />
+    <article className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-amber-500/60 hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-start gap-3">
+        <span className="material-symbols-outlined rounded-xl bg-amber-100 p-2 text-xl text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">{capability.id === 'ordering' ? 'shopping_bag' : capability.id === 'fulfilment' ? 'local_shipping' : capability.id === 'tracking' ? 'my_location' : capability.id === 'settlement' ? 'account_balance_wallet' : capability.id === 'campaigns' ? 'local_offer' : 'hub'}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <h3 className="text-base font-black leading-6 text-slate-950 dark:text-white">{label}</h3>
+            <OverviewStatusTag status={capability.status} />
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{overviewCapabilitySummary(capability.id, capability.summary)}</p>
+        </div>
       </div>
 
-      <Panel className="overflow-hidden bg-slate-950 p-6 text-white shadow-md">
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-orange-300">Recommended starting point</p>
-            <h2 className="mt-2 text-2xl font-black">COD order → delivery</h2>
-            <p className="mt-2.5 max-w-xl text-sm leading-6 text-slate-300">
-              Từ checkout tới settlement: bấm từng step để xem request, event, service owner và cách hệ thống recover khi quote lỗi, nhà hàng reject hoặc không tìm được shipper.
-            </p>
-            <button
-              type="button"
-              onClick={() => onFlow(coreFlow.id)}
-              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-black text-white shadow-lg shadow-primary/25 transition hover:bg-primary-hover"
-            >
-              <span>Khám phá luồng COD</span>
-              <span className="material-symbols-outlined text-base">arrow_forward</span>
-            </button>
-          </div>
-
-          <div className="grid gap-2.5 sm:grid-cols-3 lg:grid-cols-1">
-            {[
-              ['1', 'Chọn flow', 'Bắt đầu bằng mục tiêu nghiệp vụ thực tế'],
-              ['2', 'Bấm hành động', 'Xem actor, service, API contract và event'],
-              ['3', 'Chuyển failure', 'Xem recovery branches và terminal outcome'],
-            ].map(([number, label, detail]) => (
-              <div key={number} className="rounded-xl border border-white/10 bg-white/[0.06] p-3.5">
-                <span className="text-[10px] font-black text-orange-300">0{number}</span>
-                <p className="mt-1 text-sm font-black">{label}</p>
-                <p className="mt-0.5 text-[11px] leading-4 text-slate-400">{detail}</p>
-              </div>
+      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+        <div className="min-w-0">
+          <dt className="text-xs font-bold text-slate-500 dark:text-slate-400">Ai sử dụng</dt>
+          <dd className="mt-1 flex flex-wrap gap-1.5">
+            {capability.actors.map((actorId) => (
+              <span key={actorId} className="rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold leading-4 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                {overviewActorLabel(actorId)}
+              </span>
             ))}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="text-xs font-bold text-slate-500 dark:text-slate-400">Ứng dụng</dt>
+          <dd className="mt-1 flex flex-wrap gap-1.5">
+            {capability.clients.length > 0 ? capability.clients.map((clientId) => (
+              <span key={clientId} className="rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] font-semibold leading-4 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                {overviewClientLabel(clientId)}
+              </span>
+            )) : (
+              <span className="text-sm font-semibold leading-5 text-slate-700 dark:text-slate-200">Nội bộ</span>
+            )}
+          </dd>
+        </div>
+      </dl>
+
+      <div className="mt-3 flex min-h-8 flex-wrap content-start gap-1.5">
+        {capability.services.map((service) => (
+          <span key={service} className="rounded-md bg-slate-100 px-2.5 py-1.5 font-mono text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">{service}</span>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{OVERVIEW_CLASSIFICATION_COPY[capability.classification] ?? capability.classification}</span>
+        <button
+          type="button"
+          aria-label={actionLabel}
+          onClick={() => workflowId ? onFlow(workflowId) : onSection('contracts')}
+          className="inline-flex items-center gap-1 text-sm font-black text-amber-700 transition group-hover:text-amber-800 dark:text-amber-300 dark:group-hover:text-amber-200"
+        >
+          {workflowId ? 'Xem luồng' : 'Xem dịch vụ'}
+          <span className="material-symbols-outlined text-sm">arrow_forward</span>
+        </button>
+      </div>
+    </article>
+  );
+}
+
+function Overview({ onFlow, onSection }: { onFlow: (id: string) => void; onSection: (section: WorkspaceSection) => void }) {
+  const [filter, setFilter] = useState<OverviewFilter>('core');
+  const coreFlow = getFlow('cod-order');
+  const visibleCapabilities = HANDBOOK_CAPABILITIES.filter((capability) => {
+    if (filter === 'core') return OVERVIEW_CORE_CAPABILITY_IDS.has(capability.id);
+    if (filter === 'platform') return OVERVIEW_PLATFORM_CAPABILITY_IDS.has(capability.id);
+    if (filter === 'limited') return capability.status === 'hidden' || capability.status === 'experimental';
+    return true;
+  });
+  const filterItems: Array<{ id: OverviewFilter; label: string; count: number }> = [
+    { id: 'core', label: 'Nghiệp vụ chính', count: HANDBOOK_CAPABILITIES.filter((capability) => OVERVIEW_CORE_CAPABILITY_IDS.has(capability.id)).length },
+    { id: 'platform', label: 'Nền tảng & quản trị', count: HANDBOOK_CAPABILITIES.filter((capability) => OVERVIEW_PLATFORM_CAPABILITY_IDS.has(capability.id)).length },
+    { id: 'limited', label: 'Bị giới hạn', count: HANDBOOK_CAPABILITIES.filter((capability) => capability.status === 'hidden' || capability.status === 'experimental').length },
+    { id: 'all', label: 'Tất cả', count: HANDBOOK_CAPABILITIES.length },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="overflow-hidden rounded-[26px] bg-slate-950 p-6 text-white shadow-lg sm:p-8">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold text-amber-300">Handbook hệ thống · snapshot {HANDBOOK_MANIFEST.generatedAt}</p>
+            <h1 className="mt-4 max-w-2xl text-3xl font-black tracking-tight sm:text-4xl">Hệ thống Delivery có những chức năng gì?</h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300">
+              Đây là bản đồ chức năng của toàn nền tảng: từ khách tìm món, đặt COD, nhà hàng xác nhận, hệ thống tìm shipper cho tới giao hàng và đối soát.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => onFlow(coreFlow.id)}
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-700 px-4 py-3 text-sm font-black text-white shadow-lg shadow-amber-950/25 transition hover:bg-amber-800"
+              >
+                Khám phá luồng đặt món
+                <span className="material-symbols-outlined text-base">arrow_forward</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSection('architecture')}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.06] px-4 py-3 text-sm font-bold text-slate-200 transition hover:bg-white/10"
+              >
+                Xem kiến trúc
+                <span className="material-symbols-outlined text-base">account_tree</span>
+              </button>
+            </div>
           </div>
         </div>
-      </Panel>
 
-      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <Panel className="p-4 sm:p-5">
-          <div className="flex items-end justify-between gap-3 border-b border-slate-200 pb-3 dark:border-slate-800">
+        <aside className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">Business Capabilities</p>
-              <h2 className="mt-0.5 text-lg font-black text-slate-950 dark:text-white">Hệ thống giải quyết nghiệp vụ gì?</h2>
+              <p className="text-sm font-bold text-amber-700 dark:text-amber-300">Cách đọc handbook</p>
+              <h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">Từ chức năng đến chi tiết</h2>
             </div>
-            <button type="button" onClick={() => onSection('contracts')} className="text-xs font-bold text-primary hover:underline">
-              Services & contracts →
-            </button>
+            <span className="material-symbols-outlined rounded-xl bg-amber-100 p-2 text-xl text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">map</span>
           </div>
-          <div className="mt-4 grid gap-2.5 md:grid-cols-2">
-            {activeCapabilities.map((capability) => (
-              <button
-                key={capability.id}
-                type="button"
-                onClick={() => capability.workflows[0] ? onFlow(capability.workflows[0]) : onSection('contracts')}
-                className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-3.5 text-left transition hover:border-primary/50 hover:bg-white dark:border-slate-800 dark:bg-slate-900/40"
-              >
-                <p className="text-sm font-black text-slate-900 dark:text-white">{capability.label}</p>
-                <p className="mt-1 text-[11px] leading-5 text-slate-500 line-clamp-2 dark:text-slate-400">{capability.summary}</p>
-                <p className="mt-2 font-mono text-[9px] font-bold text-primary truncate">{capability.services.join(' · ')}</p>
-              </button>
+          <div className="mt-5 space-y-4">
+            {[
+              ['01', 'Tổng quan', 'Chức năng chính và ai sử dụng'],
+              ['02', 'Kiến trúc', 'Các khối, ownership và cách giao tiếp'],
+              ['03', 'Luồng', 'Từng bước, API/event và nhánh lỗi'],
+              ['04', 'Tài liệu', 'Đặc tả chi tiết từ nguồn canonical'],
+            ].map(([number, title, detail]) => (
+              <div key={number} className="flex gap-3">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-xs font-black text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">{number}</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-slate-800 dark:text-slate-100">{title}</p>
+                  <p className="mt-0.5 text-sm leading-6 text-slate-600 dark:text-slate-300">{detail}</p>
+                </div>
+              </div>
             ))}
           </div>
-        </Panel>
+        </aside>
+      </section>
 
-        <Panel className="p-4 sm:p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">Architecture Reader Path</p>
-          <h2 className="mt-0.5 text-lg font-black text-slate-950 dark:text-white">Từ flow đến topology</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-            Chọn Architecture để nhìn các service trong luồng được highlight trên topology. Mỗi node trả lời ownership, state và contract footprint.
-          </p>
-          <button
-            type="button"
-            onClick={() => onSection('architecture')}
-            className="mt-4 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-xs font-black text-primary transition hover:bg-primary/10"
-          >
-            Mở architecture overlay →
-          </button>
-          <div className="mt-5 border-t border-slate-200 pt-3 dark:border-slate-800">
-            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">Source snapshot</p>
-            <p className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-200">{HANDBOOK_MANIFEST.generatedAt} · không gọi backend live</p>
-          </div>
-        </Panel>
-      </div>
-
-      <Panel className="p-4 sm:p-5">
-        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">Source of Truth References</p>
-        <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-          {HANDBOOK_SOURCE_REFS.slice(0, 8).map((ref) => (
-            <div key={`${ref.file}-${ref.section}`} className="rounded-xl border border-slate-200/90 p-3 dark:border-slate-800">
-              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{ref.label}</p>
-              <div className="mt-2">
-                <MiniSource file={ref.file} section={ref.section} />
-              </div>
+      <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          ['grid_view', HANDBOOK_CAPABILITIES.length, 'Tính năng trong danh mục', 'Active, gated và experimental'],
+          ['hub', SYSTEM_NODES.filter((node) => node.kind === 'service').length, 'Service nghiệp vụ', 'Mỗi service sở hữu state riêng'],
+          ['route', FLOW_EXPLORER_FLOWS.length, 'Luồng chính', 'Có happy path và nhánh lỗi'],
+          ['description', HANDBOOK_SOURCE_REFS.length, 'Nguồn tài liệu', 'Snapshot, không gọi backend live'],
+        ].map(([icon, value, label, detail]) => (
+          <div key={label} className="flex items-center gap-3 rounded-2xl border border-slate-200/90 bg-white px-4 py-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <span className="material-symbols-outlined rounded-xl bg-amber-100 p-2 text-xl text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">{icon}</span>
+            <div className="min-w-0">
+              <dd className="text-2xl font-black tracking-tight text-slate-950 dark:text-white">{value}</dd>
+              <dt className="text-sm font-bold text-slate-700 dark:text-slate-200">{label}</dt>
+              <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{detail}</p>
             </div>
+          </div>
+        ))}
+      </dl>
+
+      <Panel className="p-5 sm:p-6">
+        <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-bold text-amber-700 dark:text-amber-300">Bản đồ nghiệp vụ cốt lõi</p>
+            <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-white">Một đơn hàng đi qua hệ thống như thế nào?</h2>
+            <p className="mt-1.5 max-w-3xl text-base leading-7 text-slate-600 dark:text-slate-300">Mỗi chặng gắn với một nhóm chức năng và service sở hữu. Chọn “Khám phá luồng đặt món” để xem đủ API, event, state và failure recovery.</p>
+          </div>
+          <button type="button" onClick={() => onFlow(coreFlow.id)} className="inline-flex shrink-0 items-center gap-1 text-sm font-black text-amber-700 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200">
+            Mở luồng đầy đủ
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </button>
+        </div>
+        <div className="mt-5 flex gap-3 overflow-x-auto pb-1">
+          {OVERVIEW_FLOW_STAGES.map((stage, index) => (
+            <button
+              key={stage.number}
+              type="button"
+              onClick={() => onFlow(coreFlow.id)}
+              className="group relative min-w-[220px] flex-1 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-amber-500/60 hover:bg-white dark:border-slate-800 dark:bg-slate-950/50 dark:hover:bg-slate-900"
+            >
+              {index < OVERVIEW_FLOW_STAGES.length - 1 && <span className="pointer-events-none absolute -right-3 top-1/2 z-10 hidden -translate-y-1/2 text-slate-300 xl:block">→</span>}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-black text-amber-700 dark:text-amber-300">{stage.number}</span>
+                <span className="material-symbols-outlined text-lg text-slate-500 transition group-hover:text-amber-700 dark:text-slate-400 dark:group-hover:text-amber-300">{stage.icon}</span>
+              </div>
+              <h3 className="mt-3 text-base font-black text-slate-900 dark:text-white">{stage.title}</h3>
+              <p className="mt-1 min-h-12 text-sm leading-6 text-slate-600 dark:text-slate-300">{stage.detail}</p>
+              <p className="mt-3 break-words font-mono text-xs font-semibold leading-5 text-slate-500 dark:text-slate-400">{stage.service}</p>
+            </button>
           ))}
         </div>
       </Panel>
+
+      <section>
+        <div className="flex flex-col gap-4 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-sm font-bold text-amber-700 dark:text-amber-300">Bản đồ chức năng</p>
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950 dark:text-white">Các tính năng chính</h2>
+            <p className="mt-1.5 max-w-3xl text-base leading-7 text-slate-600 dark:text-slate-300">Mỗi thẻ cho biết chức năng phục vụ ai, chạy trên ứng dụng nào, service nào sở hữu và nơi xem tiếp chi tiết.</p>
+          </div>
+          <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">{visibleCapabilities.length} tính năng đang hiển thị</span>
+        </div>
+
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Lọc nhóm tính năng">
+          {filterItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={filter === item.id}
+              onClick={() => setFilter(item.id)}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-black transition ${filter === item.id ? 'bg-slate-950 text-white shadow-sm dark:bg-white dark:text-slate-950' : 'border border-slate-200 bg-white text-slate-700 hover:border-amber-500/60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200'}`}
+            >
+              {item.label}
+              <span className={`rounded-full px-1.5 py-0.5 text-xs ${filter === item.id ? 'bg-white/15 text-current' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>{item.count}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {visibleCapabilities.map((capability) => (
+            <OverviewCapabilityCard key={capability.id} capability={capability} onFlow={onFlow} onSection={onSection} />
+          ))}
+        </div>
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <Panel className="p-5">
+          <div className="flex items-end justify-between gap-3 border-b border-slate-200 pb-4 dark:border-slate-800">
+            <div>
+            <p className="text-sm font-bold text-amber-700 dark:text-amber-300">Actors & ứng dụng</p>
+              <h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">Ai tham gia vào hệ thống?</h2>
+            </div>
+            <button type="button" onClick={() => onSection('contracts')} className="text-sm font-black text-amber-700 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200">Xem service →</button>
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {HANDBOOK_ACTORS.filter((actor) => actor.id !== 'anonymous' && actor.id !== 'platform').map((actor) => (
+              <div key={actor.id} className="flex gap-3 rounded-xl border border-slate-200/90 p-3 dark:border-slate-800">
+                <span className="material-symbols-outlined rounded-lg bg-slate-100 p-2 text-lg text-slate-600 dark:bg-slate-800 dark:text-slate-300">{actor.icon}</span>
+                <div className="min-w-0">
+                  <h3 className="text-xs font-black text-slate-900 dark:text-white">{actor.shortLabel}</h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{actor.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel className="p-5">
+          <p className="text-sm font-bold text-amber-700 dark:text-amber-300">Thông tin bản snapshot</p>
+          <h2 className="mt-1 text-lg font-black text-slate-950 dark:text-white">Nguồn dữ liệu và giới hạn</h2>
+          <p className="mt-2 text-base leading-7 text-slate-600 dark:text-slate-300">Handbook là public read-only, được sinh từ tài liệu canonical. Không gọi backend live, không hiển thị secret và không thực hiện mutation.</p>
+          <div className="mt-4 space-y-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+            <div className="flex items-center justify-between gap-3 text-sm"><span className="text-slate-600 dark:text-slate-400">Ngày snapshot</span><strong className="font-mono text-slate-800 dark:text-slate-200">{HANDBOOK_MANIFEST.generatedAt}</strong></div>
+            <div className="flex items-center justify-between gap-3 text-sm"><span className="text-slate-600 dark:text-slate-400">Nguồn đã lập danh mục</span><strong className="text-slate-800 dark:text-slate-200">{HANDBOOK_SOURCE_REFS.length} tài liệu</strong></div>
+          </div>
+          <button type="button" onClick={() => onSection('docs')} className="mt-4 inline-flex items-center gap-1 text-sm font-black text-amber-700 hover:text-amber-800 dark:text-amber-300 dark:hover:text-amber-200">Mở tài liệu chi tiết <span className="material-symbols-outlined text-sm">arrow_forward</span></button>
+        </Panel>
+      </div>
     </div>
   );
 }
@@ -2054,7 +2272,7 @@ function SearchBox({ onNavigate }: { onNavigate: (path: string) => void }) {
             setIsOpen(true);
           }}
           placeholder="Tìm flow, service, API, event… (⌘K)"
-          className="w-full rounded-xl border border-slate-200/90 bg-slate-50/80 py-2.5 pl-10 pr-10 text-sm placeholder-slate-400 focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+          className="w-full rounded-xl border border-slate-200/90 bg-slate-50/80 py-2.5 pl-10 pr-10 text-base text-slate-800 placeholder-slate-500 focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary dark:border-slate-800 dark:bg-slate-900 dark:text-white dark:placeholder-slate-400"
         />
         {query && (
           <button
@@ -2189,7 +2407,7 @@ const SystemHandbookPage = () => {
             </span>
             <div className="hidden sm:block">
               <span className="block text-sm font-black tracking-tight">Delivery System Handbook</span>
-              <span className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400">Flow-first · public read-only · as-built</span>
+              <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400">Flow-first · public read-only · as-built</span>
             </div>
           </button>
 
@@ -2218,14 +2436,14 @@ const SystemHandbookPage = () => {
                   onClick={() => chooseSection(item.id)}
                   className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-all ${
                     isActive
-                      ? 'bg-primary text-white shadow-md shadow-primary/20 ring-1 ring-primary/40'
+                      ? 'bg-amber-700 text-white shadow-md shadow-amber-900/20 ring-1 ring-amber-600/60'
                       : 'text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-900'
                   }`}
                 >
                   <span className="material-symbols-outlined text-xl shrink-0">{item.icon}</span>
                   <div className="min-w-0 flex-1">
-                    <span className="block text-xs font-black">{item.label}</span>
-                    <span className={`mt-0.5 block text-[10px] ${isActive ? 'text-orange-100 font-medium' : 'text-slate-400'}`}>
+                    <span className="block text-sm font-black">{item.label}</span>
+                    <span className={`mt-0.5 block text-xs ${isActive ? 'text-orange-100 font-medium' : 'text-slate-500 dark:text-slate-400'}`}>
                       {item.detail}
                     </span>
                   </div>
@@ -2235,9 +2453,9 @@ const SystemHandbookPage = () => {
           </nav>
 
           <div className="mt-4 rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <p className="text-[10px] font-black uppercase tracking-wider text-primary">Snapshot</p>
+            <p className="text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">Snapshot</p>
             <p className="mt-1 text-xs font-bold text-slate-800 dark:text-slate-200">{HANDBOOK_MANIFEST.generatedAt}</p>
-            <p className="mt-1 text-[10px] leading-4 text-slate-400">Không live backend · không mutation</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Không live backend · không mutation</p>
           </div>
         </aside>
 
