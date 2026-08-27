@@ -6,6 +6,7 @@ import * as restaurantService from '@/modules/restaurant/services/restaurantServ
 import * as addressService from '@/services/api/addressService';
 import adminService from '@/services/api/adminService';
 import { flashSaleAdminService } from '@/services/api/flashSaleService';
+import { livestreamHostService } from '@/services/api/livestreamService';
 import * as promotionService from '@/services/api/promotionService';
 import TokenStorage from '@/services/storage/localStorage';
 import { toast } from 'react-hot-toast';
@@ -98,6 +99,7 @@ export type FlashSaleAdminServicePort = Pick<
   | 'getCampaignItems'
   | 'updateCampaignStatus'
 >;
+export type LivestreamHostServicePort = Pick<typeof livestreamHostService, 'inspect' | 'create' | 'start' | 'end'>;
 
 export interface NotificationPort {
   success(message: string): unknown;
@@ -129,6 +131,7 @@ export interface AppDependencies {
   address: AddressServicePort;
   admin: AdminServicePort;
   flashSaleAdmin: FlashSaleAdminServicePort;
+  livestreamHost: LivestreamHostServicePort;
   notifications: NotificationPort;
   clock: ClockPort;
   delay: DelayPort;
@@ -144,6 +147,7 @@ export const productionDependencies: AppDependencies = {
   address: addressService,
   admin: adminService,
   flashSaleAdmin: flashSaleAdminService,
+  livestreamHost: livestreamHostService,
   notifications: toast,
   clock: { now: () => new Date() },
   delay: {

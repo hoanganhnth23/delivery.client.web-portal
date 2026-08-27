@@ -114,6 +114,13 @@ export const API_ENDPOINTS = {
   ANALYTICS: {
     ADMIN_DASHBOARD: '/api/analytics/dashboard/admin',
   },
+  LIVESTREAM: {
+    ACTIVE: '/api/livestreams/active',
+    CREATE: '/api/livestreams',
+    START: (id: string) => `/api/livestreams/${id}/start`,
+    END: (id: string) => `/api/livestreams/${id}/end`,
+    INSPECT_RESTAURANT: (restaurantId: number) => `/api/livestreams/restaurant/${restaurantId}`,
+  },
 
 } as const;
 

@@ -19,6 +19,7 @@ const RestaurantOrders = lazy(() => import('./modules/restaurant/pages/Restauran
 const MenuManagement = lazy(() => import('./modules/restaurant/pages/MenuManagement'));
 const RestaurantReviewsPage = lazy(() => import('./modules/restaurant/pages/RestaurantReviewsPage'));
 const RestaurantVouchersPage = lazy(() => import('./modules/restaurant/pages/RestaurantVouchersPage'));
+const RestaurantLivestreamPage = lazy(() => import('./modules/restaurant/pages/RestaurantLivestreamPage'));
 const AdminDashboard = lazy(() => import('./modules/admin/pages/AdminDashboard'));
 const AdminOrdersPage = lazy(() => import('./modules/admin/pages/AdminOrdersPage'));
 const AdminShippersPage = lazy(() => import('./modules/admin/pages/AdminShippersPage'));
@@ -92,6 +93,7 @@ function PortalRoutes() {
                 <Route path={ROUTES.RESTAURANT_ORDERS} element={restaurantRoute(<RestaurantOrders />)} />
                 <Route path={ROUTES.RESTAURANT_REVIEWS} element={restaurantRoute(<RestaurantReviewsPage />)} />
                 <Route path={ROUTES.RESTAURANT_VOUCHERS} element={restaurantRoute(<RestaurantVouchersPage />)} />
+                <Route path={ROUTES.RESTAURANT_LIVESTREAM} element={restaurantRoute(<RestaurantLivestreamPage />)} />
                 <Route path={ROUTES.RESTAURANT_CATALOG_IMPORT} element={restaurantRoute(<CatalogImportPage portal="restaurant" />)} />
                 <Route path={ROUTES.ADMIN_DASHBOARD} element={adminRoute(<AdminDashboard />)} />
                 <Route path={ROUTES.ADMIN_ORDERS} element={adminRoute(<AdminOrdersPage />)} />

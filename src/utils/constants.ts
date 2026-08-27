@@ -90,6 +90,7 @@ export const ROUTES = {
   RESTAURANT_REVIEWS: '/restaurant/reviews',
   RESTAURANT_VOUCHERS: '/restaurant/vouchers',
   RESTAURANT_CATALOG_IMPORT: '/restaurant/catalog-import',
+  RESTAURANT_LIVESTREAM: '/restaurant/livestream',
   
   // Error pages
   UNAUTHORIZED: '/unauthorized',

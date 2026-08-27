@@ -13,6 +13,7 @@ export const restaurantNavigation: PortalNavigationItem[] = [
   { icon: 'storefront', label: 'Hồ sơ cửa hàng', to: ROUTES.RESTAURANT_PROFILE },
   { icon: 'reviews', label: 'Đánh giá', to: ROUTES.RESTAURANT_REVIEWS },
   { icon: 'local_offer', label: 'Voucher nhà hàng', to: ROUTES.RESTAURANT_VOUCHERS },
+  { icon: 'videocam', label: 'Livestream', to: ROUTES.RESTAURANT_LIVESTREAM },
   { icon: 'upload_file', label: 'Import dữ liệu', to: ROUTES.RESTAURANT_CATALOG_IMPORT },
 ];
 
