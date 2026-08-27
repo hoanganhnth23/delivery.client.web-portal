@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   getHandbookOperations,
@@ -21,10 +21,19 @@ import {
   type FlowMode,
   type FlowStep,
 } from '../data/flowExplorerData';
-import { SYSTEM_CONNECTIONS, SYSTEM_NODES, type SystemNode } from '@/modules/admin/data/systemOverviewData';
+import { SYSTEM_CONNECTIONS, SYSTEM_NODES } from '@/modules/admin/data/systemOverviewData';
+import {
+  buildArchitectureGraph,
+  type ArchitectureLayerFilter,
+  type ArchitectureSelection,
+  type ArchitectureStatusFilter,
+} from '../data/architectureGraph';
+import ArchitectureInspector from '../components/ArchitectureInspector';
+import ArchitectureMobileList from '../components/ArchitectureMobileList';
 import DocsPortalView from './DocsPortalView';
 
 const basePath = '/system-overview';
+const ArchitectureCanvas = lazy(() => import('../components/ArchitectureCanvas'));
 
 type WorkspaceSection = 'overview' | 'flows' | 'architecture' | 'contracts' | 'operations' | 'docs';
 type FlowVisualMode = 'tree' | 'swimlane';
@@ -33,7 +42,8 @@ type InspectorSelection =
   | { type: 'service'; id: string }
   | { type: 'operation'; id: string }
   | { type: 'event'; id: string }
-  | { type: 'branch'; id: string };
+  | { type: 'branch'; id: string }
+  | { type: 'connection'; id: string };
 
 const workspaceNav: Array<{ id: WorkspaceSection; label: string; detail: string; icon: string }> = [
   { id: 'overview', label: 'Tổng quan', detail: 'Bắt đầu từ hệ thống', icon: 'space_dashboard' },
@@ -138,6 +148,8 @@ function queryState(location: ReturnType<typeof useLocation>) {
     operation: params.get('operation'),
     event: params.get('event'),
     branch: params.get('branch'),
+    connection: params.get('connection'),
+    flow: params.get('flow'),
   };
 }
 
@@ -145,6 +157,7 @@ function buildSelection(state: ReturnType<typeof queryState>, flow: FlowExplorer
   if (state.operation && getFlowOperation(state.operation)) return { type: 'operation', id: state.operation };
   if (state.event && getFlowEvent(state.event)) return { type: 'event', id: state.event };
   if (state.branch && flow.branches.some((branch) => branch.id === state.branch)) return { type: 'branch', id: state.branch };
+  if (state.connection && SYSTEM_CONNECTIONS.some((connection) => connection.id === state.connection)) return { type: 'connection', id: state.connection };
   if (state.node && SYSTEM_NODES.some((node) => node.id === state.node)) return { type: 'service', id: state.node };
   return { type: 'step', id: getFlowStep(flow, state.step).id };
 }
@@ -1523,174 +1536,193 @@ function FlowExplorer({
   );
 }
 
+function useIsNarrowViewport() {
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', updateViewport);
+    return () => window.removeEventListener('resize', updateViewport);
+  }, []);
+
+  return isMobile;
+}
+
 function ArchitectureView({
-  flow,
+  flowId,
   selection,
   onSelect,
   onFlow,
 }: {
-  flow: FlowExplorerDefinition;
+  flowId: string | null;
   selection: InspectorSelection;
   onSelect: (selection: InspectorSelection) => void;
-  onFlow: (id: string) => void;
+  onFlow: (id: string | null) => void;
 }) {
-  const activeNodes = new Set(flow.steps.flatMap((step) => step.serviceIds).concat(['gateway', 'customer-app', 'delivery-web', 'shipper-app']));
-  const relevantConnections = SYSTEM_CONNECTIONS.filter((connection) => activeNodes.has(connection.source) && activeNodes.has(connection.target));
-  const groups = [
-    { label: 'Clients', nodes: SYSTEM_NODES.filter((node) => node.kind === 'client') },
-    { label: 'Public edge', nodes: SYSTEM_NODES.filter((node) => node.kind === 'edge') },
-    { label: 'Domain services', nodes: SYSTEM_NODES.filter((node) => node.kind === 'service') },
-    { label: 'Data & control', nodes: SYSTEM_NODES.filter((node) => node.kind === 'infrastructure') },
-  ];
+  const isMobile = useIsNarrowViewport();
+  const [query, setQuery] = useState('');
+  const [layerFilter, setLayerFilter] = useState<ArchitectureLayerFilter>('all');
+  const [statusFilter, setStatusFilter] = useState<ArchitectureStatusFilter>('all');
+  const [layoutRevision, setLayoutRevision] = useState(0);
+  const [layoutPending, setLayoutPending] = useState(false);
+  const [positionedNodes, setPositionedNodes] = useState<ReturnType<typeof buildArchitectureGraph>['nodes']>([]);
+
+  const graph = useMemo(
+    () => buildArchitectureGraph({ layer: layerFilter, status: statusFilter, flowId, query }),
+    [flowId, layerFilter, query, statusFilter],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setPositionedNodes(graph.nodes);
+
+    if (isMobile) {
+      setLayoutPending(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setLayoutPending(true);
+    void import('../data/architectureLayout')
+      .then(({ layoutArchitectureGraph }) => layoutArchitectureGraph(graph.nodes, graph.edges))
+      .then((result) => {
+        if (cancelled) return;
+        setPositionedNodes(result.nodes);
+        setLayoutPending(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [graph, isMobile, layoutRevision]);
+
+  const architectureSelection: ArchitectureSelection | null = selection.type === 'service'
+    ? { type: 'node', id: selection.id }
+    : selection.type === 'connection'
+      ? { type: 'edge', id: selection.id }
+      : null;
+
+  const selectedNodeId = architectureSelection?.type === 'node' ? architectureSelection.id : null;
+  const selectedEdgeId = architectureSelection?.type === 'edge' ? architectureSelection.id : null;
+  const selectedIds = new Set(graph.nodes.map((node) => node.id));
+  const displayNodes = positionedNodes.length === graph.nodes.length && positionedNodes.every((node) => selectedIds.has(node.id)) ? positionedNodes : graph.nodes;
+  const selectedFlow = flowId ? FLOW_EXPLORER_FLOWS.find((item) => item.id === flowId) ?? null : null;
+  const selectArchitecture = (next: ArchitectureSelection) => onSelect(next.type === 'node' ? { type: 'service', id: next.id } : { type: 'connection', id: next.id });
 
   return (
     <div className="space-y-5">
       <SectionTitle
-        eyebrow="Topology with runtime context"
-        title="Architecture overlay"
-        description="Bản đồ highlight các block tham gia flow đang chọn; node còn lại vẫn hiển thị để giữ toàn cảnh kiến trúc."
+        eyebrow="Bản đồ hệ thống"
+        title="Kiến trúc hệ thống"
+        description="Bản đồ các khối, ranh giới sở hữu dữ liệu và cách các thành phần giao tiếp trong snapshot hiện hành."
         action={
-          <button
-            type="button"
-            onClick={() => onFlow('cod-order')}
-            className="rounded-xl bg-primary px-3.5 py-2 text-xs font-black text-white shadow-xs transition hover:bg-primary-hover"
-          >
-            Đổi flow →
-          </button>
+          <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-2 text-xs font-extrabold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+            <span className="size-2 rounded-full bg-emerald-500" />
+            As-built · Snapshot hiện tại
+          </span>
         }
       />
 
-      <Panel className="overflow-hidden bg-slate-950 p-4 text-white">
-        <div className="flex flex-wrap items-center gap-3 text-xs">
-          <span className="rounded-full bg-primary/20 px-3 py-1 font-bold text-orange-200">
-            Flow đang xem: {flow.label}
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-slate-300">
-            <span className="size-2 rounded-full bg-primary" />
-            Tham gia trong flow
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-slate-400">
-            <span className="size-2 rounded-full bg-slate-600" />
-            Toàn cảnh hệ thống
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-violet-300">
-            <span className="w-5 border-t border-dashed" />
-            Async connection
-          </span>
-        </div>
-      </Panel>
-
-      {/* 4-Layer Architecture Topology Columns */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {groups.map((group) => (
-          <Panel key={group.label} className="p-3.5">
-            <p className="border-b border-slate-200 pb-2 text-[10px] font-black uppercase tracking-[0.16em] text-primary dark:border-slate-800">
-              {group.label}
-            </p>
-            <div className="mt-3 space-y-2">
-              {group.nodes.map((node) => (
-                <ArchitectureNode
-                  key={node.id}
-                  node={node}
-                  active={activeNodes.has(node.id)}
-                  selected={selection.type === 'service' && selection.id === node.id}
-                  onSelect={onSelect}
-                />
-              ))}
-            </div>
-          </Panel>
-        ))}
-      </div>
-
-      {/* Highlighted Connections */}
       <Panel className="p-4 sm:p-5">
-        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">Highlighted Communication Edges</p>
-        <div className="mt-3 grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-          {relevantConnections.length ? (
-            relevantConnections.map((connection) => (
-              <button
-                key={connection.id}
-                type="button"
-                onClick={() => onSelect({ type: 'service', id: connection.target })}
-                className={`rounded-xl border p-3 text-left transition-all ${
-                  connection.kind === 'async'
-                    ? 'border-violet-200 bg-violet-50/70 hover:border-violet-400 dark:border-violet-900/60 dark:bg-violet-950/20'
-                    : 'border-slate-200/90 bg-slate-50/70 hover:border-primary/50 dark:border-slate-800 dark:bg-slate-900/40'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] font-black text-primary">{connection.source}</span>
-                  <span className={`material-symbols-outlined text-sm ${connection.kind === 'async' ? 'text-violet-500' : 'text-primary'}`}>
-                    {connection.kind === 'async' ? 'sync_alt' : 'arrow_forward'}
-                  </span>
-                  <span className="font-mono text-[10px] font-black text-primary">{connection.target}</span>
-                </div>
-                <span className="mt-2 block text-xs font-bold text-slate-700 dark:text-slate-200">{connection.label}</span>
-                <span className="mt-1 block text-[10px] leading-4 text-slate-500 dark:text-slate-400">{connection.detail}</span>
-              </button>
-            ))
-          ) : (
-            <p className="text-sm text-slate-500">Flow này dùng connection tổng quát; chọn step để xem giao tiếp chi tiết.</p>
-          )}
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
+          <label className="min-w-0 flex-1">
+            <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Tìm trong bản đồ</span>
+            <span className="relative block">
+              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-3 text-lg text-slate-400">search</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                aria-label="Tìm service, client, database..."
+                placeholder="Tìm service, client, database..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-3 text-sm font-semibold text-slate-900 placeholder:text-slate-500 focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:placeholder:text-slate-400"
+              />
+            </span>
+          </label>
+          <label className="min-w-[160px]">
+            <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Lớp kiến trúc</span>
+            <select aria-label="Lọc theo lớp" value={layerFilter} onChange={(event) => setLayerFilter(event.target.value as ArchitectureLayerFilter)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+              <option value="all">Tất cả lớp</option>
+              <option value="client">Client</option>
+              <option value="edge">Gateway</option>
+              <option value="service">Service</option>
+              <option value="infrastructure">Infrastructure</option>
+            </select>
+          </label>
+          <label className="min-w-[170px]">
+            <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Trạng thái</span>
+            <select aria-label="Lọc theo trạng thái" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as ArchitectureStatusFilter)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
+              <option value="all">Tất cả snapshot</option>
+              <option value="active">Đang sử dụng</option>
+              <option value="private">Private</option>
+            </select>
+          </label>
+          <label className="min-w-[220px]">
+            <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Flow lens</span>
+            <select aria-label="Chọn flow để highlight" value={flowId ?? ''} onChange={(event) => onFlow(event.target.value || null)} className="w-full rounded-xl border border-primary/30 bg-primary/[0.04] px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-primary/40 dark:bg-primary/10 dark:text-white">
+              <option value="">Không highlight</option>
+              {FLOW_EXPLORER_FLOWS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+            </select>
+          </label>
+          <button type="button" onClick={() => setLayoutRevision((revision) => revision + 1)} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-extrabold text-slate-700 transition hover:border-primary hover:text-primary dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200" aria-label="Đặt lại bố cục">
+            <span className="material-symbols-outlined text-lg">account_tree</span>
+            Bố cục lại
+          </button>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:text-slate-300">
+          <span><strong className="font-black text-slate-900 dark:text-white">{graph.nodes.length}</strong> thành phần</span>
+          <span><strong className="font-black text-slate-900 dark:text-white">{graph.edges.length}</strong> connection</span>
+          {selectedFlow ? <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-extrabold text-primary"><span className="size-1.5 rounded-full bg-primary" />Đang highlight: {selectedFlow.label}</span> : <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 font-extrabold text-slate-700 dark:bg-slate-800 dark:text-slate-200"><span className="size-1.5 rounded-full bg-slate-400" />Toàn cảnh hệ thống</span>}
+          {layoutPending && <span className="text-primary">Đang sắp xếp bản đồ…</span>}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:text-slate-300" aria-label="Chú thích kiểu giao tiếp">
+          <span className="font-black text-slate-800 dark:text-slate-100">Chú thích</span>
+          <span className="inline-flex items-center gap-2"><span className="h-0.5 w-6 bg-blue-600" />HTTPS / REST</span>
+          <span className="inline-flex items-center gap-2"><span className="w-6 border-t-2 border-dashed border-violet-600" />Kafka / Event</span>
+          <span className="inline-flex items-center gap-2"><span className="h-0.5 w-6 bg-emerald-600" />Redis / Storage</span>
+          <span className="inline-flex items-center gap-2"><span className="h-0.5 w-6 bg-cyan-600" />External</span>
         </div>
       </Panel>
 
-      {/* Flow Trace & Inspector Split */}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <Panel className="p-4 sm:p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">Flow-to-Architecture Trace</p>
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
-            {flow.steps.map((step) => (
-              <button
-                key={step.id}
-                type="button"
-                onClick={() => onSelect({ type: 'step', id: step.id })}
-                className="rounded-xl border border-slate-200 p-3 text-left transition hover:border-primary/50 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
-              >
-                <span className="text-[10px] font-black text-primary">{step.sequence}. {step.phase}</span>
-                <span className="mt-1 block text-sm font-black text-slate-900 dark:text-white">{step.title}</span>
-                <span className="mt-1.5 block font-mono text-[10px] text-slate-500">{step.serviceIds.join(' · ')}</span>
-              </button>
-            ))}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+        {isMobile ? (
+          <div className="xl:col-span-2">
+            <ArchitectureMobileList
+              layers={graph.layers}
+              edges={graph.edges}
+              selectedNodeId={selectedNodeId}
+              selectedEdgeId={selectedEdgeId}
+              onNodeSelect={selectArchitecture}
+              onEdgeSelect={selectArchitecture}
+            />
+            <div className="mt-4">
+              <ArchitectureInspector selection={architectureSelection} graph={graph} onSelect={selectArchitecture} onFlow={(id) => onFlow(id)} />
+            </div>
           </div>
-        </Panel>
-        <Inspector flow={flow} selection={selection} onSelect={onSelect} />
+        ) : (
+          <>
+            <Suspense fallback={<div className="flex min-h-[560px] items-center justify-center rounded-[22px] border border-slate-200 bg-white text-sm font-bold text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-950">Đang tải bản đồ kiến trúc…</div>}>
+              <ArchitectureCanvas
+                key={`architecture-canvas-${layoutRevision}`}
+                layers={graph.layers}
+                nodes={displayNodes}
+                edges={graph.edges}
+                selectedNodeId={selectedNodeId}
+                selectedEdgeId={selectedEdgeId}
+                onNodeSelect={(id) => selectArchitecture({ type: 'node', id })}
+                onEdgeSelect={(id) => selectArchitecture({ type: 'edge', id })}
+              />
+            </Suspense>
+            <ArchitectureInspector
+              selection={architectureSelection}
+              graph={graph}
+              onSelect={selectArchitecture}
+              onFlow={(id) => onFlow(id)}
+            />
+          </>
+        )}
       </div>
     </div>
-  );
-}
-
-function ArchitectureNode({
-  node,
-  active,
-  selected,
-  onSelect,
-}: {
-  node: SystemNode;
-  active: boolean;
-  selected: boolean;
-  onSelect: (selection: InspectorSelection) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect({ type: 'service', id: node.id })}
-      className={`flex w-full items-start gap-2.5 rounded-xl border p-2.5 text-left transition-all ${
-        selected
-          ? 'border-primary bg-primary/10 ring-2 ring-primary/30'
-          : active
-            ? 'border-primary/40 bg-primary/[0.04] hover:border-primary'
-            : 'border-slate-200/80 opacity-50 hover:opacity-90 dark:border-slate-800'
-      }`}
-    >
-      <span className={`material-symbols-outlined rounded-lg p-1.5 text-base shrink-0 ${active ? 'bg-primary/15 text-primary' : 'bg-slate-100 text-slate-400 dark:bg-slate-800'}`}>
-        {node.icon}
-      </span>
-      <div className="min-w-0 flex-1">
-        <span className="block break-all text-[11px] font-black text-slate-900 dark:text-white">{node.label}</span>
-        <span className="mt-0.5 block text-[9px] leading-4 text-slate-500 dark:text-slate-400 truncate">{node.shortLabel}</span>
-      </div>
-    </button>
   );
 }
 
@@ -2319,7 +2351,7 @@ const SystemHandbookPage = () => {
   const navigate = useNavigate();
   const section = sectionFromLocation(location.pathname);
   const state = queryState(location);
-  const flow = getFlow(flowIdFromLocation(location.pathname) ?? (section === 'flows' || section === 'architecture' || section === 'contracts' ? state.step?.split('-')[0] : null));
+  const flow = getFlow(flowIdFromLocation(location.pathname) ?? (section === 'flows' || section === 'contracts' ? state.step?.split('-')[0] : null));
   const selection = buildSelection(state, flow);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -2336,12 +2368,13 @@ const SystemHandbookPage = () => {
   };
 
   const select = (next: InspectorSelection) => {
-    const patch: Record<string, string | null> = { step: null, node: null, operation: null, event: null, branch: null };
+    const patch: Record<string, string | null> = { step: null, node: null, operation: null, event: null, branch: null, connection: null };
     if (next.type === 'step') patch.step = next.id;
     if (next.type === 'service') patch.node = next.id;
     if (next.type === 'operation') patch.operation = next.id;
     if (next.type === 'event') patch.event = next.id;
     if (next.type === 'branch') patch.branch = next.id;
+    if (next.type === 'connection') patch.connection = next.id;
     const params = new URLSearchParams(location.search);
     Object.entries(patch).forEach(([key, value]) => (value ? params.set(key, value) : params.delete(key)));
     const query = params.toString();
@@ -2352,10 +2385,19 @@ const SystemHandbookPage = () => {
   const chooseFlow = (id: string) =>
     updateFlowState({ step: getFlow(id).steps[0].id, node: null, operation: null, event: null, branch: null }, getFlow(id));
 
+  const chooseArchitectureFlow = (id: string | null) => {
+    const params = new URLSearchParams(location.search);
+    params.delete('step');
+    params.delete('flow');
+    if (id) params.set('flow', id);
+    const query = params.toString();
+    go(`${basePath}/architecture${query ? `?${query}` : ''}`);
+  };
+
   const chooseSection = (target: WorkspaceSection) => {
     if (target === 'overview') return go(basePath);
     if (target === 'flows') return updateFlowState({ step: getFlow('cod-order').steps[0].id }, getFlow('cod-order'));
-    if (target === 'architecture') return go(`${basePath}/architecture?step=${encodeURIComponent(getFlow('cod-order').steps[0].id)}`);
+    if (target === 'architecture') return go(`${basePath}/architecture`);
     if (target === 'contracts') return go(`${basePath}/services?node=order-service`);
     if (target === 'operations') return go(`${basePath}/operations`);
     return go(`${basePath}/docs`);
@@ -2374,7 +2416,7 @@ const SystemHandbookPage = () => {
         onSelect={select}
       />
     ) : section === 'architecture' ? (
-      <ArchitectureView flow={flow} selection={selection} onSelect={select} onFlow={chooseFlow} />
+      <ArchitectureView flowId={state.flow} selection={selection} onSelect={select} onFlow={chooseArchitectureFlow} />
     ) : section === 'contracts' ? (
       <ContractsView flow={flow} selection={selection} onSelect={select} />
     ) : section === 'docs' ? (

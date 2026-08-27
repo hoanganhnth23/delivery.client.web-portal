@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { renderApp } from '@/test/renderApp';
@@ -72,6 +72,77 @@ describe('public system handbook flow explorer', () => {
     renderApp({ route: '/system-overview/apis?operation=order-service:OrderController.createOrder:POST:/api/orders' });
     expect(await screen.findByRole('heading', { name: 'Services & Contracts' }, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getAllByText('/api/orders').length).toBeGreaterThan(0);
+  });
+
+  it('explores architecture nodes and communication edges', async () => {
+    const user = userEvent.setup();
+    renderApp({ route: '/system-overview/architecture' });
+
+    expect(await screen.findByRole('heading', { name: 'Kiến trúc hệ thống' }, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByText('HTTPS / REST')).toBeInTheDocument();
+    expect(screen.getByText('Kafka / Event')).toBeInTheDocument();
+
+    await user.click(await screen.findByRole('button', { name: /order-service.*Checkout/i }, { timeout: 3000 }));
+    expect((await screen.findAllByRole('heading', { name: 'order-service' })).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Checkout + order state').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Trách nhiệm cốt lõi').length).toBeGreaterThan(0);
+
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Chọn flow để highlight' }), 'cod-order');
+    await screen.findByText('Đang highlight: COD order → delivery', { exact: true });
+    const desktopEdgeLabel = (await screen.findAllByRole('button', { name: /delivery_app.*API Gateway.*HTTPS REST/i }))
+      .find((button) => button.closest('.react-flow__edgelabel-renderer'));
+    expect(desktopEdgeLabel).toBeDefined();
+    await user.click(desktopEdgeLabel as HTMLElement);
+    expect(screen.getAllByText('Communication edge', { exact: true }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Bearer token qua public Gateway origin').length).toBeGreaterThan(0);
+  });
+
+  it('selects a highlighted connection from its desktop edge label', async () => {
+    const user = userEvent.setup();
+    renderApp({ route: '/system-overview/architecture' });
+
+    await screen.findByRole('heading', { name: 'Kiến trúc hệ thống' }, { timeout: 3000 });
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Chọn flow để highlight' }), 'cod-order');
+    await screen.findByText('Đang highlight: COD order → delivery', { exact: true });
+    const edgeLabels = await screen.findAllByRole('button', { name: /delivery_app.*API Gateway.*HTTPS REST/i });
+    const desktopEdgeLabel = edgeLabels.find((button) => button.closest('.react-flow__edgelabel-renderer'));
+    expect(desktopEdgeLabel).toBeDefined();
+    expect(screen.queryByText('Communication edge', { exact: true })).not.toBeInTheDocument();
+
+    await user.click(desktopEdgeLabel as HTMLElement);
+    expect(screen.getAllByText('Communication edge', { exact: true }).length).toBeGreaterThan(0);
+  });
+
+  it('fits the full architecture graph after the async layout settles', async () => {
+    renderApp({ route: '/system-overview/architecture' });
+
+    await screen.findByRole('heading', { name: 'Kiến trúc hệ thống' }, { timeout: 3000 });
+    await waitFor(() => {
+      const transform = document.querySelector('.xyflow__viewport')?.getAttribute('style') ?? '';
+      expect(transform).toMatch(/scale\(0\./);
+    }, { timeout: 3000 });
+  });
+
+  it('does not activate a flow lens from an unknown deep link', async () => {
+    renderApp({ route: '/system-overview/architecture?flow=not-a-real-flow' });
+
+    await screen.findByRole('heading', { name: 'Kiến trúc hệ thống' }, { timeout: 3000 });
+    expect(screen.getByText('Toàn cảnh hệ thống', { exact: true })).toBeInTheDocument();
+    expect(screen.queryByText(/Đang highlight:/)).not.toBeInTheDocument();
+  });
+
+  it('uses the mobile list without mounting the desktop canvas on narrow viewports', async () => {
+    const originalWidth = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    const view = renderApp({ route: '/system-overview/architecture' });
+
+    try {
+      expect(await screen.findByRole('heading', { name: 'Danh sách theo lớp' }, { timeout: 3000 })).toBeInTheDocument();
+      expect(screen.queryByRole('application')).not.toBeInTheDocument();
+    } finally {
+      view.unmount();
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
+    }
   });
 
   it('keeps every flow reference linked to a known API/event/step', () => {

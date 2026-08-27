@@ -36,6 +36,14 @@ describe('architecture graph model', () => {
     expect(graph.edges.find((edge) => edge.id === 'customer-gateway-rest')?.data?.highlighted).toBe(true);
   });
 
+  it('derives client participants from the selected flow audience', () => {
+    const graph = buildArchitectureGraph({ ...allGraphOptions, flowId: 'catalog-search' });
+
+    expect(graph.nodes.find((node) => node.id === 'customer-app')?.data.highlighted).toBe(true);
+    expect(graph.nodes.find((node) => node.id === 'delivery-web')?.data.highlighted).toBe(true);
+    expect(graph.nodes.find((node) => node.id === 'shipper-app')?.data.highlighted).toBe(false);
+  });
+
   it('filters nodes using a readable technical query', () => {
     const graph = buildArchitectureGraph({ ...allGraphOptions, query: 'order-service' });
 

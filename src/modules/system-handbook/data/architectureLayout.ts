@@ -4,6 +4,7 @@ import type { ArchitectureEdgeData, ArchitectureFlowEdge, ArchitectureFlowNode, 
 
 export const ARCHITECTURE_NODE_WIDTH = 244;
 export const ARCHITECTURE_NODE_HEIGHT = 132;
+export const ARCHITECTURE_NODE_GAP = 28;
 
 export interface ArchitectureLayoutResult {
   nodes: ArchitectureFlowNode[];
@@ -24,7 +25,7 @@ function fallbackPositions(nodes: ArchitectureFlowNode[]): Map<string, { x: numb
   return new Map(nodes.map((node) => {
     const row = rows.get(node.data.kind) ?? 0;
     rows.set(node.data.kind, row + 1);
-    return [node.id, { x: fallbackColumnX[node.data.kind], y: 32 + row * (ARCHITECTURE_NODE_HEIGHT + 28) }];
+    return [node.id, { x: fallbackColumnX[node.data.kind], y: 32 + row * (ARCHITECTURE_NODE_HEIGHT + ARCHITECTURE_NODE_GAP) }];
   }));
 }
 
@@ -86,14 +87,34 @@ export async function layoutArchitectureGraph(
 
   try {
     const result = await new ELK().layout(layoutInput);
-    const positions = new Map(
-      (result.children ?? []).map((child) => [child.id, { x: child.x ?? 0, y: child.y ?? 0 }]),
-    );
+    const elkYById = new Map((result.children ?? []).map((child) => [child.id, child.y ?? 0]));
+    const nodesByKind = new Map<ArchitectureFlowNode['data']['kind'], ArchitectureFlowNode[]>();
+    nodes.forEach((node) => {
+      const layerNodes = nodesByKind.get(node.data.kind) ?? [];
+      layerNodes.push(node);
+      nodesByKind.set(node.data.kind, layerNodes);
+    });
+    const positions = new Map<string, { x: number; y: number }>();
+    nodesByKind.forEach((layerNodes, kind) => {
+      layerNodes
+        .slice()
+        .sort((left, right) => {
+          const highlightOrder = Number(right.data.highlighted) - Number(left.data.highlighted);
+          return highlightOrder || (elkYById.get(left.id) ?? 0) - (elkYById.get(right.id) ?? 0);
+        })
+        .forEach((node, index) => {
+          positions.set(node.id, {
+            x: fallbackColumnX[kind],
+            y: 32 + index * (ARCHITECTURE_NODE_HEIGHT + ARCHITECTURE_NODE_GAP),
+          });
+        });
+    });
     if (positions.size !== nodes.length) return fallbackLayout(nodes);
+    const maxY = Math.max(0, ...Array.from(positions.values(), (position) => position.y));
     return {
       nodes: withPositions(nodes, positions),
       width: Math.max(1310, (result.width ?? 0) + 48),
-      height: Math.max(560, (result.height ?? 0) + 48),
+      height: Math.max(560, maxY + ARCHITECTURE_NODE_HEIGHT + 48),
       usedFallback: false,
     };
   } catch {

@@ -171,3 +171,60 @@ body {
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* System handbook architecture canvas */
+.architecture-flow .react-flow__node {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+.architecture-flow .react-flow__pane {
+  cursor: grab;
+}
+
+.architecture-flow .react-flow__pane:active {
+  cursor: grabbing;
+}
+
+.architecture-flow .react-flow__edge-path {
+  vector-effect: non-scaling-stroke;
+  transition: opacity 180ms ease, stroke-width 180ms ease;
+}
+
+.architecture-flow .react-flow__edge-textbg {
+  fill: #ffffff;
+}
+
+.architecture-flow .react-flow__controls {
+  overflow: hidden;
+  border: 1px solid #dbe3ec;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+}
+
+.architecture-flow .react-flow__controls-button {
+  width: 34px;
+  height: 34px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #334155;
+}
+
+.architecture-flow .react-flow__controls-button:hover {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.architecture-flow .react-flow__minimap {
+  overflow: hidden;
+  border: 1px solid #dbe3ec;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .architecture-flow .react-flow__edge-path,
+  .architecture-node,
+  .architecture-node button {
+    transition: none;
+  }
+}

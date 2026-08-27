@@ -1,5 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { FLOW_EXPLORER_FLOWS, getFlow } from './flowExplorerData';
+import { HANDBOOK_ACTORS } from './handbookData';
 import { SYSTEM_CONNECTIONS, SYSTEM_NODES, type SystemConnection, type SystemNode, type SystemNodeKind, type SystemNodeStatus } from '@/modules/admin/data/systemOverviewData';
 
 export type ArchitectureLayerFilter = 'all' | SystemNodeKind;
@@ -47,10 +48,11 @@ export interface ArchitectureEdgeData extends Record<string, unknown> {
   targetLabel: string;
   sourceNode: SystemNode;
   targetNode: SystemNode;
+  onSelect?: () => void;
 }
 
 export type ArchitectureFlowNode = Node<ArchitectureNodeData, 'architecture'>;
-export type ArchitectureFlowEdge = Edge<ArchitectureEdgeData, 'architecture'>;
+export type ArchitectureFlowEdge = Edge<ArchitectureEdgeData, 'architecture'> & { data: ArchitectureEdgeData };
 
 export interface ArchitectureGraph {
   layers: ArchitectureLayer[];
@@ -91,17 +93,26 @@ export const ARCHITECTURE_LAYERS: Array<Omit<ArchitectureLayer, 'nodes'>> = [
   },
 ];
 
-const FLOW_CONTEXT_NODE_IDS = ['gateway', 'customer-app', 'delivery-web', 'shipper-app'] as const;
-
 const normalize = (value: string) => value.trim().toLocaleLowerCase('vi-VN');
 
 const isKnownFlow = (flowId: string | null): flowId is string =>
   Boolean(flowId && FLOW_EXPLORER_FLOWS.some((flow) => flow.id === flowId));
 
+const clientIdsForAudience = (audience: string): string[] => {
+  if (normalize(audience) === 'all clients') return SYSTEM_NODES.filter((node) => node.kind === 'client').map((node) => node.id);
+
+  const actor = HANDBOOK_ACTORS.find((candidate) =>
+    normalize(candidate.id) === normalize(audience) || normalize(candidate.label).startsWith(normalize(audience)),
+  );
+  return actor?.clientIds ?? [];
+};
+
 const flowParticipantIds = (flowId: string | null): Set<string> => {
   if (!isKnownFlow(flowId)) return new Set();
   const flow = getFlow(flowId);
-  return new Set(flow.steps.flatMap((step) => step.serviceIds).concat([...FLOW_CONTEXT_NODE_IDS]));
+  const audienceClientIds = flow.audience.flatMap(clientIdsForAudience);
+  const publicEdgeContext = audienceClientIds.length ? ['gateway'] : [];
+  return new Set(flow.steps.flatMap((step) => step.serviceIds).concat(audienceClientIds, publicEdgeContext));
 };
 
 const matchesQuery = (node: SystemNode, query: string): boolean => {
@@ -157,6 +168,7 @@ export function buildArchitectureGraph(options: ArchitectureGraphOptions): Archi
       id: node.id,
       type: 'architecture',
       position: { x: 0, y: 0 },
+      style: { width: 244, height: 132 },
       data: nodeData(node, highlighted, flowIsActive && !highlighted),
       draggable: false,
       selectable: true,
