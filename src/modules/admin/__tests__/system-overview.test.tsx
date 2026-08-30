@@ -78,10 +78,11 @@ describe('public system handbook flow explorer', () => {
     const user = userEvent.setup();
     renderApp({ route: '/system-overview/architecture' });
 
-    expect(await screen.findByRole('heading', { name: 'Kiến trúc hệ thống' }, { timeout: 3000 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Bối cảnh hệ thống' }, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getByText('HTTPS / REST')).toBeInTheDocument();
     expect(screen.getByText('Kafka / Event')).toBeInTheDocument();
 
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Chọn góc nhìn kiến trúc' }), 'runtime');
     await user.click(await screen.findByRole('button', { name: /order-service.*Checkout/i }, { timeout: 3000 }));
     expect((await screen.findAllByRole('heading', { name: 'order-service' })).length).toBeGreaterThan(0);
     expect(screen.getAllByText('Checkout + order state').length).toBeGreaterThan(0);
@@ -101,7 +102,7 @@ describe('public system handbook flow explorer', () => {
     const user = userEvent.setup();
     renderApp({ route: '/system-overview/architecture' });
 
-    await screen.findByRole('heading', { name: 'Kiến trúc hệ thống' }, { timeout: 3000 });
+    await screen.findByRole('heading', { name: 'Bối cảnh hệ thống' }, { timeout: 3000 });
     await user.selectOptions(screen.getByRole('combobox', { name: 'Chọn flow để highlight' }), 'cod-order');
     await screen.findByText('Đang highlight: COD order → delivery', { exact: true });
     const edgeLabels = await screen.findAllByRole('button', { name: /delivery_app.*API Gateway.*HTTPS REST/i });
@@ -116,7 +117,7 @@ describe('public system handbook flow explorer', () => {
   it('fits the full architecture graph after the async layout settles', async () => {
     renderApp({ route: '/system-overview/architecture' });
 
-    await screen.findByRole('heading', { name: 'Kiến trúc hệ thống' }, { timeout: 3000 });
+    await screen.findByRole('heading', { name: 'Bối cảnh hệ thống' }, { timeout: 3000 });
     await waitFor(() => {
       const transform = document.querySelector('.xyflow__viewport')?.getAttribute('style') ?? '';
       expect(transform).toMatch(/scale\(0\./);
@@ -126,8 +127,8 @@ describe('public system handbook flow explorer', () => {
   it('does not activate a flow lens from an unknown deep link', async () => {
     renderApp({ route: '/system-overview/architecture?flow=not-a-real-flow' });
 
-    await screen.findByRole('heading', { name: 'Kiến trúc hệ thống' }, { timeout: 3000 });
-    expect(screen.getByText('Toàn cảnh hệ thống', { exact: true })).toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'Bối cảnh hệ thống' }, { timeout: 3000 });
+    expect(screen.getByText('Không dùng flow làm sơ đồ chính', { exact: true })).toBeInTheDocument();
     expect(screen.queryByText(/Đang highlight:/)).not.toBeInTheDocument();
   });
 

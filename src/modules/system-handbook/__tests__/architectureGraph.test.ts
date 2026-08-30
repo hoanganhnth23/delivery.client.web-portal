@@ -57,4 +57,22 @@ describe('architecture graph model', () => {
     expect(graph.nodes.every((node) => node.data.kind === 'service')).toBe(true);
     expect(graph.layers.map((layer) => layer.id)).toEqual(['client', 'edge', 'service', 'infrastructure']);
   });
+
+  it('builds a context view without inventing relationships', () => {
+    const graph = buildArchitectureGraph({ ...allGraphOptions, view: 'context' });
+
+    expect(graph.nodes.map((node) => node.id)).toEqual([
+      'customer-app', 'delivery-web', 'shipper-app', 'gateway', 'mapbox', 'fcm',
+    ]);
+    expect(graph.edges.every((edge) => graph.nodes.some((node) => node.id === edge.source) && graph.nodes.some((node) => node.id === edge.target))).toBe(true);
+    expect(graph.edges.some((edge) => edge.source === 'order-service')).toBe(false);
+  });
+
+  it('keeps the complete service topology in the runtime view', () => {
+    const graph = buildArchitectureGraph({ ...allGraphOptions, view: 'runtime' });
+
+    expect(graph.nodes).toHaveLength(SYSTEM_NODES.length);
+    expect(graph.nodes.some((node) => node.id === 'auth-service')).toBe(true);
+    expect(graph.nodes.some((node) => node.id === 'settlement-service')).toBe(true);
+  });
 });

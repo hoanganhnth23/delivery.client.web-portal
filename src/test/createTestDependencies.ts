@@ -12,6 +12,7 @@ import {
   type AddressServicePort,
   type SessionStorePort,
   type NotificationPort,
+  type LivestreamHostServicePort,
 } from '@/app/dependencies';
 import { buildMenuItem, buildOrder, buildRestaurant, buildUser } from './builders';
 
@@ -302,6 +303,24 @@ export function createNotificationFake(
   };
 }
 
+export function createLivestreamHostFake(
+  overrides: Partial<LivestreamHostServicePort> = {},
+): LivestreamHostServicePort {
+  return {
+    inspect: vi.fn(async () => []),
+    create: vi.fn(async (request) => ({
+      id: '00000000-0000-4000-8000-000000000001',
+      restaurantId: request.restaurantId,
+      title: request.title,
+      status: 'CREATED' as const,
+      streamProvider: 'AGORA' as const,
+    })),
+    start: vi.fn(async () => undefined),
+    end: vi.fn(async () => undefined),
+    ...overrides,
+  };
+}
+
 export function createSessionStoreFake(
   overrides: Partial<SessionStorePort> = {},
 ): SessionStorePort {
@@ -332,6 +351,7 @@ export function createTestDependencies(
     address: createAddressFake(),
     admin: createAdminFake(),
     flashSaleAdmin: createFlashSaleAdminFake(),
+    livestreamHost: createLivestreamHostFake(),
     notifications: createNotificationFake(),
     clock: { now: vi.fn(() => new Date(2026, 6, 29, 8, 0, 0)) },
     delay: { wait: vi.fn(async () => undefined) },

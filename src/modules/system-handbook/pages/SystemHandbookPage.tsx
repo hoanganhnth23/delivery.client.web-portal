@@ -23,10 +23,12 @@ import {
 } from '../data/flowExplorerData';
 import { SYSTEM_CONNECTIONS, SYSTEM_NODES } from '@/modules/admin/data/systemOverviewData';
 import {
+  ARCHITECTURE_VIEWS,
   buildArchitectureGraph,
   type ArchitectureLayerFilter,
   type ArchitectureSelection,
   type ArchitectureStatusFilter,
+  type ArchitectureViewMode,
 } from '../data/architectureGraph';
 import ArchitectureInspector from '../components/ArchitectureInspector';
 import ArchitectureMobileList from '../components/ArchitectureMobileList';
@@ -48,7 +50,7 @@ type InspectorSelection =
 const workspaceNav: Array<{ id: WorkspaceSection; label: string; detail: string; icon: string }> = [
   { id: 'overview', label: 'Tổng quan', detail: 'Bắt đầu từ hệ thống', icon: 'space_dashboard' },
   { id: 'flows', label: 'Flow Explorer', detail: 'Luồng, API và failure', icon: 'route' },
-  { id: 'architecture', label: 'Architecture', detail: 'Topology theo flow', icon: 'account_tree' },
+  { id: 'architecture', label: 'Kiến trúc hệ thống', detail: 'Sơ đồ thành phần & kết nối', icon: 'account_tree' },
   { id: 'contracts', label: 'Services & Contracts', detail: 'Ownership và API', icon: 'hub' },
   { id: 'operations', label: 'Operations', detail: 'Security và recovery', icon: 'shield' },
   { id: 'docs', label: 'Tài liệu', detail: 'Markdown canonical corpus', icon: 'menu_book' },
@@ -140,6 +142,7 @@ function communicationMeta(kind: string) {
 
 function queryState(location: ReturnType<typeof useLocation>) {
   const params = new URLSearchParams(location.search);
+  const requestedArchitectureView = params.get('view');
   const serviceMatch = location.pathname.match(/\/services\/([^/]+)/);
   return {
     mode: params.get('mode') === 'failure' ? 'failure' as FlowMode : 'happy' as FlowMode,
@@ -150,6 +153,9 @@ function queryState(location: ReturnType<typeof useLocation>) {
     branch: params.get('branch'),
     connection: params.get('connection'),
     flow: params.get('flow'),
+    architectureView: ARCHITECTURE_VIEWS.some((view) => view.id === requestedArchitectureView)
+      ? requestedArchitectureView as ArchitectureViewMode
+      : 'context' as ArchitectureViewMode,
   };
 }
 
@@ -1553,11 +1559,15 @@ function ArchitectureView({
   selection,
   onSelect,
   onFlow,
+  viewMode,
+  onView,
 }: {
   flowId: string | null;
   selection: InspectorSelection;
   onSelect: (selection: InspectorSelection) => void;
   onFlow: (id: string | null) => void;
+  viewMode: ArchitectureViewMode;
+  onView: (view: ArchitectureViewMode) => void;
 }) {
   const isMobile = useIsNarrowViewport();
   const [query, setQuery] = useState('');
@@ -1568,8 +1578,8 @@ function ArchitectureView({
   const [positionedNodes, setPositionedNodes] = useState<ReturnType<typeof buildArchitectureGraph>['nodes']>([]);
 
   const graph = useMemo(
-    () => buildArchitectureGraph({ layer: layerFilter, status: statusFilter, flowId, query }),
-    [flowId, layerFilter, query, statusFilter],
+    () => buildArchitectureGraph({ layer: layerFilter, status: statusFilter, flowId, query, view: viewMode }),
+    [flowId, layerFilter, query, statusFilter, viewMode],
   );
 
   useEffect(() => {
@@ -1607,14 +1617,15 @@ function ArchitectureView({
   const selectedIds = new Set(graph.nodes.map((node) => node.id));
   const displayNodes = positionedNodes.length === graph.nodes.length && positionedNodes.every((node) => selectedIds.has(node.id)) ? positionedNodes : graph.nodes;
   const selectedFlow = flowId ? FLOW_EXPLORER_FLOWS.find((item) => item.id === flowId) ?? null : null;
+  const selectedView = ARCHITECTURE_VIEWS.find((view) => view.id === viewMode) ?? ARCHITECTURE_VIEWS[0];
   const selectArchitecture = (next: ArchitectureSelection) => onSelect(next.type === 'node' ? { type: 'service', id: next.id } : { type: 'connection', id: next.id });
 
   return (
     <div className="space-y-5">
       <SectionTitle
-        eyebrow="Bản đồ hệ thống"
-        title="Kiến trúc hệ thống"
-        description="Bản đồ các khối, ranh giới sở hữu dữ liệu và cách các thành phần giao tiếp trong snapshot hiện hành."
+        eyebrow={selectedView.eyebrow}
+        title={selectedView.label}
+        description={selectedView.description}
         action={
           <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-2 text-xs font-extrabold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
             <span className="size-2 rounded-full bg-emerald-500" />
@@ -1624,8 +1635,8 @@ function ArchitectureView({
       />
 
       <Panel className="p-4 sm:p-5">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-end">
-          <label className="min-w-0 flex-1">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5 xl:items-end">
+          <label className="min-w-0 sm:col-span-2 xl:col-span-5">
             <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Tìm trong bản đồ</span>
             <span className="relative block">
               <span className="material-symbols-outlined pointer-events-none absolute left-3 top-3 text-lg text-slate-400">search</span>
@@ -1639,7 +1650,13 @@ function ArchitectureView({
               />
             </span>
           </label>
-          <label className="min-w-[160px]">
+          <label className="min-w-0">
+            <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Góc nhìn</span>
+            <select aria-label="Chọn góc nhìn kiến trúc" value={viewMode} onChange={(event) => onView(event.target.value as ArchitectureViewMode)} className="w-full rounded-xl border border-primary/30 bg-primary/[0.04] px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-primary/40 dark:bg-primary/10 dark:text-white">
+              {ARCHITECTURE_VIEWS.map((view) => <option key={view.id} value={view.id}>{view.label}</option>)}
+            </select>
+          </label>
+          <label className="min-w-0">
             <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Lớp kiến trúc</span>
             <select aria-label="Lọc theo lớp" value={layerFilter} onChange={(event) => setLayerFilter(event.target.value as ArchitectureLayerFilter)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
               <option value="all">Tất cả lớp</option>
@@ -1649,7 +1666,7 @@ function ArchitectureView({
               <option value="infrastructure">Infrastructure</option>
             </select>
           </label>
-          <label className="min-w-[170px]">
+          <label className="min-w-0">
             <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Trạng thái</span>
             <select aria-label="Lọc theo trạng thái" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as ArchitectureStatusFilter)} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white">
               <option value="all">Tất cả snapshot</option>
@@ -1657,14 +1674,14 @@ function ArchitectureView({
               <option value="private">Private</option>
             </select>
           </label>
-          <label className="min-w-[220px]">
+          <label className="min-w-0">
             <span className="mb-1.5 block text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Flow lens</span>
             <select aria-label="Chọn flow để highlight" value={flowId ?? ''} onChange={(event) => onFlow(event.target.value || null)} className="w-full rounded-xl border border-primary/30 bg-primary/[0.04] px-3 py-2.5 text-sm font-bold text-slate-800 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-primary/40 dark:bg-primary/10 dark:text-white">
               <option value="">Không highlight</option>
               {FLOW_EXPLORER_FLOWS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>
           </label>
-          <button type="button" onClick={() => setLayoutRevision((revision) => revision + 1)} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-extrabold text-slate-700 transition hover:border-primary hover:text-primary dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200" aria-label="Đặt lại bố cục">
+          <button type="button" onClick={() => setLayoutRevision((revision) => revision + 1)} className="inline-flex h-[42px] min-w-0 items-center justify-center gap-2 self-end whitespace-nowrap rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-extrabold text-slate-700 transition hover:border-primary hover:text-primary dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200" aria-label="Đặt lại bố cục">
             <span className="material-symbols-outlined text-lg">account_tree</span>
             Bố cục lại
           </button>
@@ -1672,7 +1689,7 @@ function ArchitectureView({
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:text-slate-300">
           <span><strong className="font-black text-slate-900 dark:text-white">{graph.nodes.length}</strong> thành phần</span>
           <span><strong className="font-black text-slate-900 dark:text-white">{graph.edges.length}</strong> connection</span>
-          {selectedFlow ? <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-extrabold text-primary"><span className="size-1.5 rounded-full bg-primary" />Đang highlight: {selectedFlow.label}</span> : <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 font-extrabold text-slate-700 dark:bg-slate-800 dark:text-slate-200"><span className="size-1.5 rounded-full bg-slate-400" />Toàn cảnh hệ thống</span>}
+          {selectedFlow ? <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 font-extrabold text-primary"><span className="size-1.5 rounded-full bg-primary" />Đang highlight: {selectedFlow.label}</span> : <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 font-extrabold text-slate-700 dark:bg-slate-800 dark:text-slate-200"><span className="size-1.5 rounded-full bg-slate-400" />Không dùng flow làm sơ đồ chính</span>}
           {layoutPending && <span className="text-primary">Đang sắp xếp bản đồ…</span>}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs font-semibold text-slate-600 dark:border-slate-800 dark:text-slate-300" aria-label="Chú thích kiểu giao tiếp">
@@ -1682,7 +1699,40 @@ function ArchitectureView({
           <span className="inline-flex items-center gap-2"><span className="h-0.5 w-6 bg-emerald-600" />Redis / Storage</span>
           <span className="inline-flex items-center gap-2"><span className="h-0.5 w-6 bg-cyan-600" />External</span>
         </div>
+        <p className="mt-3 rounded-xl border border-amber-200/80 bg-amber-50/70 px-3 py-2 text-xs font-semibold leading-5 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+          Sơ đồ đang hiển thị các quan hệ đại diện trong snapshot. Chọn một service để đi sâu vào API, event, dữ liệu sở hữu và flow liên quan.
+        </p>
       </Panel>
+
+      {viewMode === 'domain' && (
+        <Panel className="p-5 sm:p-6">
+          <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-bold text-amber-700 dark:text-amber-300">Bản đồ domain</p>
+              <h2 className="mt-1 text-xl font-black text-slate-950 dark:text-white">Chức năng nào được service nào phục vụ?</h2>
+              <p className="mt-1.5 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">Mỗi capability nối actor, client và service owner. Đây là lớp giải thích nghiệp vụ của kiến trúc, không thay thế Flow Explorer.</p>
+            </div>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{graph.capabilities.length} capability trong snapshot</span>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {graph.capabilities.map((capability) => (
+              <article key={capability.id} className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/50">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-black uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">{capability.group}</p>
+                    <h3 className="mt-1 text-sm font-black text-slate-950 dark:text-white">{capability.label}</h3>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold ${capability.status === 'active' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' : capability.status === 'experimental' ? 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'}`}>{capability.classification}</span>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">{capability.summary}</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {capability.services.map((service) => <span key={service} className="rounded-md bg-white px-2 py-1 font-mono text-[10px] font-bold text-slate-700 dark:bg-slate-900 dark:text-slate-200">{service}</span>)}
+                </div>
+              </article>
+            ))}
+          </div>
+        </Panel>
+      )}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         {isMobile ? (
@@ -2394,6 +2444,12 @@ const SystemHandbookPage = () => {
     go(`${basePath}/architecture${query ? `?${query}` : ''}`);
   };
 
+  const chooseArchitectureView = (view: ArchitectureViewMode) => {
+    const params = new URLSearchParams(location.search);
+    params.set('view', view);
+    go(`${basePath}/architecture?${params.toString()}`);
+  };
+
   const chooseSection = (target: WorkspaceSection) => {
     if (target === 'overview') return go(basePath);
     if (target === 'flows') return updateFlowState({ step: getFlow('cod-order').steps[0].id }, getFlow('cod-order'));
@@ -2416,7 +2472,7 @@ const SystemHandbookPage = () => {
         onSelect={select}
       />
     ) : section === 'architecture' ? (
-      <ArchitectureView flowId={state.flow} selection={selection} onSelect={select} onFlow={chooseArchitectureFlow} />
+      <ArchitectureView flowId={state.flow} selection={selection} onSelect={select} onFlow={chooseArchitectureFlow} viewMode={state.architectureView} onView={chooseArchitectureView} />
     ) : section === 'contracts' ? (
       <ContractsView flow={flow} selection={selection} onSelect={select} />
     ) : section === 'docs' ? (
