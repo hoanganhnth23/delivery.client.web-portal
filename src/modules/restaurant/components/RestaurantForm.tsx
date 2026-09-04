@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useRestaurant } from '../hooks/useRestaurant';
 import type { Restaurant } from '@/types/api.types';
 import JsonFixtureImporter from '@/components/forms/JsonFixtureImporter';
+import LocationPicker from '@/components/maps/LocationPicker';
 import { fixtureText, fixtureTime, type JsonFixtureRecord } from '@/utils/jsonFixture';
 
 // ============================================
@@ -90,6 +91,19 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
     setErrors({});
   };
 
+  const handleLocationChange = (newLat: number, newLng: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      addressLat: String(newLat),
+      addressLng: String(newLng),
+    }));
+    setErrors((prev) => ({
+      ...prev,
+      addressLat: '',
+      addressLng: '',
+    }));
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -114,6 +128,8 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
     
     if (!formData.address.trim()) {
       newErrors.address = 'Địa chỉ không được để trống';
+    } else if (formData.address.trim().length < 10) {
+      newErrors.address = 'Địa chỉ nhà hàng phải có ít nhất 10 ký tự (số nhà, tên đường, phường/xã, quận/huyện)';
     }
     
     if (!formData.phone.trim()) {
@@ -220,7 +236,21 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
         )}
       </div>
 
-      {/* Tọa độ */}
+      {/* Chọn vị trí trên bản đồ */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          Vị trí nhà hàng trên bản đồ <span className="text-red-500">*</span>
+        </label>
+        <LocationPicker
+          lat={formData.addressLat ? Number(formData.addressLat) : null}
+          lng={formData.addressLng ? Number(formData.addressLng) : null}
+          address={formData.address}
+          onChange={handleLocationChange}
+          disabled={loading}
+        />
+      </div>
+
+      {/* Tọa độ (tự động cập nhật từ bản đồ hoặc chỉnh sửa thủ công) */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="restaurant-latitude" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">

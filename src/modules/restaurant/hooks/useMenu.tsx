@@ -65,8 +65,10 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
         if (!options.skipRedirect) navigate(ROUTES.RESTAURANT_MENU);
         return { success: true, data: menuItem };
       } catch (caught) {
+        console.error('runMutation error:', caught);
         const message =
           (caught as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          (caught as Error)?.message ||
           failureMessage;
         setError(message);
         return { success: false, message };
@@ -120,8 +122,10 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
         if (!options.skipRedirect) navigate(ROUTES.RESTAURANT_MENU);
         return { success: true };
       } catch (caught) {
+        console.error('deleteMenuItem error:', caught);
         const message =
           (caught as { response?: { data?: { message?: string } } }).response?.data?.message ||
+          (caught as Error)?.message ||
           'Xóa món ăn thất bại';
         setError(message);
         return { success: false, message };
@@ -140,8 +144,10 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
       setMenuItems(menuItems);
       return { success: true, data: menuItems };
     } catch (caught) {
+      console.error('getMyMenuItems error:', caught);
       const message =
         (caught as { response?: { data?: { message?: string } } }).response?.data?.message ||
+        (caught as Error)?.message ||
         'Lấy danh sách món ăn thất bại';
       setError(message);
       return { success: false, message };

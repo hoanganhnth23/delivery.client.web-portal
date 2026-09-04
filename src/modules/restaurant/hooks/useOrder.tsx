@@ -73,7 +73,11 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       setCurrentPage(ordersPage.page);
       return { success: true, data: ordersPage };
     } catch (err) {
-      const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Không thể tải danh sách đơn hàng';
+      console.error('getMyOrders error:', err);
+      const message =
+        (err as { response?: { data?: { message?: string } } }).response?.data?.message ||
+        (err as Error).message ||
+        'Không thể tải danh sách đơn hàng';
       setError(message);
       return { success: false, message };
     } finally {

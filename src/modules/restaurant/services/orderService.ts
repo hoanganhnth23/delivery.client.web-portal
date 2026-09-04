@@ -68,8 +68,14 @@ const parseOrder = (value: unknown, label: string): Order => {
     restaurantName: requireString(order.restaurantName, `${label}.restaurantName`),
     restaurantAddress: requireString(order.restaurantAddress, `${label}.restaurantAddress`),
     restaurantPhone: requireString(order.restaurantPhone, `${label}.restaurantPhone`),
-    restaurantLat: requireNumber(order.restaurantLat, `${label}.restaurantLat`),
-    restaurantLng: requireNumber(order.restaurantLng, `${label}.restaurantLng`),
+    restaurantLat: requireNumber(
+      order.restaurantLat ?? order.pickupLat,
+      `${label}.restaurantLat`,
+    ),
+    restaurantLng: requireNumber(
+      order.restaurantLng ?? order.pickupLng,
+      `${label}.restaurantLng`,
+    ),
     ...(shipperId === null ? {} : { shipperId }),
     subtotalPrice: requireNumber(order.subtotalPrice, `${label}.subtotalPrice`),
     discountAmount: requireNumber(order.discountAmount, `${label}.discountAmount`),
@@ -80,14 +86,20 @@ const parseOrder = (value: unknown, label: string): Order => {
     deliveryAddress: requireString(order.deliveryAddress, `${label}.deliveryAddress`),
     deliveryLat: requireNumber(order.deliveryLat, `${label}.deliveryLat`),
     deliveryLng: requireNumber(order.deliveryLng, `${label}.deliveryLng`),
-    pickupLat: requireNumber(order.pickupLat, `${label}.pickupLat`),
-    pickupLng: requireNumber(order.pickupLng, `${label}.pickupLng`),
+    pickupLat: requireNumber(
+      order.pickupLat ?? order.restaurantLat,
+      `${label}.pickupLat`,
+    ),
+    pickupLng: requireNumber(
+      order.pickupLng ?? order.restaurantLng,
+      `${label}.pickupLng`,
+    ),
     customerName: requireString(order.customerName, `${label}.customerName`),
     customerPhone: requireString(order.customerPhone, `${label}.customerPhone`),
     ...(notes === null ? {} : { notes }),
     createdAt: requireTimestamp(order.createdAt, `${label}.createdAt`),
     updatedAt: requireTimestamp(order.updatedAt, `${label}.updatedAt`),
-    items: requireArray(order.items, `${label}.items`, parseOrderItem),
+    items: requireArray(order.items ?? [], `${label}.items`, parseOrderItem),
   };
 };
 

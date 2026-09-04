@@ -7,13 +7,13 @@ import apiClient, { handleError, handleResponse } from '@/services/api/apiClient
 import { API_ENDPOINTS } from '@/services/api/endpoints';
 import {
   optionalText,
+  optionalTimestamp,
   requireArray,
   requireEnum,
   requireInteger,
   requireNumber,
   requireRecord,
   requireString,
-  requireTimestamp,
 } from '@/services/api/contract';
 import type { MenuItem } from '@/types/api.types';
 
@@ -31,20 +31,25 @@ export interface CreateMenuItemRequest {
 
 const parseMenuItem = (value: unknown, label: string): MenuItem => {
   const item = requireRecord(value, label);
+  const rawStatus = typeof item.status === 'string'
+    ? item.status.toUpperCase()
+    : item.status;
   return {
     id: requireInteger(item.id, `${label}.id`, 1),
     restaurantId: requireInteger(item.restaurantId, `${label}.restaurantId`, 1),
     name: requireString(item.name, `${label}.name`),
     description: optionalText(item.description, `${label}.description`) ?? '',
-    price: requireNumber(item.price, `${label}.price`, 0.01),
+    price: requireNumber(item.price, `${label}.price`, 0),
     image: optionalText(item.image, `${label}.image`) ?? '',
     status: requireEnum(
-      item.status,
+      rawStatus,
       ['AVAILABLE', 'SOLD_OUT', 'DISCONTINUED'] as const,
       `${label}.status`,
     ),
-    createdAt: requireTimestamp(item.createdAt, `${label}.createdAt`),
-    updatedAt: requireTimestamp(item.updatedAt, `${label}.updatedAt`),
+    // Timestamps are optional in the shared web type. Preserve null/missing
+    // values instead of fabricating a current time for server data.
+    createdAt: optionalTimestamp(item.createdAt, `${label}.createdAt`) ?? undefined,
+    updatedAt: optionalTimestamp(item.updatedAt, `${label}.updatedAt`) ?? undefined,
   };
 };
 

@@ -162,6 +162,7 @@ describe('customer ordering journey', () => {
     renderApp({ route: ROUTES.CUSTOMER_CHECKOUT, dependencies });
     await screen.findByRole('heading', { name: 'Xác nhận đơn hàng' });
     const button = await screen.findByRole('button', { name: 'Đặt đơn COD' });
+    await waitFor(() => expect(button).toBeEnabled());
     await user.click(button);
     await waitFor(() => expect(createCustomerOrder).toHaveBeenCalledTimes(1));
     await user.click(screen.getByRole('button', { name: 'Đặt đơn COD' }));

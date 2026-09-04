@@ -90,11 +90,48 @@ export const requireEnum = <T extends string>(
 };
 
 export const requireTimestamp = (value: unknown, label: string): string => {
+  if (Array.isArray(value)) {
+    // Jackson LocalDateTime array format: [year, month, day, hour = 0, minute = 0, second = 0, nanos = 0]
+    const [year, month, day, hour = 0, minute = 0, second = 0, nanoOrMillis = 0] = value;
+    if (
+      typeof year === 'number' &&
+      typeof month === 'number' &&
+      typeof day === 'number' &&
+      typeof hour === 'number' &&
+      typeof minute === 'number' &&
+      typeof second === 'number'
+    ) {
+      const millis = Math.floor(
+        typeof nanoOrMillis === 'number'
+          ? nanoOrMillis > 999999
+            ? nanoOrMillis / 1_000_000
+            : nanoOrMillis
+          : 0,
+      );
+      const date = new Date(Date.UTC(year, month - 1, day, hour, minute, second, millis));
+      if (!Number.isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
+    throw new Error(`${label} contains an invalid date array`);
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const date = new Date(value > 1e11 ? value : value * 1000);
+    if (!Number.isNaN(date.getTime())) {
+      return date.toISOString();
+    }
+    throw new Error(`${label} must be a valid timestamp number`);
+  }
   const timestamp = requireString(value, label);
   if (Number.isNaN(Date.parse(timestamp))) {
     throw new Error(`${label} must be a valid timestamp`);
   }
   return timestamp;
+};
+
+export const optionalTimestamp = (value: unknown, label: string): string | null => {
+  if (value === null || value === undefined || value === '') return null;
+  return requireTimestamp(value, label);
 };
 
 export const requirePage = <T>(
