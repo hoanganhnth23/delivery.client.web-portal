@@ -192,9 +192,13 @@ const parseCheckoutPreview = (value: unknown, label = 'checkout preview'): Check
 /**
  * Lấy danh sách orders của nhà hàng hiện tại
  */
-export const getMyOrders = async (page = 0, size = 10): Promise<PageData<Order>> => {
+export const getMyOrders = async (page = 0, size = 10, restaurantId?: number): Promise<PageData<Order>> => {
+  const params: Record<string, unknown> = { page, size };
+  if (restaurantId) {
+    params.restaurantId = restaurantId;
+  }
   const response = await apiClient.get(API_ENDPOINTS.ORDER.GET_MY_ORDERS, {
-    params: { page, size },
+    params,
   });
   return requirePage(handleResponse(response), 'orders page', parseOrder);
 };

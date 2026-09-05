@@ -16,6 +16,8 @@ import {
   createAuthFake,
   createFlashSaleAdminFake,
   createNotificationFake,
+  createRestaurantFake,
+  createSessionStoreFake,
   createTestDependencies,
 } from '@/test/createTestDependencies';
 import { renderApp } from '@/test/renderApp';
@@ -28,10 +30,17 @@ function adminDependencies({
   admin = createAdminFake(),
   flashSaleAdmin = createFlashSaleAdminFake(),
   notifications = createNotificationFake(),
+  restaurant = createRestaurantFake(),
+  sessionStore = createSessionStoreFake({
+    hasToken: vi.fn(() => true),
+    getCurrentRestaurantId: vi.fn(() => 201),
+  }),
 }: {
   admin?: ReturnType<typeof createAdminFake>;
   flashSaleAdmin?: ReturnType<typeof createFlashSaleAdminFake>;
   notifications?: ReturnType<typeof createNotificationFake>;
+  restaurant?: ReturnType<typeof createRestaurantFake>;
+  sessionStore?: ReturnType<typeof createSessionStoreFake>;
 } = {}) {
   const user = buildUser({ role: USER_ROLES.ADMIN, name: 'Admin Test' });
   return createTestDependencies({
@@ -43,6 +52,8 @@ function adminDependencies({
     admin,
     flashSaleAdmin,
     notifications,
+    restaurant,
+    sessionStore,
   });
 }
 
@@ -430,5 +441,93 @@ describe('admin growth actions', () => {
     });
     await user.click(screen.getByRole('button', { name: 'Duyệt' }));
     await waitFor(() => expect(approveItem).toHaveBeenCalledTimes(2));
+  });
+
+  it('allows admin to confirm a pending order directly from the order list', async () => {
+    const user = userEvent.setup();
+    const pending = buildAdminOrder({ id: 501, restaurantId: 10, status: 'PENDING' });
+    const confirmOrder = vi.fn(async () => 'CONFIRMED' as const);
+    const fetchAllOrders = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: [pending],
+        page: 0,
+        size: 20,
+        totalItems: 1,
+        totalPages: 1,
+        hasNext: false,
+      })
+      .mockResolvedValueOnce({
+        items: [{ ...pending, status: 'CONFIRMED' }],
+        page: 0,
+        size: 20,
+        totalItems: 1,
+        totalPages: 1,
+        hasNext: false,
+      });
+
+    renderApp({
+      route: '/admin/orders',
+      dependencies: adminDependencies({
+        admin: createAdminFake({ fetchAllOrders, confirmOrder }),
+      }),
+    });
+
+    expect(await screen.findByText('#501')).toBeInTheDocument();
+    const confirmBtn = screen.getByTitle('Xác nhận đơn hàng');
+    await user.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(confirmOrder).toHaveBeenCalledWith(501, 10, 30);
+    });
+    await waitFor(() => {
+      expect(fetchAllOrders).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('allows admin to batch confirm all pending orders in one click', async () => {
+    const user = userEvent.setup();
+    const pending1 = buildAdminOrder({ id: 601, restaurantId: 10, status: 'PENDING' });
+    const pending2 = buildAdminOrder({ id: 602, restaurantId: 12, status: 'PENDING' });
+    const confirmOrder = vi.fn(async () => 'CONFIRMED' as const);
+    const fetchAllOrders = vi.fn(async () => ({
+      items: [pending1, pending2],
+      page: 0,
+      size: 20,
+      totalItems: 2,
+      totalPages: 1,
+      hasNext: false,
+    }));
+
+    renderApp({
+      route: '/admin/orders',
+      dependencies: adminDependencies({
+        admin: createAdminFake({ fetchAllOrders, confirmOrder }),
+      }),
+    });
+
+    expect(await screen.findByText('#601')).toBeInTheDocument();
+    expect(screen.getByText('#602')).toBeInTheDocument();
+
+    const batchBtn = screen.getByRole('button', { name: /Xác nhận tất cả đơn chờ/i });
+    expect(batchBtn).toBeInTheDocument();
+    await user.click(batchBtn);
+
+    await waitFor(() => {
+      expect(confirmOrder).toHaveBeenCalledWith(601, 10, 30);
+      expect(confirmOrder).toHaveBeenCalledWith(602, 12, 30);
+    });
+  });
+
+  it('allows admin to access restaurant dashboard without being redirected to unauthorized', async () => {
+    const dependencies = adminDependencies();
+    renderApp({
+      route: '/restaurant/dashboard',
+      dependencies,
+    });
+
+    expect(await screen.findAllByRole('heading', { name: 'Bếp test' })).not.toHaveLength(0);
+    expect(screen.getAllByRole('link', { name: /Đơn hàng/ })[0]).toHaveAttribute('href', '/restaurant/orders');
+    expect(screen.queryByText(/Không có quyền truy cập/i)).not.toBeInTheDocument();
   });
 });

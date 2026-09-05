@@ -81,8 +81,11 @@ export const deleteMenuItem = async (id: number): Promise<void> => {
  * Lấy danh sách món ăn của nhà hàng hiện tại
  * Identity/ownership được backend derive từ Bearer token qua Gateway.
  */
-export const getMyMenuItems = async (): Promise<MenuItem[]> => {
-  const response = await apiClient.get(API_ENDPOINTS.MENU.GET_MY_MENU_ITEMS);
+export const getMyMenuItems = async (restaurantId?: number): Promise<MenuItem[]> => {
+  const endpoint = restaurantId
+    ? `${API_ENDPOINTS.MENU.GET_MY_MENU_ITEMS}?restaurantId=${restaurantId}`
+    : API_ENDPOINTS.MENU.GET_MY_MENU_ITEMS;
+  const response = await apiClient.get(endpoint);
   return requireArray(handleResponse(response), 'menu items', parseMenuItem);
 };
 

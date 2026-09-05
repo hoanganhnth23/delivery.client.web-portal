@@ -36,7 +36,7 @@ interface MenuContextValue {
     options?: ActionOptions,
   ) => Promise<MenuItemActionResult>;
   deleteMenuItem: (id: number, options?: ActionOptions) => Promise<DeleteActionResult>;
-  getMyMenuItems: () => Promise<MenuItemListActionResult>;
+  getMyMenuItems: (restaurantId?: number) => Promise<MenuItemListActionResult>;
   setCurrentMenuItem: (menuItem: MenuItem | null) => void;
   setError: (error: string | null) => void;
 }
@@ -136,11 +136,13 @@ export const MenuProvider = ({ children }: { children: ReactNode }) => {
     [menuService, navigate],
   );
 
-  const getMyMenuItems = useCallback(async (): Promise<MenuItemListActionResult> => {
+  const getMyMenuItems = useCallback(async (restaurantId?: number): Promise<MenuItemListActionResult> => {
     try {
       setLoading(true);
       setError(null);
-      const menuItems = await menuService.getMyMenuItems();
+      const menuItems = restaurantId !== undefined
+        ? await menuService.getMyMenuItems(restaurantId)
+        : await menuService.getMyMenuItems();
       setMenuItems(menuItems);
       return { success: true, data: menuItems };
     } catch (caught) {

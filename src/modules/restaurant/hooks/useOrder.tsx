@@ -29,7 +29,7 @@ interface OrderContextValue {
   currentPage: number;
   
   // Actions
-  getMyOrders: (page?: number, size?: number) => Promise<OrderListActionResult>;
+  getMyOrders: (page?: number, size?: number, restaurantId?: number) => Promise<OrderListActionResult>;
   getOrderById: (id: number) => Promise<OrderActionResult>;
   confirmOrder: (orderId: number, restaurantId: number, estimatedPrepTime?: number) => Promise<OrderActionResult>;
   rejectOrder: (orderId: number, restaurantId: number, reason: string) => Promise<OrderActionResult>;
@@ -61,12 +61,14 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
   /**
    * Lấy danh sách orders của nhà hàng hiện tại
    */
-  const getMyOrders = useCallback(async (page = 0, size = 10): Promise<OrderListActionResult> => {
+  const getMyOrders = useCallback(async (page = 0, size = 10, restaurantId?: number): Promise<OrderListActionResult> => {
     try {
       setLoading(true);
       setError(null);
       
-      const ordersPage = await orderService.getMyOrders(page, size);
+      const ordersPage = restaurantId !== undefined
+        ? await orderService.getMyOrders(page, size, restaurantId)
+        : await orderService.getMyOrders(page, size);
       setOrders(ordersPage.items);
       setTotalPages(ordersPage.totalPages);
       setTotalItems(ordersPage.totalItems);

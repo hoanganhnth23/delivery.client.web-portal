@@ -17,8 +17,8 @@ const MenuManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    void getMyMenuItems();
-  }, [getMyMenuItems]);
+    void getMyMenuItems(currentRestaurant?.id);
+  }, [getMyMenuItems, currentRestaurant?.id]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredMenuItems = menuItems.filter(
@@ -45,7 +45,7 @@ const MenuManagement = () => {
     const result = await deleteMenuItem(id, { skipRedirect: true });
     if (result.success) {
       window.alert('Xóa món ăn thành công!');
-      await getMyMenuItems();
+      await getMyMenuItems(currentRestaurant?.id);
     } else {
       window.alert(`Xóa thất bại: ${result.message}`);
     }
@@ -54,7 +54,7 @@ const MenuManagement = () => {
   const handleFormSuccess = async () => {
     setIsModalOpen(false);
     setEditingMenuItem(null);
-    await getMyMenuItems();
+    await getMyMenuItems(currentRestaurant?.id);
   };
 
   return (
@@ -115,7 +115,7 @@ const MenuManagement = () => {
                 <span>{error}</span>
                 <button
                   type="button"
-                  onClick={() => void getMyMenuItems()}
+                  onClick={() => void getMyMenuItems(currentRestaurant?.id)}
                   disabled={loading}
                   className="shrink-0 rounded-lg bg-red-700 px-3 py-2 font-semibold text-white disabled:opacity-50"
                 >

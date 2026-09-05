@@ -25,4 +25,5 @@ export const adminNavigation: PortalNavigationItem[] = [
   { to: ROUTES.ADMIN_COUPONS, icon: 'sell', label: 'Coupon' },
   { to: ROUTES.ADMIN_FLASH_SALES, icon: 'bolt', label: 'Flash Sale' },
   { to: ROUTES.ADMIN_CATALOG_IMPORT, icon: 'upload_file', label: 'Import dữ liệu' },
+  { to: ROUTES.RESTAURANT_DASHBOARD, icon: 'storefront', label: 'Cổng nhà hàng' },
 ];

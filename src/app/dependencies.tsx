@@ -89,6 +89,8 @@ export type AdminServicePort = Pick<
   | 'fetchOnlineShippers'
   | 'fetchOrdersByStatus'
   | 'updateRatingStatus'
+  | 'confirmOrder'
+  | 'rejectOrder'
 >;
 
 export type FlashSaleAdminServicePort = Pick<

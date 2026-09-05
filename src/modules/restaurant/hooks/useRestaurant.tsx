@@ -9,12 +9,13 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDependencies } from '@/app/dependencies';
+import { useOptionalAuth } from '@/modules/auth/hooks/useAuth';
 import type {
   Restaurant,
   RestaurantActionResult,
   RestaurantListActionResult,
 } from '@/types/api.types';
-import { ROUTES } from '@/utils/constants';
+import { ROUTES, USER_ROLES } from '@/utils/constants';
 import type { CreateRestaurantRequest } from '../services/restaurantService';
 
 interface ActionOptions {
@@ -44,6 +45,8 @@ const RestaurantContext = createContext<RestaurantContextValue | null>(null);
 
 export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
   const { restaurant: restaurantService, sessionStore } = useAppDependencies();
+  const auth = useOptionalAuth();
+  const user = auth?.user;
   const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(null);
@@ -54,7 +57,10 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       setError(null);
-      const data = await restaurantService.getMyRestaurants();
+      const data =
+        user?.role === USER_ROLES.ADMIN
+          ? await restaurantService.getAllRestaurants()
+          : await restaurantService.getMyRestaurants();
 
       setRestaurants(data);
       const savedRestaurantId = sessionStore.getCurrentRestaurantId();
@@ -78,10 +84,10 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [restaurantService, sessionStore]);
+  }, [restaurantService, sessionStore, user]);
 
   useEffect(() => {
-    if (sessionStore.hasToken() && sessionStore.getCurrentRestaurantId()) {
+    if (sessionStore.hasToken()) {
       void getMyRestaurants();
     }
   }, [getMyRestaurants, sessionStore]);

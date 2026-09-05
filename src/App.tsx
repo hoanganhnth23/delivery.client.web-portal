@@ -60,7 +60,11 @@ const PortalEntry = () => {
   return <CustomerHomePage />;
 };
 
-const restaurantRoute = (element: ReactNode) => <RoleRoute allowedRoles={[USER_ROLES.RESTAURANT_OWNER]}>{element}</RoleRoute>;
+const restaurantRoute = (element: ReactNode) => (
+  <RoleRoute allowedRoles={[USER_ROLES.RESTAURANT_OWNER, USER_ROLES.ADMIN]}>
+    {element}
+  </RoleRoute>
+);
 const adminRoute = (element: ReactNode) => <RoleRoute allowedRoles={[USER_ROLES.ADMIN]} loginPath={ROUTES.ADMIN_LOGIN}>{element}</RoleRoute>;
 const customerRoute = (element: ReactNode) => <RoleRoute allowedRoles={[USER_ROLES.USER]} loginPath={ROUTES.CUSTOMER_LOGIN}>{element}</RoleRoute>;
 

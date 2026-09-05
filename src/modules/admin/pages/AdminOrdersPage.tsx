@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import type { AdminOrder } from '@/services/api/adminService';
 import { useAppDependencies } from '@/app/dependencies';
+import { ROUTES } from '@/utils/constants';
 
 const AdminOrdersPage = () => {
-  const { admin: adminService, notifications } = useAppDependencies();
+  const { admin: adminService, notifications, sessionStore } = useAppDependencies();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -12,6 +15,8 @@ const AdminOrdersPage = () => {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [batchConfirming, setBatchConfirming] = useState(false);
   
   const statusTabs = [
     'ALL',
@@ -78,6 +83,63 @@ const AdminOrdersPage = () => {
     order.restaurantId?.toString().includes(searchTerm)
   );
 
+  const pendingOrders = filteredOrders.filter(order => order.status === 'PENDING');
+
+  const handleConfirm = async (order: AdminOrder) => {
+    setActionLoadingId(order.id);
+    try {
+      await adminService.confirmOrder(order.id, order.restaurantId, 30);
+      notifications.success(`Đã xác nhận đơn hàng #${order.id}`);
+      await loadOrders();
+    } catch {
+      notifications.error(`Xác nhận đơn hàng #${order.id} thất bại`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleReject = async (order: AdminOrder) => {
+    const reason = window.prompt(`Lý do từ chối đơn hàng #${order.id}:`, 'Nhà hàng tạm thời hết món')?.trim();
+    if (!reason) return;
+    setActionLoadingId(order.id);
+    try {
+      await adminService.rejectOrder(order.id, order.restaurantId, reason);
+      notifications.success(`Đã từ chối đơn hàng #${order.id}`);
+      await loadOrders();
+    } catch {
+      notifications.error(`Từ chối đơn hàng #${order.id} thất bại`);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleBatchConfirm = async () => {
+    if (pendingOrders.length === 0) return;
+    setBatchConfirming(true);
+    try {
+      const results = await Promise.allSettled(
+        pendingOrders.map(order => adminService.confirmOrder(order.id, order.restaurantId, 30))
+      );
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.length - successful;
+      if (failed === 0) {
+        notifications.success(`Đã xác nhận thành công tất cả ${successful} đơn hàng!`);
+      } else {
+        notifications.success(`Đã xác nhận ${successful}/${results.length} đơn hàng (${failed} lỗi)`);
+      }
+      await loadOrders();
+    } catch {
+      notifications.error('Xác nhận hàng loạt thất bại');
+    } finally {
+      setBatchConfirming(false);
+    }
+  };
+
+  const handleAccessRestaurant = (restaurantId: number) => {
+    sessionStore.setCurrentRestaurantId(restaurantId);
+    navigate(ROUTES.RESTAURANT_ORDERS);
+  };
+
   return (
     <AdminLayout>
       <div className="flex flex-col gap-6">
@@ -99,15 +161,40 @@ const AdminOrdersPage = () => {
             ))}
           </div>
           
-          <div className="relative w-full md:w-64">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
-            <input
-              type="text"
-              placeholder="Tìm kiếm ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
-            />
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            {/* Batch Confirm Button for Fast Local Testing */}
+            {pendingOrders.length > 0 && (
+              <button
+                type="button"
+                disabled={batchConfirming || loading}
+                onClick={() => void handleBatchConfirm()}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm shadow-sm transition-colors whitespace-nowrap disabled:opacity-50"
+                title="Xác nhận tất cả các đơn hàng PENDING trong danh sách hiện tại"
+              >
+                {batchConfirming ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    <span>Đang xác nhận ({pendingOrders.length})...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-lg">bolt</span>
+                    <span>⚡ Xác nhận tất cả đơn chờ ({pendingOrders.length})</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            <div className="relative w-full md:w-64">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
+              <input
+                type="text"
+                placeholder="Tìm kiếm ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 w-full rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+              />
+            </div>
           </div>
         </div>
 
@@ -136,12 +223,13 @@ const AdminOrdersPage = () => {
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tổng tiền</th>
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Shipper</th>
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trạng thái</th>
+                  <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light dark:divide-border-dark">
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500">
+                    <td colSpan={6} className="p-8 text-center text-gray-500">
                       <div className="flex justify-center items-center gap-2">
                         <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent"></div>
                         Đang tải dữ liệu...
@@ -150,11 +238,11 @@ const AdminOrdersPage = () => {
                   </tr>
                 ) : error && filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500">Chưa có dữ liệu để hiển thị.</td>
+                    <td colSpan={6} className="p-8 text-center text-gray-500">Chưa có dữ liệu để hiển thị.</td>
                   </tr>
                 ) : filteredOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500">
+                    <td colSpan={6} className="p-8 text-center text-gray-500">
                       Không tìm thấy đơn hàng nào.
                     </td>
                   </tr>
@@ -182,6 +270,47 @@ const AdminOrdersPage = () => {
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                           {order.status}
                         </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {order.status === 'PENDING' && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={actionLoadingId === order.id || batchConfirming}
+                                onClick={() => void handleConfirm(order)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 font-semibold text-xs border border-emerald-300 dark:border-emerald-800 transition-colors disabled:opacity-50"
+                                title="Xác nhận đơn hàng"
+                              >
+                                {actionLoadingId === order.id ? (
+                                  <div className="animate-spin rounded-full h-3 w-3 border-2 border-emerald-600 border-t-transparent" />
+                                ) : (
+                                  <span className="material-symbols-outlined text-sm">check_circle</span>
+                                )}
+                                <span>Xác nhận</span>
+                              </button>
+                              <button
+                                type="button"
+                                disabled={actionLoadingId === order.id || batchConfirming}
+                                onClick={() => void handleReject(order)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-950/40 dark:hover:bg-red-900/60 dark:text-red-300 font-semibold text-xs border border-red-300 dark:border-red-800 transition-colors disabled:opacity-50"
+                                title="Từ chối đơn hàng"
+                              >
+                                <span className="material-symbols-outlined text-sm">cancel</span>
+                                <span>Từ chối</span>
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleAccessRestaurant(order.restaurantId)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300 font-medium text-xs border border-border-light dark:border-border-dark transition-colors"
+                            title={`Mở quản lý nhà hàng #${order.restaurantId}`}
+                          >
+                            <span className="material-symbols-outlined text-sm">storefront</span>
+                            <span className="hidden sm:inline">Nhà hàng</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

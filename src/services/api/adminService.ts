@@ -293,6 +293,37 @@ class AdminService {
     }
   }
 
+  /**
+   * Confirm order (Admin authority)
+   */
+  async confirmOrder(
+    orderId: number,
+    restaurantId: number,
+    estimatedPrepTime: number = 30,
+    notes?: string,
+  ): Promise<'CONFIRMED'> {
+    const response = await apiClient.post(
+      API_ENDPOINTS.RESTAURANT.CONFIRM_ORDER(orderId),
+      { restaurantId, estimatedPrepTime, ...(notes ? { notes } : {}) },
+    );
+    return requireEnum(handleResponse(response), ['CONFIRMED'] as const, 'confirmation result');
+  }
+
+  /**
+   * Reject order (Admin authority)
+   */
+  async rejectOrder(
+    orderId: number,
+    restaurantId: number,
+    reason: string,
+  ): Promise<'REJECTED'> {
+    const response = await apiClient.post(
+      API_ENDPOINTS.RESTAURANT.REJECT_ORDER(orderId),
+      { restaurantId, reason },
+    );
+    return requireEnum(handleResponse(response), ['REJECTED'] as const, 'rejection result');
+  }
+
   // ==================== SHIPPER MANAGEMENT ====================
 
   /**
