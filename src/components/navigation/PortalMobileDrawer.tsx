@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useDialogFocus } from './useDialogFocus';
 import { Link, useLocation } from 'react-router-dom';
 import type { PortalNavigationItem } from './portalNavigation';
 
@@ -22,30 +22,19 @@ const PortalMobileDrawer = ({
   onLogout,
 }: PortalMobileDrawerProps) => {
   const location = useLocation();
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return undefined;
-
-    closeButtonRef.current?.focus();
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, open]);
+  const dialogRef = useDialogFocus(open, onClose);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-labelledby="mobile-drawer-heading">
+    <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-labelledby="mobile-drawer-heading">
       <button
         type="button"
         aria-label="Đóng menu"
         className="absolute inset-0 h-full w-full bg-black/40"
         onClick={onClose}
       />
-      <aside className="relative flex h-full w-80 max-w-[85vw] flex-col bg-surface-light p-5 shadow-2xl dark:bg-surface-dark">
+      <aside className="portal-drawer-panel relative flex h-full w-80 max-w-[85vw] flex-col bg-surface-light p-5 shadow-2xl dark:bg-surface-dark">
         <div className="flex items-start justify-between gap-3 border-b border-border-light pb-5 dark:border-border-dark">
           <div className="min-w-0">
             <h2 id="mobile-drawer-heading" className="text-xs font-semibold uppercase tracking-wider text-primary">{title}</h2>
@@ -55,7 +44,6 @@ const PortalMobileDrawer = ({
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
           </div>
           <button
-            ref={closeButtonRef}
             type="button"
             aria-label="Đóng menu"
             onClick={onClose}
@@ -72,6 +60,7 @@ const PortalMobileDrawer = ({
               <Link
                 key={item.to}
                 to={item.to}
+                aria-current={active ? 'page' : undefined}
                 onClick={onClose}
                 className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-colors ${
                   active

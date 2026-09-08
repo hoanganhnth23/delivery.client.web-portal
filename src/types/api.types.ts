@@ -228,7 +228,7 @@ export interface Order {
   restaurantId: number;
   restaurantName: string;
   restaurantAddress: string;
-  restaurantPhone: string;
+  restaurantPhone?: string;
   restaurantLat: number;
   restaurantLng: number;
   shipperId?: number;

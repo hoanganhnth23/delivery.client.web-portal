@@ -62,9 +62,9 @@ const AdminShippersPage = () => {
 
   return (
     <AdminLayout>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 sm:gap-6">
         {/* Header */}
-        <div className="bg-surface-light dark:bg-surface-dark p-6 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
+        <div className="rounded-xl border border-border-light bg-surface-light p-4 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Quản lý Shipper</h2>
@@ -97,13 +97,13 @@ const AdminShippersPage = () => {
         )}
 
         {/* Filters & Search */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
+        <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-border-light bg-surface-light p-3 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:gap-4 sm:p-4 md:flex-row md:items-center">
           <div className="flex overflow-x-auto w-full md:w-auto gap-2 pb-2 md:pb-0 hide-scrollbar">
             {filterTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
+                className={`min-h-10 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors sm:px-4 ${
                   filter === tab.key
                     ? 'bg-primary text-white shadow-sm'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -129,15 +129,15 @@ const AdminShippersPage = () => {
         {/* Shippers Table */}
         <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden flex-1">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full min-w-[800px] border-collapse text-left">
               <thead>
                 <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-border-light dark:border-border-dark">
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID</th>
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Shipper</th>
-                  <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">SĐT</th>
-                  <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Xe</th>
+                  <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">SĐT</th>
+                  <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Xe</th>
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trạng thái</th>
-                  <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Ngày tham gia</th>
+                  <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ngày tham gia</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-light dark:divide-border-dark">
@@ -180,10 +180,10 @@ const AdminShippersPage = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="p-4 text-sm text-gray-600 dark:text-gray-300 hidden md:table-cell">
+                      <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
                         {shipper.phone || 'N/A'}
                       </td>
-                      <td className="p-4 hidden lg:table-cell">
+                      <td className="p-4">
                         <div className="flex flex-col gap-0.5">
                           <span className="text-sm text-gray-900 dark:text-white font-medium">{shipper.licensePlate || 'N/A'}</span>
                           <span className="text-xs text-gray-500">{shipper.vehicleType || ''}</span>
@@ -199,7 +199,7 @@ const AdminShippersPage = () => {
                           {shipper.isOnline ? 'Online' : 'Offline'}
                         </span>
                       </td>
-                      <td className="p-4 text-sm text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                      <td className="p-4 text-sm text-gray-600 dark:text-gray-400">
                         {formatDate(shipper.createdAt)}
                       </td>
                     </tr>

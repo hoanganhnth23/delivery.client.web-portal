@@ -61,13 +61,20 @@ const parseOrder = (value: unknown, label: string): Order => {
   const order = requireRecord(value, label);
   const shipperId = optionalPositiveInteger(order.shipperId, `${label}.shipperId`);
   const notes = optionalText(order.notes, `${label}.notes`);
+  const rawRestaurantPhone = order.restaurantPhone;
+  const restaurantPhone =
+    rawRestaurantPhone === null || rawRestaurantPhone === undefined
+      ? null
+      : typeof rawRestaurantPhone === 'number'
+        ? String(rawRestaurantPhone)
+        : optionalText(rawRestaurantPhone, `${label}.restaurantPhone`);
   return {
     id: requireInteger(order.id, `${label}.id`, 1),
     userId: requireInteger(order.userId, `${label}.userId`, 1),
     restaurantId: requireInteger(order.restaurantId, `${label}.restaurantId`, 1),
     restaurantName: requireString(order.restaurantName, `${label}.restaurantName`),
     restaurantAddress: requireString(order.restaurantAddress, `${label}.restaurantAddress`),
-    restaurantPhone: requireString(order.restaurantPhone, `${label}.restaurantPhone`),
+    ...(restaurantPhone && restaurantPhone.trim() !== '' ? { restaurantPhone: restaurantPhone.trim() } : {}),
     restaurantLat: requireNumber(
       order.restaurantLat ?? order.pickupLat,
       `${label}.restaurantLat`,

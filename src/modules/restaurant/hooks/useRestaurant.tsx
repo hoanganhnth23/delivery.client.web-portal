@@ -38,6 +38,7 @@ interface RestaurantContextValue {
   ) => Promise<RestaurantActionResult>;
   getMyRestaurants: () => Promise<RestaurantListActionResult>;
   setCurrentRestaurant: (restaurant: Restaurant | null) => void;
+  selectRestaurantById: (restaurantId: number) => void;
   setError: (error: string | null) => void;
 }
 
@@ -156,6 +157,19 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
     else sessionStore.clearRestaurantId();
   }, [sessionStore]);
 
+  const selectRestaurantById = useCallback(
+    (restaurantId: number) => {
+      sessionStore.setCurrentRestaurantId(restaurantId);
+      const match = restaurants.find((r) => r.id === restaurantId);
+      if (match) {
+        setCurrentRestaurant(match);
+      } else {
+        void getMyRestaurants();
+      }
+    },
+    [restaurants, sessionStore, getMyRestaurants],
+  );
+
   const value = useMemo<RestaurantContextValue>(
     () => ({
       restaurants,
@@ -166,6 +180,7 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
       updateRestaurant,
       getMyRestaurants,
       setCurrentRestaurant: setCurrentRestaurantWithSave,
+      selectRestaurantById,
       setError,
     }),
     [
@@ -177,6 +192,7 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
       updateRestaurant,
       getMyRestaurants,
       setCurrentRestaurantWithSave,
+      selectRestaurantById,
     ],
   );
 

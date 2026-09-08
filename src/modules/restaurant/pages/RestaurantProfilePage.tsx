@@ -12,21 +12,21 @@ const RestaurantProfilePage = () => {
   }, [getMyRestaurants]);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
+    <div className="flex h-screen w-full min-w-0 overflow-hidden bg-background-light dark:bg-background-dark">
       <RestaurantSidebar
         restaurantName={currentRestaurant?.name}
         restaurantImage={currentRestaurant?.image}
       />
 
-      <main className="flex flex-1 flex-col overflow-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <RestaurantHeader
           title="Hồ sơ cửa hàng"
           subtitle="Thông tin được lưu theo contract nhà hàng của backend"
           showSearch={false}
         />
 
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="mx-auto max-w-3xl rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto max-w-3xl rounded-2xl bg-white p-4 shadow-sm dark:bg-zinc-900 sm:p-8">
             {loading && !currentRestaurant ? (
               <p className="text-center text-gray-500">Đang tải hồ sơ nhà hàng…</p>
             ) : error && !currentRestaurant ? (
@@ -48,6 +48,7 @@ const RestaurantProfilePage = () => {
                   </div>
                 )}
                 <RestaurantForm
+                  key={currentRestaurant.id}
                   restaurant={currentRestaurant}
                   onSuccess={() => void getMyRestaurants()}
                   onCancel={() => void getMyRestaurants()}

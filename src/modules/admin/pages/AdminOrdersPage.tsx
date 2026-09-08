@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import type { AdminOrder } from '@/services/api/adminService';
 import { useAppDependencies } from '@/app/dependencies';
+import { useRestaurant } from '@/modules/restaurant/hooks/useRestaurant';
 import { ROUTES } from '@/utils/constants';
 
 const AdminOrdersPage = () => {
-  const { admin: adminService, notifications, sessionStore } = useAppDependencies();
+  const { admin: adminService, notifications } = useAppDependencies();
+  const { selectRestaurantById } = useRestaurant();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,21 +138,21 @@ const AdminOrdersPage = () => {
   };
 
   const handleAccessRestaurant = (restaurantId: number) => {
-    sessionStore.setCurrentRestaurantId(restaurantId);
+    selectRestaurantById(restaurantId);
     navigate(ROUTES.RESTAURANT_ORDERS);
   };
 
   return (
     <AdminLayout>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 sm:gap-6">
         {/* Header & Controls */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
+        <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-border-light bg-surface-light p-3 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:gap-4 sm:p-4 md:flex-row md:items-center">
           <div className="flex overflow-x-auto w-full md:w-auto gap-2 pb-2 md:pb-0 hide-scrollbar">
             {statusTabs.map(tab => (
               <button
                 key={tab}
                 onClick={() => changeStatusFilter(tab)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
+                className={`min-h-10 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors sm:px-4 ${
                   statusFilter === tab 
                     ? 'bg-primary text-white shadow-sm' 
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -161,14 +163,14 @@ const AdminOrdersPage = () => {
             ))}
           </div>
           
-          <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex w-full flex-col items-stretch gap-3 md:w-auto md:flex-row md:items-center">
             {/* Batch Confirm Button for Fast Local Testing */}
             {pendingOrders.length > 0 && (
               <button
                 type="button"
                 disabled={batchConfirming || loading}
                 onClick={() => void handleBatchConfirm()}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm shadow-sm transition-colors whitespace-nowrap disabled:opacity-50"
+                className="flex min-h-10 w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold whitespace-nowrap text-white shadow-sm transition-colors hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 md:w-auto"
                 title="Xác nhận tất cả các đơn hàng PENDING trong danh sách hiện tại"
               >
                 {batchConfirming ? (
@@ -179,7 +181,7 @@ const AdminOrdersPage = () => {
                 ) : (
                   <>
                     <span className="material-symbols-outlined text-lg">bolt</span>
-                    <span>⚡ Xác nhận tất cả đơn chờ ({pendingOrders.length})</span>
+                    <span>Xác nhận tất cả đơn chờ ({pendingOrders.length})</span>
                   </>
                 )}
               </button>
@@ -215,7 +217,7 @@ const AdminOrdersPage = () => {
         {/* Orders Table */}
         <div className="bg-surface-light dark:bg-surface-dark rounded-xl border border-border-light dark:border-border-dark shadow-sm overflow-hidden flex-1">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full min-w-[720px] border-collapse text-left">
               <thead>
                 <tr className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-border-light dark:border-border-dark">
                   <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Mã Đơn</th>
@@ -321,7 +323,7 @@ const AdminOrdersPage = () => {
           
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-3 border-t border-border-light dark:border-border-dark bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex flex-col items-start gap-3 border-t border-border-light bg-gray-50 px-4 py-3 dark:border-border-dark dark:bg-gray-800/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Trang <span className="font-medium text-gray-900 dark:text-white">{page + 1}</span> / <span className="font-medium text-gray-900 dark:text-white">{totalPages}</span>
               </div>

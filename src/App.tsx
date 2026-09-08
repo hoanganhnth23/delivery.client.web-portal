@@ -5,6 +5,7 @@ import { RestaurantProvider } from './modules/restaurant/hooks/useRestaurant';
 import { MenuProvider } from './modules/restaurant/hooks/useMenu';
 import { OrderProvider } from './modules/restaurant/hooks/useOrder';
 import RoleRoute from './routes/RoleRoute';
+import './components/layouts/portal.css';
 import { ROUTES, USER_ROLES } from './utils/constants';
 import {
   AppDependenciesProvider,
@@ -30,6 +31,7 @@ const CatalogImportPage = lazy(() => import('./modules/restaurant/pages/CatalogI
 const UnauthorizedPage = lazy(() => import('./pages/UnauthorizedPage'));
 const SystemHandbookPage = lazy(() => import('./modules/system-handbook/pages/SystemHandbookPage'));
 const CustomerHomePage = lazy(() => import('./modules/customer/pages/CustomerHomePage'));
+const CustomerPreview = import.meta.env.DEV ? lazy(() => import('./modules/customer-preview/CustomerPreview')) : null;
 const CustomerRestaurantPage = lazy(() => import('./modules/customer/pages/CustomerRestaurantPage'));
 const CustomerCartPage = lazy(() => import('./modules/customer/pages/CustomerCartPage'));
 const CustomerLoginPage = lazy(() => import('./modules/customer/pages/CustomerLoginPage'));
@@ -127,7 +129,12 @@ interface AppProps {
 
 export default function App({ dependencies }: AppProps) {
   const location = useLocation();
+  if (CustomerPreview && (location.pathname === '/preview/shopeefood' || location.pathname.startsWith('/preview/shopeefood/'))) {
+    return <Suspense fallback={<RouteFallback />}><CustomerPreview /></Suspense>;
+  }
   const isPublicHandbook = location.pathname === ROUTES.SYSTEM_OVERVIEW || location.pathname.startsWith(`${ROUTES.SYSTEM_OVERVIEW}/`);
 
-  return <AppDependenciesProvider dependencies={dependencies}>{isPublicHandbook ? <PublicHandbookRoutes /> : <PortalRoutes />}</AppDependenciesProvider>;
+  const isPortal = location.pathname.startsWith('/admin') || location.pathname.startsWith('/restaurant/') || location.pathname === ROUTES.LOGIN;
+  const content = <AppDependenciesProvider dependencies={dependencies}>{isPublicHandbook ? <PublicHandbookRoutes /> : <PortalRoutes />}</AppDependenciesProvider>;
+  return <div className={isPortal ? 'portal-theme' : undefined}>{content}</div>;
 }

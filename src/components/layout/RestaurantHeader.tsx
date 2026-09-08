@@ -52,34 +52,34 @@ const RestaurantHeader = ({
   const identity = user?.name || user?.email;
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white dark:bg-surface-dark border-b border-border-light dark:border-border-dark shadow-sm">
-      <div className="px-4 lg:px-8 py-4">
-        <div className="flex items-center justify-between">
+    <header className="sticky top-0 z-40 w-full min-w-0 border-b border-border-light bg-white shadow-sm dark:border-border-dark dark:bg-surface-dark">
+      <div className="px-3 py-3 sm:px-4 sm:py-4 lg:px-8">
+        <div className="flex min-w-0 items-center justify-between gap-2">
           {/* Left: Title & Restaurant Info */}
-          <div className="flex items-center gap-4">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             <button
               type="button"
               aria-label="Mở menu"
               onClick={() => setShowMobileMenu(true)}
-              className="rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 lg:hidden"
+              className="shrink-0 rounded-lg p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 lg:hidden"
             >
               <span aria-hidden="true" className="material-symbols-outlined">menu</span>
             </button>
             {/* Title Section */}
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
+                <h1 className="min-w-0 truncate text-lg font-bold text-gray-900 dark:text-white sm:text-xl lg:text-2xl">
                   {title}
                 </h1>
                 {isAdmin && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 text-xs font-bold text-purple-700 dark:text-purple-300">
+                  <span className="hidden shrink-0 items-center gap-1 rounded-md bg-purple-100 px-2 py-0.5 text-xs font-bold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 sm:inline-flex">
                     <span className="material-symbols-outlined text-xs">shield_person</span>
                     Admin
                   </span>
                 )}
               </div>
               {subtitle && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                <p className="mt-0.5 hidden truncate text-sm text-gray-600 dark:text-gray-400 sm:block">
                   {subtitle}
                 </p>
               )}
@@ -87,11 +87,11 @@ const RestaurantHeader = ({
           </div>
 
           {/* Right: Search, Actions, User Menu */}
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-3">
             {/* Admin Restaurant Switcher */}
             {isAdmin && restaurants.length > 0 && (
-              <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg px-2.5 py-1.5 border border-border-light dark:border-border-dark">
-                <span className="material-symbols-outlined text-gray-500 text-lg">storefront</span>
+              <div className="flex min-w-0 max-w-[92px] items-center gap-1 rounded-lg border border-border-light bg-gray-100 px-1.5 py-1.5 dark:border-border-dark dark:bg-gray-800 sm:max-w-[190px] sm:gap-1.5 sm:px-2.5">
+                <span className="material-symbols-outlined hidden text-lg text-gray-500 sm:inline">storefront</span>
                 <select
                   aria-label="Chọn nhà hàng quản trị"
                   value={currentRestaurant?.id ?? ''}
@@ -100,7 +100,7 @@ const RestaurantHeader = ({
                     const match = restaurants.find(r => r.id === id);
                     if (match) setCurrentRestaurant(match);
                   }}
-                  className="bg-transparent text-xs font-semibold text-gray-800 dark:text-gray-200 outline-none cursor-pointer max-w-[160px] truncate"
+                  className="max-w-[72px] cursor-pointer truncate bg-transparent text-xs font-semibold text-gray-800 outline-none dark:text-gray-200 sm:max-w-[160px]"
                   title="Chọn nhà hàng để quản lý"
                 >
                   {restaurants.map((r) => (
@@ -117,11 +117,11 @@ const RestaurantHeader = ({
               <button
                 type="button"
                 onClick={() => navigate(ROUTES.ADMIN_DASHBOARD)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary font-semibold text-xs transition-colors"
+                className="flex shrink-0 items-center gap-1 rounded-lg bg-primary/10 px-2 py-1.5 text-primary transition-colors hover:bg-primary/20 sm:px-3"
                 title="Quay lại Cổng Admin"
               >
                 <span className="material-symbols-outlined text-base">admin_panel_settings</span>
-                <span className="hidden sm:inline">Về Cổng Admin</span>
+                <span className="hidden text-xs font-semibold sm:inline">Về Cổng Admin</span>
               </button>
             )}
 
@@ -145,7 +145,7 @@ const RestaurantHeader = ({
 
             {/* Custom Actions */}
             {actions && (
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
                 {actions}
               </div>
             )}
@@ -155,9 +155,11 @@ const RestaurantHeader = ({
               <button
                 type="button"
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors"
+                aria-label="Menu tài khoản"
+                aria-expanded={showUserMenu}
+                className="flex shrink-0 items-center gap-1 rounded-xl p-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 sm:gap-3 sm:p-2"
               >
-                <div className="hidden md:block text-right">
+                <div className="portal-identity hidden xl:block text-right">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     {identity || (isAdmin ? 'Quản trị viên' : 'Chủ nhà hàng')}
                   </p>
@@ -165,10 +167,10 @@ const RestaurantHeader = ({
                     {currentRestaurant?.name || 'Chưa được gán nhà hàng'}
                   </p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-orange-600 flex items-center justify-center text-white font-bold">
+                <div className="flex size-9 items-center justify-center rounded-full bg-primary font-bold text-white sm:size-10">
                   {(identity || (isAdmin ? 'A' : 'C'))[0].toUpperCase()}
                 </div>
-                <span className="material-symbols-outlined text-gray-600 dark:text-gray-400 text-xl">
+                <span className="material-symbols-outlined hidden text-xl text-gray-600 dark:text-gray-400 sm:inline">
                   {showUserMenu ? 'expand_less' : 'expand_more'}
                 </span>
               </button>
@@ -180,7 +182,7 @@ const RestaurantHeader = ({
                     className="fixed inset-0 z-40"
                     onClick={() => setShowUserMenu(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-surface-dark rounded-xl shadow-lg border border-border-light dark:border-border-dark overflow-hidden z-50">
+                  <div className="absolute right-0 z-50 mt-2 w-[min(16rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border-light bg-white shadow-lg dark:border-border-dark dark:bg-surface-dark">
                     {/* User Info */}
                     <div className="p-4 border-b border-border-light dark:border-border-dark">
                       <p className="font-semibold text-gray-900 dark:text-white">

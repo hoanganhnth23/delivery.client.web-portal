@@ -7,17 +7,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#f49d25',
-        'primary-dark': '#c97912',
-        'primary-hover': '#e38b14',
-        'background-light': '#f8f7f5',
-        'background-dark': '#221a10',
-        'surface-light': '#ffffff',
-        'surface-dark': '#2d2418',
-        'border-light': '#e8ddce',
-        'border-dark': '#4a3b2a',
-        'text-main': '#1c160d',
-        'text-sub': '#9c7a49',
+        primary: 'rgb(var(--portal-primary, 244 157 37) / <alpha-value>)',
+        'primary-dark': 'rgb(var(--portal-hover, 201 121 18) / <alpha-value>)',
+        'primary-hover': 'rgb(var(--portal-hover, 227 139 20) / <alpha-value>)',
+        'background-light': 'rgb(var(--portal-background, 248 247 245) / <alpha-value>)',
+        'background-dark': 'rgb(var(--portal-night, 34 26 16) / <alpha-value>)',
+        'surface-light': 'rgb(var(--portal-surface, 255 255 255) / <alpha-value>)',
+        'surface-dark': 'rgb(var(--portal-night-surface, 45 36 24) / <alpha-value>)',
+        'border-light': 'rgb(var(--portal-border, 232 221 206) / <alpha-value>)',
+        'border-dark': 'rgb(var(--portal-night-border, 74 59 42) / <alpha-value>)',
+        'text-main': 'rgb(var(--portal-ink, 28 22 13) / <alpha-value>)',
+        'text-sub': 'rgb(var(--portal-muted, 156 122 73) / <alpha-value>)',
       },
       fontFamily: {
         display: ['Plus Jakarta Sans', 'sans-serif'],

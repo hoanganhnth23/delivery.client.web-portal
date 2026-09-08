@@ -75,12 +75,12 @@ const RestaurantVouchersPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-background-light dark:bg-background-dark">
+    <div className="flex min-h-screen w-full min-w-0 bg-background-light dark:bg-background-dark">
       <RestaurantSidebar restaurantName={currentRestaurant?.name} restaurantImage={currentRestaurant?.image} />
       <main className="min-w-0 flex-1">
         <RestaurantHeader title="Voucher nhà hàng" subtitle="Voucher shop cần ADMIN duyệt trước khi phát hành" />
-        <div className="grid gap-6 p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:p-8">
-          <form onSubmit={submit} className="rounded-2xl border border-border-light bg-white p-6 shadow-sm dark:border-border-dark dark:bg-surface-dark">
+        <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:p-8">
+          <form onSubmit={submit} className="rounded-2xl border border-border-light bg-white p-4 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:p-6">
             <h2 className="text-xl font-black">Tạo voucher giảm giá món</h2>
             <p className="mt-1 text-sm text-gray-500">Hệ thống tự gán lớp SHOP_DISCOUNT và nguồn tài trợ SHOP.</p>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -98,12 +98,12 @@ const RestaurantVouchersPage = () => {
             </div>
             <button type="submit" disabled={saving || !currentRestaurant} className="mt-6 w-full rounded-lg bg-primary px-4 py-3 font-bold text-white disabled:opacity-50">{saving ? 'Đang gửi…' : 'Gửi voucher chờ duyệt'}</button>
           </form>
-          <section className="rounded-2xl border border-border-light bg-white p-6 shadow-sm dark:border-border-dark dark:bg-surface-dark">
-            <div className="flex items-center justify-between"><div><h2 className="text-xl font-black">Chiến dịch của cửa hàng</h2><p className="mt-1 text-sm text-gray-500">Voucher chỉ hoạt động sau khi ADMIN duyệt.</p></div><button type="button" onClick={() => void load()} className="rounded-lg border px-3 py-2 text-sm font-semibold">Làm mới</button></div>
+          <section className="rounded-2xl border border-border-light bg-white p-4 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:p-6">
+            <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center"><div><h2 className="text-xl font-black">Chiến dịch của cửa hàng</h2><p className="mt-1 text-sm text-gray-500">Voucher chỉ hoạt động sau khi ADMIN duyệt.</p></div><button type="button" onClick={() => void load()} className="min-h-10 rounded-lg border px-3 py-2 text-sm font-semibold">Làm mới</button></div>
             {loading && <p className="mt-6 text-sm text-gray-500">Đang tải…</p>}
             {error && <p className="mt-6 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             {!loading && !error && vouchers.length === 0 && <p className="mt-6 text-sm text-gray-500">Chưa có chiến dịch nào.</p>}
-            <div className="mt-5 space-y-3">{vouchers.map((voucher) => <article key={voucher.id} className="rounded-xl border p-4"><div className="flex items-center justify-between gap-3"><div><b className="text-primary">{voucher.code}</b><p className="font-semibold">{voucher.name}</p></div><span className={`rounded-full px-2 py-1 text-xs font-bold ${voucher.approvalStatus === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{voucher.approvalStatus === 'APPROVED' ? 'ĐÃ DUYỆT' : 'CHỜ DUYỆT'}</span></div><p className="mt-2 text-sm text-gray-500">{voucher.rewardType === 'PERCENTAGE' ? `${voucher.discountValue}%` : `${voucher.discountValue.toLocaleString()}đ`} · tối thiểu {voucher.minOrderValue.toLocaleString()}đ</p></article>)}</div>
+            <div className="mt-5 space-y-3">{vouchers.map((voucher) => <article key={voucher.id} className="rounded-xl border p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><b className="text-primary">{voucher.code}</b><p className="break-words font-semibold">{voucher.name}</p></div><span className={`shrink-0 rounded-full px-2 py-1 text-xs font-bold ${voucher.approvalStatus === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{voucher.approvalStatus === 'APPROVED' ? 'ĐÃ DUYỆT' : 'CHỜ DUYỆT'}</span></div><p className="mt-2 text-sm text-gray-500">{voucher.rewardType === 'PERCENTAGE' ? `${voucher.discountValue}%` : `${voucher.discountValue.toLocaleString()}đ`} · tối thiểu {voucher.minOrderValue.toLocaleString()}đ</p></article>)}</div>
           </section>
         </div>
       </main>

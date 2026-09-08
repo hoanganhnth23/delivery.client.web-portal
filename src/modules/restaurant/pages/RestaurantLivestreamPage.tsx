@@ -71,7 +71,7 @@ export default function RestaurantLivestreamPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="flex min-h-screen min-w-0 bg-background-light dark:bg-background-dark">
       <RestaurantSidebar
         restaurantName={currentRestaurant?.name}
         restaurantImage={currentRestaurant?.image}
@@ -81,7 +81,7 @@ export default function RestaurantLivestreamPage() {
           title="Livestream"
           subtitle="Host controls use Gateway-only server-issued media credentials"
         />
-        <section className="space-y-5 p-6 lg:p-8">
+        <section className="space-y-5 p-4 sm:p-6 lg:p-8">
           <div className="rounded-2xl border bg-white p-5 dark:bg-surface-dark">
             <label className="block text-sm font-semibold">
               Tiêu đề livestream

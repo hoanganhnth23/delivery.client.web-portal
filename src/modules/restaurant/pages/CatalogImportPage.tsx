@@ -295,7 +295,7 @@ const CatalogImportPage = ({ portal }: CatalogImportPageProps) => {
   }
 
   return (
-    <div className="flex min-h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
+    <div className="flex min-h-screen w-full min-w-0 overflow-hidden bg-background-light dark:bg-background-dark">
       <RestaurantSidebar
         restaurantName={currentRestaurant?.name}
         restaurantImage={currentRestaurant?.image}
@@ -305,7 +305,7 @@ const CatalogImportPage = ({ portal }: CatalogImportPageProps) => {
           title="Import dữ liệu"
           subtitle="Nạp nhanh catalog nhà hàng và món ăn"
         />
-        <div className="mx-auto w-full max-w-[1400px] flex-1 p-6 lg:p-8">
+        <div className="mx-auto w-full max-w-[1400px] flex-1 p-4 sm:p-6 lg:p-8">
           <ImportContent />
         </div>
       </main>

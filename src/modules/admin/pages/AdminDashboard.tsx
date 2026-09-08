@@ -112,17 +112,17 @@ const TrendChart = ({ dashboard }: TrendChartProps) => {
         <div className="flex h-56 items-center justify-center text-sm text-gray-500">Chưa có dữ liệu xu hướng.</div>
       ) : (
         <div className="mt-5 overflow-x-auto">
-          <svg viewBox={`0 0 ${width} ${height}`} className="h-56 min-w-[620px] w-full" role="img" aria-label="Biểu đồ xu hướng GMV và số đơn">
+          <svg viewBox={`0 0 ${width} ${height}`} className="h-56 min-w-[560px] w-full sm:min-w-[620px]" role="img" aria-label="Biểu đồ xu hướng GMV và số đơn">
             {[0, 1, 2, 3].map((line) => {
               const y = padding + (line * (height - padding * 2)) / 3;
               return <line key={line} x1={padding} x2={width - padding} y1={y} y2={y} stroke="currentColor" className="text-gray-100 dark:text-gray-800" strokeWidth="1" />;
             })}
             <path d={revenuePath} fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d={orderPath} fill="none" stroke="#f49d25" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={orderPath} fill="none" stroke="currentColor" className="text-primary" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
             {points.map((point, index) => (
               <g key={`${point.label}-${index}`}>
                 <circle cx={x(index)} cy={revenueY(point.revenue)} r="4" fill="#10b981" />
-                <circle cx={x(index)} cy={orderY(point.orderCount)} r="4" fill="#f49d25" />
+                <circle cx={x(index)} cy={orderY(point.orderCount)} r="4" fill="currentColor" className="text-primary" />
                 <text x={x(index)} y={height - 6} textAnchor="middle" className="fill-gray-400 text-[10px]">{point.label}</text>
               </g>
             ))}
@@ -167,11 +167,11 @@ const AdminDashboard = () => {
   return (
     <AdminLayout>
       <section className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-primary">Platform analytics</p>
-            <h1 className="text-3xl font-black text-gray-900 dark:text-white">Quản trị hệ thống</h1>
-            <p className="mt-2 text-gray-500 dark:text-gray-400">Tổng quan vận hành đơn hàng và GMV toàn hệ thống.</p>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white sm:text-3xl">Quản trị hệ thống</h1>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 sm:text-base">Tổng quan vận hành đơn hàng và GMV toàn hệ thống.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label htmlFor="dashboard-period" className="sr-only">Khoảng thời gian</label>
@@ -180,7 +180,7 @@ const AdminDashboard = () => {
               <option value="quarter">Theo quý</option>
               <option value="year">Theo năm</option>
             </select>
-            <button type="button" onClick={() => void loadDashboard()} disabled={loading} className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50">
+            <button type="button" onClick={() => void loadDashboard()} disabled={loading} className="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-white transition hover:bg-primary-hover disabled:opacity-50">
               {loading ? 'Đang tải…' : 'Làm mới'}
             </button>
           </div>
@@ -229,7 +229,7 @@ const AdminDashboard = () => {
             {updatedAt && <span className="text-xs text-gray-400">Cập nhật {updatedAt.toLocaleTimeString('vi-VN')}</span>}
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px] text-left">
+            <table className="w-full min-w-[560px] text-left">
               <thead><tr className="border-b border-border-light text-xs uppercase tracking-wider text-gray-500 dark:border-border-dark"><th className="p-4">#</th><th className="p-4">Nhà hàng</th><th className="p-4">Đơn đã giao</th><th className="p-4">GMV</th></tr></thead>
               <tbody className="divide-y divide-border-light dark:divide-border-dark">
                 {dashboard.topRestaurants.length === 0 ? <tr><td colSpan={4} className="p-8 text-center text-sm text-gray-500">Chưa có dữ liệu nhà hàng.</td></tr> : dashboard.topRestaurants.map((restaurant, index) => <tr key={restaurant.restaurantId} className="hover:bg-gray-50 dark:hover:bg-gray-800/30"><td className="p-4 font-bold text-primary">{index + 1}</td><td className="p-4 font-semibold text-gray-900 dark:text-white">{restaurant.restaurantName}</td><td className="p-4 text-gray-600 dark:text-gray-300">{formatNumber(restaurant.orderCount)}</td><td className="p-4 font-semibold text-gray-900 dark:text-white">{formatCurrency(restaurant.revenue)}</td></tr>)}

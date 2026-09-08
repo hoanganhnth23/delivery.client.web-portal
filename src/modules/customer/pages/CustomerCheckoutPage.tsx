@@ -236,64 +236,64 @@ const CustomerCheckoutPage = () => {
   };
 
   if (!cart) {
-    return <CustomerShell title="Checkout"><div className="rounded-3xl border border-dashed border-[#d7c5af] bg-white p-12 text-center">Giỏ hàng đang trống. <Link to={ROUTES.HOME} className="font-bold text-[#a85d0c]">Quay lại chọn món</Link></div></CustomerShell>;
+    return <CustomerShell title="Checkout"><div className="rounded-lg border border-dashed border-[#dddddd] bg-white p-8 text-center sm:rounded-lg sm:p-12">Giỏ hàng đang trống. <Link to={ROUTES.HOME} className="font-bold text-[#c5371d]">Quay lại chọn món</Link></div></CustomerShell>;
   }
 
   return (
     <CustomerShell title="Xác nhận đơn hàng">
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <section className="space-y-6">
-          <div className="rounded-3xl border border-[#eadfce] bg-white p-6">
-            <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-black">Địa chỉ giao hàng</h2><Link to={ROUTES.CUSTOMER_ADDRESSES} className="text-sm font-bold text-[#a85d0c]">Quản lý địa chỉ</Link></div>
-            {loadingAddresses && <p className="mt-5 text-[#806c57]">Đang tải địa chỉ…</p>}
-            {!loadingAddresses && addresses.length === 0 && <p className="mt-5 rounded-xl bg-[#fff4e4] p-4 text-sm text-[#806c57]">Bạn cần thêm địa chỉ trước khi đặt đơn.</p>}
-            <div className="mt-5 space-y-3">{addresses.map((address) => <label key={address.id} className={`block cursor-pointer rounded-2xl border p-4 ${selectedAddressId === address.id ? 'border-[#ed8a16] bg-[#fff8ed]' : 'border-[#eadfce]'}`}><div className="flex gap-3"><input type="radio" name="checkout-address" checked={selectedAddressId === address.id} onChange={() => setSelectedAddressId(address.id)} /><div><div className="flex items-center gap-2"><span className="font-black">{address.label}</span>{address.isDefault && <span className="text-xs font-bold text-green-700">Mặc định</span>}</div><p className="mt-1 text-sm font-semibold">{address.recipientName} · {address.phoneNumber}</p><p className="mt-1 text-sm text-[#806c57]">{formatAddress(address)}</p>{!isVietnamCoordinate(address.latitude, address.longitude) && <p className="mt-1 text-xs font-bold text-red-600">Thiếu tọa độ</p>}</div></div></label>)}</div>
+          <div className="rounded-lg border border-[#eeeeee] bg-white p-4 sm:rounded-lg sm:p-6">
+            <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center sm:gap-3"><h2 className="text-xl font-bold">Địa chỉ giao hàng</h2><Link to={ROUTES.CUSTOMER_ADDRESSES} className="text-sm font-bold text-[#c5371d]">Quản lý địa chỉ</Link></div>
+            {loadingAddresses && <p className="mt-5 text-[#777777]">Đang tải địa chỉ…</p>}
+            {!loadingAddresses && addresses.length === 0 && <p className="mt-5 rounded-md bg-[#fff4e4] p-4 text-sm text-[#777777]">Bạn cần thêm địa chỉ trước khi đặt đơn.</p>}
+            <div className="mt-5 space-y-3">{addresses.map((address) => <label key={address.id} className={`block cursor-pointer rounded-lg border p-3 sm:p-4 ${selectedAddressId === address.id ? 'border-[#ee4d2d] bg-[#fff5ef]' : 'border-[#eeeeee]'}`}><div className="flex items-start gap-3"><input className="mt-1 shrink-0" type="radio" name="checkout-address" checked={selectedAddressId === address.id} onChange={() => setSelectedAddressId(address.id)} /><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="font-bold">{address.label}</span>{address.isDefault && <span className="text-xs font-bold text-green-700">Mặc định</span>}</div><p className="mt-1 text-sm font-semibold">{address.recipientName} · {address.phoneNumber}</p><p className="mt-1 break-words text-sm text-[#777777]">{formatAddress(address)}</p>{!isVietnamCoordinate(address.latitude, address.longitude) && <p className="mt-1 text-xs font-bold text-red-600">Thiếu tọa độ</p>}</div></div></label>)}</div>
           </div>
-          <div className="rounded-3xl border border-[#eadfce] bg-white p-6"><h2 className="text-xl font-black">Ghi chú đơn hàng</h2><textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={500} rows={3} placeholder="Ví dụ: Gọi trước khi giao" className="mt-4 w-full rounded-xl border border-[#dfd2c1] px-4 py-3 outline-none focus:ring-2 focus:ring-[#ed8a16]/30" /></div>
+          <div className="rounded-lg border border-[#eeeeee] bg-white p-4 sm:rounded-lg sm:p-6"><h2 className="text-xl font-bold">Ghi chú đơn hàng</h2><textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={500} rows={3} placeholder="Ví dụ: Gọi trước khi giao" className="mt-4 w-full rounded-md border border-[#dddddd] px-4 py-3 outline-none focus:ring-2 focus:ring-[#ee4d2d]/30" /></div>
           {voucherEnabled && (
-            <div className="rounded-3xl border border-[#eadfce] bg-white p-6">
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xl font-black">Voucher</h2>
-                <div className="flex gap-2 text-sm">
-                  <button type="button" className={`rounded-full px-3 py-1 ${selectionMode === 'AUTO' ? 'bg-[#ed8a16] text-white' : 'bg-[#fff4e4]'}`} onClick={() => { setSelectionMode('AUTO'); setSelectedVoucherIds([]); }}>Tự động</button>
-                  <button type="button" className={`rounded-full px-3 py-1 ${selectionMode === 'MANUAL' ? 'bg-[#ed8a16] text-white' : 'bg-[#fff4e4]'}`} onClick={() => setSelectionMode('MANUAL')}>Tự chọn</button>
+            <div className="rounded-lg border border-[#eeeeee] bg-white p-4 sm:rounded-lg sm:p-6">
+              <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                <h2 className="text-xl font-bold">Voucher</h2>
+                <div className="flex w-full gap-2 text-sm sm:w-auto">
+                  <button type="button" className={`rounded-full px-3 py-1 ${selectionMode === 'AUTO' ? 'bg-[#ee4d2d] text-white' : 'bg-[#fff4e4]'}`} onClick={() => { setSelectionMode('AUTO'); setSelectedVoucherIds([]); }}>Tự động</button>
+                  <button type="button" className={`rounded-full px-3 py-1 ${selectionMode === 'MANUAL' ? 'bg-[#ee4d2d] text-white' : 'bg-[#fff4e4]'}`} onClick={() => setSelectionMode('MANUAL')}>Tự chọn</button>
                 </div>
               </div>
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 <input
                   value={voucherCode}
                   onChange={(event) => setVoucherCode(event.target.value)}
                   onKeyDown={(event) => { if (event.key === 'Enter') void handleCollectVoucher(); }}
                   placeholder="Nhập mã để lưu vào ví"
-                  className="min-w-0 flex-1 rounded-xl border border-[#dfd2c1] px-4 py-3"
+                  className="min-w-0 flex-1 rounded-md border border-[#dddddd] px-4 py-3"
                 />
-                <button type="button" onClick={() => void handleCollectVoucher()} disabled={!voucherCode.trim()} className="rounded-xl bg-[#2d2116] px-4 py-3 font-bold text-white disabled:opacity-50">Lưu mã</button>
+                <button type="button" onClick={() => void handleCollectVoucher()} disabled={!voucherCode.trim()} className="min-h-11 rounded-md bg-[#222222] px-4 py-3 font-bold text-white disabled:opacity-50 sm:shrink-0">Lưu mã</button>
               </div>
               <div className="mt-4 grid gap-2">
                 {selectionMode === 'MANUAL' && checkoutVouchers.map((voucher) => {
                   const checked = selectedVoucherIds.includes(voucher.id);
                   const disabled = !checked && selectedVoucherLayers.has(voucherLayer(voucher));
                   return (
-                    <label key={voucher.id} className={`flex items-center gap-3 rounded-xl border border-[#eadfce] p-3 text-sm ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}>
+                    <label key={voucher.id} className={`flex items-center gap-3 rounded-md border border-[#eeeeee] p-3 text-sm ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}>
                       <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleVoucher(voucher)} />
-                      <span><b>{voucher.code}</b> · {voucher.name}<br /><span className="text-[#806c57]">{voucherLayer(voucher)}</span></span>
+                      <span><b>{voucher.code}</b> · {voucher.name}<br /><span className="text-[#777777]">{voucherLayer(voucher)}</span></span>
                     </label>
                   );
                 })}
               </div>
-              <p className="mt-3 text-xs text-[#806c57]">Tối đa 3 voucher, mỗi lớp một mã. Voucher không dùng chung Flash Sale.</p>
+              <p className="mt-3 text-xs text-[#777777]">Tối đa 3 voucher, mỗi lớp một mã. Voucher không dùng chung Flash Sale.</p>
             </div>
           )}
-          {error && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-          {notice && <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{notice}</div>}
+          {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+          {notice && <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">{notice}</div>}
         </section>
-        <aside className="h-fit rounded-3xl border border-[#eadfce] bg-white p-6 lg:sticky lg:top-24">
-          <h2 className="text-xl font-black">{cart.restaurantName}</h2>
-          <div className="mt-5 space-y-3 border-b border-[#eadfce] pb-5">{cart.items.map((item) => <div key={item.menuItemId} className="flex justify-between gap-3 text-sm"><span>{item.quantity} × {item.menuItemName}</span><span className="font-semibold">{formatCurrency(item.price * item.quantity)}</span></div>)}</div>
-          {previewLoading && <p className="mt-5 text-sm text-[#806c57]">Đang tính giá từ server…</p>}
-          {preview && <><div className="mt-5 space-y-3 text-sm text-[#806c57]"><div className="flex justify-between"><span>Tiền món</span><span>{formatCurrency(preview.subtotal)}</span></div><div className="flex justify-between"><span>Phí giao hàng</span><span>{formatCurrency(preview.shippingFee)}</span></div><div className="flex justify-between"><span>Giảm giá</span><span>-{formatCurrency(preview.discountAmount)}</span></div></div><div className="mt-5 flex justify-between border-t border-[#eadfce] pt-5 text-lg font-black"><span>Tổng COD</span><span className="text-[#ed8a16]">{formatCurrency(preview.totalPrice)}</span></div><p className="mt-3 text-xs text-[#806c57]">Báo giá có hiệu lực đến {new Date(preview.expiresAt).toLocaleTimeString('vi-VN')}.</p>{preview.priceChanges.length > 0 && <p className="mt-2 text-sm font-bold text-amber-700">Có món đã thay đổi giá, hãy kiểm tra lại.</p>}{preview.unavailableItemIds.length > 0 && <p className="mt-2 text-sm font-bold text-red-600">Một số món không còn khả dụng.</p>}</>}
+        <aside className="h-fit rounded-lg border border-[#eeeeee] bg-white p-4 sm:rounded-lg sm:p-6 lg:sticky lg:top-24">
+          <h2 className="text-xl font-bold">{cart.restaurantName}</h2>
+          <div className="mt-5 space-y-3 border-b border-[#eeeeee] pb-5">{cart.items.map((item) => <div key={item.menuItemId} className="flex justify-between gap-3 text-sm"><span>{item.quantity} × {item.menuItemName}</span><span className="font-semibold">{formatCurrency(item.price * item.quantity)}</span></div>)}</div>
+          {previewLoading && <p className="mt-5 text-sm text-[#777777]">Đang tính giá từ server…</p>}
+          {preview && <><div className="mt-5 space-y-3 text-sm text-[#777777]"><div className="flex justify-between"><span>Tiền món</span><span>{formatCurrency(preview.subtotal)}</span></div><div className="flex justify-between"><span>Phí giao hàng</span><span>{formatCurrency(preview.shippingFee)}</span></div><div className="flex justify-between"><span>Giảm giá</span><span>-{formatCurrency(preview.discountAmount)}</span></div></div><div className="mt-5 flex justify-between border-t border-[#eeeeee] pt-5 text-lg font-bold"><span>Tổng COD</span><span className="text-[#ee4d2d]">{formatCurrency(preview.totalPrice)}</span></div><p className="mt-3 text-xs text-[#777777]">Báo giá có hiệu lực đến {new Date(preview.expiresAt).toLocaleTimeString('vi-VN')}.</p>{preview.priceChanges.length > 0 && <p className="mt-2 text-sm font-bold text-amber-700">Có món đã thay đổi giá, hãy kiểm tra lại.</p>}{preview.unavailableItemIds.length > 0 && <p className="mt-2 text-sm font-bold text-red-600">Một số món không còn khả dụng.</p>}</>}
           {preview && (preview.appliedVouchers ?? []).length > 0 && (
-            <div className="mt-4 space-y-2 rounded-xl bg-green-50 p-3 text-xs text-green-900">
+            <div className="mt-4 space-y-2 rounded-md bg-green-50 p-3 text-xs text-green-900">
               {(preview.appliedVouchers ?? []).map((voucher) => (
                 <div key={`${voucher.layer}-${voucher.voucherId}`} className="flex justify-between gap-3">
                   <span><b>{voucher.code}</b> · {voucher.layer} · {voucher.fundingSource}</span>
@@ -302,8 +302,8 @@ const CustomerCheckoutPage = () => {
               ))}
             </div>
           )}
-          <div className="mt-5 rounded-xl bg-[#fff4e4] p-4 text-sm text-[#806c57]"><p className="font-bold text-[#2d2116]">Thanh toán khi nhận hàng (COD)</p><p className="mt-1">Bạn thanh toán trực tiếp cho shipper.</p></div>
-          <button type="button" onClick={() => void placeOrder()} disabled={placing || previewLoading || !preview || preview.unavailableItemIds.length > 0 || !selectedAddress || (selectionMode === 'MANUAL' && selectedVoucherIds.length === 0)} className="mt-6 w-full rounded-xl bg-[#ed8a16] px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-300">{placing ? 'Đang đặt đơn…' : 'Đặt đơn COD'}</button>
+          <div className="mt-5 rounded-md bg-[#fff4e4] p-4 text-sm text-[#777777]"><p className="font-bold text-[#222222]">Thanh toán khi nhận hàng (COD)</p><p className="mt-1">Bạn thanh toán trực tiếp cho shipper.</p></div>
+          <button type="button" onClick={() => void placeOrder()} disabled={placing || previewLoading || !preview || preview.unavailableItemIds.length > 0 || !selectedAddress || (selectionMode === 'MANUAL' && selectedVoucherIds.length === 0)} className="mt-6 min-h-11 w-full rounded-md bg-[#ee4d2d] px-5 py-3 font-bold text-white disabled:cursor-not-allowed disabled:bg-gray-300">{placing ? 'Đang đặt đơn…' : 'Đặt đơn COD'}</button>
         </aside>
       </div>
     </CustomerShell>

@@ -11,7 +11,8 @@ const RestaurantSidebar = ({ restaurantName, restaurantImage }: RestaurantSideba
   const identity = restaurantName?.trim() || 'Nhà hàng chưa được gán';
 
   return (
-    <aside className="hidden w-72 flex-shrink-0 flex-col border-r border-border-light bg-surface-light p-6 dark:border-border-dark dark:bg-surface-dark lg:flex">
+    <aside className="portal-sidebar hidden w-72 flex-shrink-0 flex-col border-r border-border-light bg-surface-light p-6 dark:border-border-dark dark:bg-surface-dark lg:flex">
+      <div className="portal-brand"><span aria-hidden="true" className="material-symbols-outlined">restaurant</span>Delivery</div>
       <div className="flex items-center gap-4 px-2">
         {restaurantImage?.trim() ? (
           <img
@@ -41,6 +42,7 @@ const RestaurantSidebar = ({ restaurantName, restaurantImage }: RestaurantSideba
             <Link
               key={item.to}
               to={item.to}
+                aria-current={active ? 'page' : undefined}
               className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-colors ${
                 active
                   ? 'bg-primary/10 font-bold text-primary'

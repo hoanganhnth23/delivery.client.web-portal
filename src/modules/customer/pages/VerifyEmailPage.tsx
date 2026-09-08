@@ -24,14 +24,14 @@ const VerifyEmailPage = () => {
   }, [auth, token]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#fffaf3] p-6">
-      <section className="w-full max-w-md rounded-3xl border border-[#eadfce] bg-white p-8 text-center shadow-lg">
-        <span className={`material-symbols-outlined text-5xl ${state === 'success' ? 'text-green-600' : state === 'error' ? 'text-red-500' : 'text-[#ed8a16]'}`}>
+    <main className="flex min-h-screen items-center justify-center bg-[#f5f5f5] p-4 sm:p-6">
+      <section className="w-full max-w-md rounded-lg border border-[#eeeeee] bg-white p-6 text-center shadow-lg sm:rounded-lg sm:p-8">
+        <span className={`material-symbols-outlined text-5xl ${state === 'success' ? 'text-green-600' : state === 'error' ? 'text-red-500' : 'text-[#ee4d2d]'}`}>
           {state === 'success' ? 'verified' : state === 'error' ? 'error' : 'hourglass_top'}
         </span>
-        <h1 className="mt-5 text-2xl font-black">Xác minh email</h1>
-        <p className="mt-3 text-[#806c57]">{message}</p>
-        <Link to={ROUTES.CUSTOMER_LOGIN} className="mt-7 inline-flex rounded-xl bg-[#ed8a16] px-5 py-3 font-bold text-white">Tới trang đăng nhập</Link>
+        <h1 className="mt-5 text-2xl font-bold">Xác minh email</h1>
+        <p className="mt-3 text-[#777777]">{message}</p>
+        <Link to={ROUTES.CUSTOMER_LOGIN} className="mt-7 inline-flex min-h-11 items-center rounded-md bg-[#ee4d2d] px-5 py-3 font-bold text-white">Tới trang đăng nhập</Link>
       </section>
     </main>
   );

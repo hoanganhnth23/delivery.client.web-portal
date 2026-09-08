@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
+import { useDialogFocus } from '@/components/navigation/useDialogFocus';
 import type { AdminCoupon, CreateAdminCouponRequest } from '@/services/api/adminService';
 import { useAppDependencies } from '@/app/dependencies';
 import { formatDateTimeLocal, isValidDateTimeRange } from '@/utils/dateTime';
@@ -10,6 +11,7 @@ const AdminCouponsPage = () => {
   const [pendingShopCoupons, setPendingShopCoupons] = useState<AdminCoupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const dialogRef = useDialogFocus(showModal, () => setShowModal(false));
   const [creating, setCreating] = useState(false);
   const [deletingCouponId, setDeletingCouponId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -118,14 +120,14 @@ const AdminCouponsPage = () => {
 
   return (
     <AdminLayout>
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:mb-6 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quản lý Coupon Hệ thống</h1>
-          <p className="text-gray-500">Tạo và quản lý voucher toàn sàn hoặc theo nhà hàng</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">Quản lý Coupon Hệ thống</h1>
+          <p className="text-sm text-gray-500">Tạo và quản lý voucher toàn sàn hoặc theo nhà hàng</p>
         </div>
         <button
           onClick={openCreateModal}
-          className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-2"
+          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 font-bold text-white transition-all hover:bg-primary/90 sm:w-auto"
         >
           <span className="material-symbols-outlined">add</span>
           Tạo Coupon Mới
@@ -146,10 +148,11 @@ const AdminCouponsPage = () => {
         </div>
       )}
 
-      {pendingShopCoupons.length > 0 && <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-900/20"><h2 className="font-bold text-amber-900 dark:text-amber-200">Voucher nhà hàng chờ duyệt</h2><div className="mt-3 space-y-2">{pendingShopCoupons.map((coupon) => <div key={coupon.id} className="flex items-center justify-between gap-3 rounded-lg bg-white p-3 dark:bg-surface-dark"><span><b>{coupon.code}</b> · {coupon.name} <small className="text-gray-500">SHOP #{coupon.scopeRefId}</small></span><span className="flex gap-2"><button type="button" onClick={() => void reviewShopCoupon(coupon.id, 'approve')} className="rounded-lg bg-green-600 px-3 py-1 text-xs font-bold text-white">Duyệt</button><button type="button" onClick={() => void reviewShopCoupon(coupon.id, 'reject')} className="rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white">Từ chối</button></span></div>)}</div></section>}
+      {pendingShopCoupons.length > 0 && <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20 sm:p-5"><h2 className="font-bold text-amber-900 dark:text-amber-200">Voucher nhà hàng chờ duyệt</h2><div className="mt-3 space-y-2">{pendingShopCoupons.map((coupon) => <div key={coupon.id} className="flex flex-col items-start justify-between gap-3 rounded-lg bg-white p-3 dark:bg-surface-dark sm:flex-row sm:items-center"><span className="break-words"><b>{coupon.code}</b> · {coupon.name} <small className="text-gray-500">SHOP #{coupon.scopeRefId}</small></span><span className="flex gap-2"><button type="button" onClick={() => void reviewShopCoupon(coupon.id, 'approve')} className="min-h-9 rounded-lg bg-green-600 px-3 py-1 text-xs font-bold text-white">Duyệt</button><button type="button" onClick={() => void reviewShopCoupon(coupon.id, 'reject')} className="min-h-9 rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white">Từ chối</button></span></div>)}</div></section>}
 
-      <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-border-light dark:border-border-dark overflow-hidden">
-        <table className="w-full text-left border-collapse">
+      <div className="overflow-hidden rounded-xl border border-border-light bg-white shadow-sm dark:border-border-dark dark:bg-surface-dark">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] border-collapse text-left">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-border-light dark:border-border-dark">
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Mã / Tên</th>
@@ -214,18 +217,19 @@ const AdminCouponsPage = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="coupon-modal-title">
-          <div className="bg-white dark:bg-surface-dark rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-border-light dark:border-border-dark flex justify-between items-center">
+        <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="coupon-modal-title">
+          <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-surface-dark">
+            <div className="flex items-center justify-between gap-3 border-b border-border-light px-4 py-4 dark:border-border-dark sm:px-6">
               <h3 id="coupon-modal-title" className="text-lg font-bold">Tạo Coupon Mới</h3>
               <button aria-label="Đóng" onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form onSubmit={handleCreate} className="p-6 grid grid-cols-2 gap-4">
+            <form onSubmit={handleCreate} className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-6">
               <div className="col-span-1">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mã Coupon</label>
                 <input
@@ -246,7 +250,7 @@ const AdminCouponsPage = () => {
                   placeholder="Giảm giá chào mừng"
                 />
               </div>
-              <div className="col-span-2">
+              <div className="col-span-1 sm:col-span-2">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mô tả</label>
                 <textarea
                   className="w-full px-4 py-2 rounded-lg border border-border-light dark:border-border-dark bg-transparent focus:ring-2 focus:ring-primary/50 outline-none"
@@ -358,7 +362,7 @@ const AdminCouponsPage = () => {
                   onChange={(e) => setNewCoupon({ ...newCoupon, endTime: e.target.value })}
                 />
               </div>
-              <div className="col-span-2 flex justify-end gap-3 mt-4">
+              <div className="col-span-1 mt-4 flex flex-col-reverse justify-end gap-3 sm:col-span-2 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}

@@ -3,12 +3,14 @@
  * Trang quản lý đơn hàng của nhà hàng
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useOrder } from '../hooks/useOrder';
 import { useRestaurant } from '../hooks/useRestaurant';
+import { useAuth } from '@/modules/auth/hooks/useAuth';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import { useAppDependencies } from '@/app/dependencies';
+import { USER_ROLES } from '@/utils/constants';
 
 const RestaurantOrders = () => {
   const { delay } = useAppDependencies();
@@ -24,15 +26,28 @@ const RestaurantOrders = () => {
     currentPage
   } = useOrder();
   const { currentRestaurant } = useRestaurant();
+  const { user } = useAuth();
+  const isAdmin = user?.role === USER_ROLES.ADMIN;
+  const restaurantId = currentRestaurant?.id;
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
 
-  // Load orders khi component mount
+  const loadOrdersForCurrentRestaurant = useCallback(
+    (page = 0) => {
+      if (isAdmin && restaurantId) {
+        return getMyOrders(page, 10, restaurantId);
+      }
+      return getMyOrders(page, 10);
+    },
+    [restaurantId, getMyOrders, isAdmin],
+  );
+
+  // Load orders khi component mount hoặc khi đổi nhà hàng
   useEffect(() => {
-    getMyOrders(0, 10);
-  }, [getMyOrders]);
+    void loadOrdersForCurrentRestaurant(0);
+  }, [loadOrdersForCurrentRestaurant]);
 
   const handlePageChange = (newPage: number) => {
-    getMyOrders(newPage, 10);
+    void loadOrdersForCurrentRestaurant(newPage);
   };
 
   // Filter orders theo status
@@ -67,7 +82,7 @@ const RestaurantOrders = () => {
         await delay.wait(500 * attempt);
       }
 
-      const result = await getMyOrders(currentPage, 10);
+      const result = await loadOrdersForCurrentRestaurant(currentPage);
       const refreshedOrder = result.data?.items.find(order => order.id === orderId);
       if (!refreshedOrder || refreshedOrder.status !== 'PENDING') return;
     }
@@ -109,7 +124,7 @@ const RestaurantOrders = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-background-light dark:bg-background-dark">
+    <div className="flex min-h-screen w-full min-w-0 bg-background-light dark:bg-background-dark">
       {/* Sidebar */}
       <RestaurantSidebar
         restaurantName={currentRestaurant?.name}
@@ -117,17 +132,17 @@ const RestaurantOrders = () => {
       />
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Header */}
         <RestaurantHeader
           title="Quản lý đơn hàng"
-          subtitle={`${totalItems} đơn hàng`}
+          subtitle={currentRestaurant ? `${currentRestaurant.name} • ${totalItems} đơn hàng` : `${totalItems} đơn hàng`}
           showSearch={false}
         />
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 lg:p-8">
-          <div className="max-w-[1400px] mx-auto space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[1400px] min-w-0 space-y-6">
             {/* Status Filter */}
             <div className="bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-border-light dark:border-border-dark">
               <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -164,7 +179,7 @@ const RestaurantOrders = () => {
                 <p className="text-red-600 dark:text-red-400">{error}</p>
                 <button
                   type="button"
-                  onClick={() => void getMyOrders(currentPage, 10)}
+                  onClick={() => void loadOrdersForCurrentRestaurant(currentPage)}
                   disabled={loading}
                   className="shrink-0 rounded-lg bg-red-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
                 >
@@ -193,7 +208,7 @@ const RestaurantOrders = () => {
             {filteredOrders.length > 0 && (
               <div className="grid grid-cols-1 gap-4">
                 {filteredOrders.map((order) => (
-                  <div key={order.id} className="bg-surface-light dark:bg-surface-dark rounded-xl p-6 border border-border-light dark:border-border-dark shadow-sm hover:shadow-md transition-all">
+                  <div key={order.id} className="rounded-xl border border-border-light bg-surface-light p-4 shadow-sm transition-all hover:shadow-md dark:border-border-dark dark:bg-surface-dark sm:p-6">
                     <div className="flex flex-col lg:flex-row justify-between gap-6">
                       <div className="flex-1 space-y-4">
                         <div className="flex items-center justify-between lg:justify-start lg:gap-4">
@@ -254,7 +269,7 @@ const RestaurantOrders = () => {
                         </div>
                       </div>
 
-                      <div className="flex flex-col justify-between items-end gap-6 border-t lg:border-t-0 lg:border-l border-border-light dark:border-border-dark pt-6 lg:pt-0 lg:pl-6 min-w-[220px]">
+                      <div className="flex w-full min-w-0 flex-col items-end justify-between gap-6 border-t border-border-light pt-6 dark:border-border-dark lg:min-w-[220px] lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
                         <div className="text-right">
                           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold mb-1">Tổng cộng</p>
                           <p className="text-2xl font-black text-primary">
@@ -296,7 +311,7 @@ const RestaurantOrders = () => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-between bg-surface-light dark:bg-surface-dark p-4 rounded-xl border border-border-light dark:border-border-dark shadow-sm">
+              <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-border-light bg-surface-light p-4 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:flex-row sm:items-center">
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   Trang <span className="font-bold text-gray-900 dark:text-white">{currentPage + 1}</span> / {totalPages}
                 </div>

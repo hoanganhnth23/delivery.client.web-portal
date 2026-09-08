@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
+import { useDialogFocus } from '@/components/navigation/useDialogFocus';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import type { MenuItem } from '@/types/api.types';
 import MenuItemForm from '../components/MenuItemForm';
@@ -13,6 +14,7 @@ const MenuManagement = () => {
   const { menuItems, loading, error, getMyMenuItems, deleteMenuItem } = useMenu();
   const { currentRestaurant } = useRestaurant();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const dialogRef = useDialogFocus(isModalOpen, () => setIsModalOpen(false));
   const [editingMenuItem, setEditingMenuItem] = useState<MenuItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -58,13 +60,13 @@ const MenuManagement = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
+    <div className="flex min-h-screen w-full min-w-0 overflow-hidden bg-background-light dark:bg-background-dark">
       <RestaurantSidebar
         restaurantName={currentRestaurant?.name}
         restaurantImage={currentRestaurant?.image}
       />
 
-      <main className="flex flex-1 flex-col overflow-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <RestaurantHeader
           title="Quản lý Menu"
           subtitle={`${filteredMenuItems.length}/${menuItems.length} món ăn`}
@@ -80,7 +82,7 @@ const MenuManagement = () => {
               className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
               <span aria-hidden="true" className="material-symbols-outlined">add</span>
-              Thêm món
+              <span className="hidden sm:inline">Thêm món</span>
             </button>
           }
         />
@@ -192,12 +194,14 @@ const MenuManagement = () => {
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
           role="dialog"
+          ref={dialogRef}
+          tabIndex={-1}
           aria-modal="true"
           aria-labelledby="menu-form-title"
         >
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
-            <header className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-700 dark:bg-gray-800">
-              <h2 id="menu-form-title" className="text-2xl font-bold text-gray-900 dark:text-white">
+          <div className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
+            <header className="sticky top-0 flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-4 dark:border-gray-700 dark:bg-gray-800 sm:px-6">
+              <h2 id="menu-form-title" className="min-w-0 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">
                 {editingMenuItem ? 'Chỉnh sửa món ăn' : 'Thêm món ăn mới'}
               </h2>
               <button
@@ -209,7 +213,7 @@ const MenuManagement = () => {
                 <span className="material-symbols-outlined text-3xl">close</span>
               </button>
             </header>
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <MenuItemForm
                 menuItem={editingMenuItem}
                 restaurantId={currentRestaurant.id}

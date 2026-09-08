@@ -116,7 +116,7 @@ describe('customer ordering journey', () => {
 
   it('renders public catalog without a customer session', async () => {
     renderApp({ route: ROUTES.HOME });
-    expect(await screen.findByRole('heading', { name: 'Nhà hàng gần bạn' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Quán ngon dành cho bạn' })).toBeInTheDocument();
     expect(await screen.findByText('Bếp test')).toBeInTheDocument();
   });
 

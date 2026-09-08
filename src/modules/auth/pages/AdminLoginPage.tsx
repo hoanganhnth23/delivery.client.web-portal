@@ -50,15 +50,15 @@ const AdminLoginPage = () => {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-6">
-      <section className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-lg">
+    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4 sm:p-6">
+      <section className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-lg sm:p-8">
         <Link to={ROUTES.HOME} className="mb-8 inline-flex items-center gap-2 font-bold text-red-600">
           <span className="material-symbols-outlined">admin_panel_settings</span>
           Delivery Admin
         </Link>
 
-        <h1 className="text-3xl font-black text-gray-900">Đăng nhập quản trị</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-2xl font-black text-gray-900 sm:text-3xl">Đăng nhập quản trị</h1>
+        <p className="mt-2 text-sm text-gray-600 sm:text-base">
           Chỉ tài khoản ADMIN được operator cấp mới truy cập được các màn hình MVP.
         </p>
 
@@ -68,7 +68,7 @@ const AdminLoginPage = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5 sm:mt-8">
           <div className="block">
             <label htmlFor="admin-login-email">
             <span className="text-sm font-semibold text-gray-800">Email</span>
@@ -116,7 +116,7 @@ const AdminLoginPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-red-600 px-5 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 w-full rounded-lg bg-red-600 px-5 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Đang đăng nhập…' : 'Đăng nhập admin'}
           </button>

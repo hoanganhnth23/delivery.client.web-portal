@@ -16,22 +16,26 @@ const RestaurantDashboard = () => {
   const { currentRestaurant } = useRestaurant();
 
   return (
-    <div className="flex min-h-screen bg-background-light dark:bg-background-dark">
+    <div className="flex min-h-screen min-w-0 bg-background-light dark:bg-background-dark">
       <RestaurantSidebar restaurantName={currentRestaurant?.name} restaurantImage={currentRestaurant?.image} />
       <main className="min-w-0 flex-1">
         <RestaurantHeader title="Tổng quan" subtitle={currentRestaurant?.name} />
-        <section className="flex flex-col gap-6 p-6 lg:p-8">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-primary">MVP Console</p>
-            <h1 className="text-3xl font-black text-gray-900 dark:text-white">
+        <section className="flex flex-col gap-5 p-4 sm:gap-6 sm:p-6 lg:p-8">
+          <div className="portal-store-summary">
+            {currentRestaurant?.image && <img src={currentRestaurant.image} alt="" />}
+            <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Cửa hàng của bạn</p>
+            <h1 className="break-words text-2xl font-black text-gray-900 dark:text-white sm:text-3xl">
               {currentRestaurant?.name || 'Quản lý nhà hàng'}
             </h1>
             <p className="mt-2 text-gray-500 dark:text-gray-400">
-              Analytics, livestream, settlement và công cụ campaign của merchant chưa mở trong MVP.
+              {currentRestaurant?.address || 'Quản lý thực đơn và theo dõi đơn hàng tại một nơi.'}
             </p>
+            {currentRestaurant && <p className={`portal-store-status ${currentRestaurant.open ? 'text-green-700 dark:text-green-400' : 'text-gray-500'}`}><span aria-hidden="true" className="material-symbols-outlined">storefront</span>{currentRestaurant.open ? 'Đang mở cửa' : 'Đang đóng cửa'}{currentRestaurant.phone && ` · ${currentRestaurant.phone}`}</p>}
+            </div>
           </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Quản lý hôm nay</h2>
+          <div className="portal-store-actions grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {actions.map((action) => (
               <Link
                 key={action.to}
@@ -39,7 +43,7 @@ const RestaurantDashboard = () => {
                 className="flex items-center gap-4 rounded-2xl border border-border-light bg-white p-5 shadow-sm transition hover:border-primary hover:shadow-md dark:border-border-dark dark:bg-surface-dark"
               >
                 <span className="material-symbols-outlined text-3xl text-primary">{action.icon}</span>
-                <span className="font-bold text-gray-900 dark:text-white">{action.label}</span>
+                <span className="font-bold text-gray-900 dark:text-white">{action.label}<small>{action.to === ROUTES.RESTAURANT_ORDERS ? 'Tiếp nhận và xử lý đơn đặt món' : action.to === ROUTES.RESTAURANT_MENU ? 'Cập nhật món, hình ảnh và giá bán' : action.to === ROUTES.RESTAURANT_PROFILE ? 'Thông tin liên hệ và giờ mở cửa' : action.to === ROUTES.RESTAURANT_REVIEWS ? 'Xem phản hồi của khách hàng' : 'Kiểm tra và nhập danh mục'}</small></span>
               </Link>
             ))}
           </div>

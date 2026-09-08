@@ -3,7 +3,7 @@
  * Form để tạo mới hoặc chỉnh sửa nhà hàng
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRestaurant } from '../hooks/useRestaurant';
 import type { Restaurant } from '@/types/api.types';
 import JsonFixtureImporter from '@/components/forms/JsonFixtureImporter';
@@ -66,6 +66,29 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
   }));
 
   const [errors, setErrors] = useState<FormErrors>({});
+
+  useEffect(() => {
+    if (restaurant) {
+      setFormData({
+        name: restaurant.name || '',
+        address: restaurant.address || '',
+        phone: restaurant.phone || '',
+        openingHour: restaurant.openingHour || '08:00',
+        closingHour: restaurant.closingHour || '22:00',
+        image: restaurant.image || '',
+        addressLat:
+          typeof restaurant.addressLat === 'number' && Number.isFinite(restaurant.addressLat)
+            ? String(restaurant.addressLat)
+            : '',
+        addressLng:
+          typeof restaurant.addressLng === 'number' && Number.isFinite(restaurant.addressLng)
+            ? String(restaurant.addressLng)
+            : '',
+        description: restaurant.description || '',
+      });
+      setErrors({});
+    }
+  }, [restaurant?.id]);
 
   const handleFixtureImport = (fixture: JsonFixtureRecord) => {
     setFormData((previous) => ({
@@ -251,7 +274,7 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
       </div>
 
       {/* Tọa độ (tự động cập nhật từ bản đồ hoặc chỉnh sửa thủ công) */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="restaurant-latitude" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Vĩ độ (Latitude)
@@ -310,7 +333,7 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
       </div>
 
       {/* Giờ mở cửa - đóng cửa */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="restaurant-opening-hour" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Giờ mở cửa <span className="text-red-500">*</span>
@@ -389,7 +412,7 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 pt-4">
+      <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row">
         <button
           type="submit"
           disabled={loading}

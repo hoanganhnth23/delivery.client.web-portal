@@ -36,22 +36,22 @@ const RestaurantReviewsPage = () => {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
+    <div className="flex h-screen w-full min-w-0 overflow-hidden bg-background-light dark:bg-background-dark">
       <RestaurantSidebar
         restaurantName={currentRestaurant?.name}
         restaurantImage={currentRestaurant?.image}
       />
 
-      <main className="flex flex-1 flex-col overflow-hidden">
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <RestaurantHeader
           title="Đánh giá từ khách hàng"
           subtitle="Xem phản hồi và đánh giá về nhà hàng của bạn"
         />
 
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-4xl mx-auto flex flex-col gap-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-6">
             {/* Summary Card */}
-            <div className="bg-card-light dark:bg-card-dark p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+            <div className="rounded-2xl border border-gray-100 bg-card-light p-4 shadow-sm dark:border-gray-800 dark:bg-card-dark sm:p-6">
               <div>
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Đánh giá trung bình</h3>
                 <div className="flex items-center gap-3">

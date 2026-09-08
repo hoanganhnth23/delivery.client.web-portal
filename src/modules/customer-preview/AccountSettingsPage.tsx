@@ -1,0 +1,9 @@
+export type PreviewTheme = 'light' | 'dark' | 'system';
+type Props = { theme: PreviewTheme; setTheme: (theme: PreviewTheme) => void; debugEnabled: boolean; setDebugEnabled: (enabled: boolean) => void; route: string; width: number };
+export default function AccountSettingsPage({ theme, setTheme, debugEnabled, setDebugEnabled, route, width }: Props) {
+  return <>
+    <section className="sf-settings-group"><h2>Giao diện</h2><div className="sf-setting-row sf-theme-row"><span className="material-symbols-outlined" aria-hidden="true">palette</span><span><b>Chủ đề</b><small>Chọn giao diện cho bản preview</small></span><select aria-label="Chủ đề giao diện" value={theme} onChange={e => setTheme(e.target.value as PreviewTheme)}><option value="light">Sáng</option><option value="dark">Tối</option><option value="system">Theo hệ thống</option></select></div></section>
+    <section className="sf-settings-group"><h2>Công cụ trải nghiệm</h2><button className="sf-setting-row sf-debug-row" aria-pressed={debugEnabled} onClick={() => setDebugEnabled(!debugEnabled)}><span className="material-symbols-outlined" aria-hidden="true">bug_report</span><span><b>Debug preview</b><small>Hiện thông tin chẩn đoán trong bản mock</small></span><span className={`sf-switch ${debugEnabled ? 'on' : ''}`} aria-hidden="true"><i /></span></button>{debugEnabled && <div className="sf-debug-panel" role="status"><b>Debug đang bật</b><dl><div><dt>Màn hiện tại</dt><dd>{route}</dd></div><div><dt>Viewport</dt><dd>{width}px</dd></div><div><dt>Backend</dt><dd>Không gọi API</dd></div><div><dt>Dữ liệu</dt><dd>Fixture trong bộ nhớ</dd></div></dl></div>}</section>
+    <p className="sf-settings-note"><span className="material-symbols-outlined" aria-hidden="true">science</span> Các cài đặt chỉ áp dụng trong preview và sẽ trở về mặc định khi tải lại trang.</p>
+  </>;
+}

@@ -33,9 +33,10 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   };
 
   return (
-    <div className="flex min-h-screen w-full overflow-hidden bg-background-light dark:bg-background-dark">
-      <aside className="hidden w-72 flex-shrink-0 flex-col border-r border-border-light bg-surface-light p-6 dark:border-border-dark dark:bg-surface-dark lg:flex">
-        <div className="flex items-center gap-4 px-2">
+    <div className="flex min-h-screen w-full min-w-0 overflow-hidden bg-background-light dark:bg-background-dark">
+      <aside className="portal-sidebar hidden w-72 flex-shrink-0 flex-col border-r border-border-light bg-surface-light p-6 dark:border-border-dark dark:bg-surface-dark lg:flex">
+        <div className="portal-brand"><span aria-hidden="true" className="material-symbols-outlined">restaurant</span>Delivery</div>
+      <div className="flex items-center gap-4 px-2">
           <div className="flex size-12 items-center justify-center rounded-full bg-primary text-lg font-black text-white">
             {initial}
           </div>
@@ -54,6 +55,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
               <Link
                 key={item.to}
                 to={item.to}
+                aria-current={active ? 'page' : undefined}
                 className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-colors ${
                   active
                     ? 'bg-primary/10 font-bold text-primary'
@@ -78,9 +80,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
         </button>
       </aside>
 
-      <main className="flex h-screen flex-1 flex-col overflow-y-auto">
-        <header className="sticky top-0 z-10 border-b border-border-light bg-background-light/95 px-4 py-5 backdrop-blur-sm dark:border-border-dark dark:bg-background-dark/95 lg:px-8">
-          <div className="mx-auto flex max-w-[1400px] items-center gap-3">
+      <main className="flex h-screen min-w-0 flex-1 flex-col overflow-y-auto">
+        <header className="portal-topbar sticky top-0 z-10 border-b border-border-light bg-background-light/95 px-3 py-3 backdrop-blur-sm dark:border-border-dark dark:bg-background-dark/95 sm:px-4 sm:py-5 lg:px-8">
+          <div className="mx-auto flex min-w-0 max-w-[1400px] items-center gap-2 sm:gap-3">
             <button
               type="button"
               aria-label="Mở menu"
@@ -89,13 +91,13 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
             >
               <span aria-hidden="true" className="material-symbols-outlined">menu</span>
             </button>
-            <h2 className="text-2xl font-bold capitalize text-gray-900 dark:text-white">
+            <h2 className="min-w-0 truncate text-xl font-bold capitalize text-gray-900 dark:text-white sm:text-2xl">
               {pageTitles[location.pathname] || location.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard'}
             </h2>
           </div>
         </header>
 
-        <div className="mx-auto mt-6 flex w-full max-w-[1400px] flex-1 flex-col gap-8 px-4 pb-8 lg:px-8">
+        <div className="mx-auto mt-4 flex w-full min-w-0 max-w-[1400px] flex-1 flex-col gap-6 px-3 pb-6 sm:mt-6 sm:gap-8 sm:px-4 sm:pb-8 lg:px-8">
           {children}
           <footer className="mt-auto border-t border-border-light pt-6 text-sm text-gray-500 dark:border-border-dark dark:text-gray-400">
             © 2026 Delivery Admin

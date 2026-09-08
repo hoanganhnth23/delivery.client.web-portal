@@ -9,6 +9,8 @@ import {
   buildAdminShipper,
   buildFlashSaleCampaign,
   buildFlashSaleItem,
+  buildOrder,
+  buildRestaurant,
   buildUser,
 } from '@/test/builders';
 import {
@@ -16,6 +18,7 @@ import {
   createAuthFake,
   createFlashSaleAdminFake,
   createNotificationFake,
+  createOrderFake,
   createRestaurantFake,
   createSessionStoreFake,
   createTestDependencies,
@@ -35,12 +38,14 @@ function adminDependencies({
     hasToken: vi.fn(() => true),
     getCurrentRestaurantId: vi.fn(() => 201),
   }),
+  order = createOrderFake(),
 }: {
   admin?: ReturnType<typeof createAdminFake>;
   flashSaleAdmin?: ReturnType<typeof createFlashSaleAdminFake>;
   notifications?: ReturnType<typeof createNotificationFake>;
   restaurant?: ReturnType<typeof createRestaurantFake>;
   sessionStore?: ReturnType<typeof createSessionStoreFake>;
+  order?: ReturnType<typeof createOrderFake>;
 } = {}) {
   const user = buildUser({ role: USER_ROLES.ADMIN, name: 'Admin Test' });
   return createTestDependencies({
@@ -54,6 +59,7 @@ function adminDependencies({
     notifications,
     restaurant,
     sessionStore,
+    order,
   });
 }
 
@@ -529,5 +535,78 @@ describe('admin growth actions', () => {
     expect(await screen.findAllByRole('heading', { name: 'Bếp test' })).not.toHaveLength(0);
     expect(screen.getAllByRole('link', { name: /Đơn hàng/ })[0]).toHaveAttribute('href', '/restaurant/orders');
     expect(screen.queryByText(/Không có quyền truy cập/i)).not.toBeInTheDocument();
+  });
+
+  it('allows admin to switch restaurant in header and reload restaurant orders with selected restaurant id', async () => {
+    const user = userEvent.setup();
+    const r1 = buildRestaurant({ id: 201, name: 'Quán Một' });
+    const r2 = buildRestaurant({ id: 202, name: 'Quán Hai' });
+    const getAllRestaurants = vi.fn(async () => [r1, r2]);
+    const getMyOrders = vi.fn(async () => ({
+      items: [buildOrder({ id: 991, restaurantId: 201 })],
+      page: 0,
+      size: 10,
+      totalItems: 1,
+      totalPages: 1,
+      hasNext: false,
+    }));
+    const dependencies = adminDependencies({
+      restaurant: createRestaurantFake({ getAllRestaurants }),
+      order: createOrderFake({ getMyOrders }),
+    });
+
+    renderApp({
+      route: '/restaurant/orders',
+      dependencies,
+    });
+
+    expect(await screen.findByText('Quán Một • 1 đơn hàng')).toBeInTheDocument();
+    await waitFor(() => expect(getMyOrders).toHaveBeenCalledWith(0, 10, 201));
+
+    const selector = screen.getByLabelText('Chọn nhà hàng quản trị');
+    await user.selectOptions(selector, '202');
+
+    expect(await screen.findByText('Quán Hai • 1 đơn hàng')).toBeInTheDocument();
+    await waitFor(() => expect(getMyOrders).toHaveBeenCalledWith(0, 10, 202));
+  });
+
+  it('allows admin to access restaurant orders from admin orders table', async () => {
+    const user = userEvent.setup();
+    const r1 = buildRestaurant({ id: 201, name: 'Quán Một' });
+    const r2 = buildRestaurant({ id: 202, name: 'Quán Hai' });
+    const getAllRestaurants = vi.fn(async () => [r1, r2]);
+    const fetchAllOrders = vi.fn(async () => ({
+      items: [buildAdminOrder({ id: 801, restaurantId: 202, status: 'CONFIRMED' })],
+      page: 0,
+      size: 20,
+      totalItems: 1,
+      totalPages: 1,
+      hasNext: false,
+    }));
+    const getMyOrders = vi.fn(async () => ({
+      items: [buildOrder({ id: 801, restaurantId: 202 })],
+      page: 0,
+      size: 10,
+      totalItems: 1,
+      totalPages: 1,
+      hasNext: false,
+    }));
+    const dependencies = adminDependencies({
+      admin: createAdminFake({ fetchAllOrders }),
+      restaurant: createRestaurantFake({ getAllRestaurants }),
+      order: createOrderFake({ getMyOrders }),
+    });
+
+    renderApp({
+      route: '/admin/orders',
+      dependencies,
+    });
+
+    expect(await screen.findByText('#801')).toBeInTheDocument();
+    const accessBtn = screen.getByTitle('Mở quản lý nhà hàng #202');
+    await user.click(accessBtn);
+
+    expect(await screen.findByText('Quán Hai • 1 đơn hàng')).toBeInTheDocument();
+    await waitFor(() => expect(getMyOrders).toHaveBeenCalledWith(0, 10, 202));
   });
 });

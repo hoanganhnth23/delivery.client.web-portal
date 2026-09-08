@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
+import { useDialogFocus } from '@/components/navigation/useDialogFocus';
 import {
   type FlashSaleCampaign,
   type FlashSaleCampaignStatus,
@@ -16,6 +17,8 @@ const AdminFlashSalePage = () => {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showItemsModal, setShowItemsModal] = useState<number | null>(null);
+  const createDialogRef = useDialogFocus(showModal, () => setShowModal(false));
+  const itemsDialogRef = useDialogFocus(showItemsModal !== null, () => setShowItemsModal(null));
   const [campaignItems, setCampaignItems] = useState<FlashSaleItem[]>([]);
   const [itemsLoading, setItemsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,14 +134,14 @@ const AdminFlashSalePage = () => {
 
   return (
     <AdminLayout>
-      <div className="flex justify-between items-center mb-6">
+      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:mb-6 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Quản lý Flash Sale</h1>
-          <p className="text-gray-500">Tạo chiến dịch và duyệt các món ăn tham gia</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl">Quản lý Flash Sale</h1>
+          <p className="text-sm text-gray-500">Tạo chiến dịch và duyệt các món ăn tham gia</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-2"
+          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 font-bold text-white transition-all hover:bg-primary/90 sm:w-auto"
         >
           <span className="material-symbols-outlined">add</span>
           Tạo Chiến dịch
@@ -159,8 +162,9 @@ const AdminFlashSalePage = () => {
         </div>
       )}
 
-      <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-border-light dark:border-border-dark overflow-hidden">
-        <table className="w-full text-left border-collapse">
+      <div className="overflow-hidden rounded-xl border border-border-light bg-white shadow-sm dark:border-border-dark dark:bg-surface-dark">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[660px] border-collapse text-left">
           <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-border-light dark:border-border-dark">
               <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Tên chiến dịch</th>
@@ -240,19 +244,20 @@ const AdminFlashSalePage = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Create Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-surface-dark rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-border-light dark:border-border-dark flex justify-between items-center">
+        <div ref={createDialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Tạo Flash Sale" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-xl dark:bg-surface-dark">
+            <div className="flex items-center justify-between gap-3 border-b border-border-light px-4 py-4 dark:border-border-dark sm:px-6">
               <h3 className="text-lg font-bold">Tạo Flash Sale</h3>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button aria-label="Đóng" onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            <form onSubmit={handleCreate} className="p-6 flex flex-col gap-4">
+            <form onSubmit={handleCreate} className="flex flex-col gap-4 p-4 sm:p-6">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tên chiến dịch</label>
                 <input
@@ -277,7 +282,7 @@ const AdminFlashSalePage = () => {
                 </label>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Giờ bắt đầu</label>
                   <input
@@ -300,7 +305,7 @@ const AdminFlashSalePage = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-4">
+              <div className="flex flex-col-reverse justify-end gap-3 mt-4 sm:flex-row">
                 <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2 rounded-lg border border-gray-300 font-bold hover:bg-gray-50 transition-colors">
                   Hủy
                 </button>
@@ -315,17 +320,17 @@ const AdminFlashSalePage = () => {
 
       {/* Items Review Modal */}
       {showItemsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-surface-dark rounded-2xl w-full max-w-4xl shadow-xl overflow-hidden max-h-[80vh] flex flex-col">
-            <div className="px-6 py-4 border-b border-border-light dark:border-border-dark flex justify-between items-center bg-gray-50 dark:bg-gray-800">
-              <h3 className="text-lg font-bold">Duyệt Món Ăn Flash Sale</h3>
-              <button onClick={() => setShowItemsModal(null)} className="text-gray-400 hover:text-gray-600">
+        <div ref={itemsDialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Duyệt Món Ăn Flash Sale" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-surface-dark">
+            <div className="flex items-center justify-between gap-3 border-b border-border-light bg-gray-50 px-4 py-4 dark:border-border-dark dark:bg-gray-800 sm:px-6">
+              <h3 className="min-w-0 text-base font-bold sm:text-lg">Duyệt Món Ăn Flash Sale</h3>
+              <button aria-label="Đóng" onClick={() => setShowItemsModal(null)} className="text-gray-400 hover:text-gray-600">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-0">
-              <table className="w-full text-left border-collapse">
+            <div className="flex-1 overflow-auto p-0">
+              <table className="w-full min-w-[720px] border-collapse text-left">
                 <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800">
                   <tr className="border-b border-border-light dark:border-border-dark">
                     <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Món ăn</th>

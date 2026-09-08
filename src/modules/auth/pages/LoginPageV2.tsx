@@ -80,15 +80,15 @@ const LoginPageV2 = () => {
   };
 
   return (
-    <main className="min-h-screen bg-[#fcfaf8] dark:bg-[#1c160d] flex items-center justify-center p-6">
-      <section className="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 border border-[#e8ddce] dark:border-zinc-700 p-8 shadow-lg">
+    <main className="flex min-h-screen items-center justify-center bg-[#fcfaf8] p-4 dark:bg-[#1c160d] sm:p-6">
+      <section className="w-full max-w-md rounded-2xl border border-[#e8ddce] bg-white p-6 shadow-lg dark:bg-zinc-900 dark:border-zinc-700 sm:p-8">
         <Link to="/" className="inline-flex items-center gap-2 text-[#f49d25] font-bold mb-8">
           <span className="material-symbols-outlined">restaurant</span>
           Delivery Restaurant
         </Link>
 
-        <h1 className="text-3xl font-black text-[#1c160d] dark:text-white">Đăng nhập nhà hàng</h1>
-        <p className="mt-2 text-[#9c7a49] dark:text-zinc-400">
+        <h1 className="text-2xl font-black text-[#1c160d] dark:text-white sm:text-3xl">Đăng nhập nhà hàng</h1>
+        <p className="mt-2 text-sm text-[#9c7a49] dark:text-zinc-400 sm:text-base">
           Tài khoản chủ nhà hàng được quản trị viên cấp cho MVP.
         </p>
 
@@ -98,7 +98,7 @@ const LoginPageV2 = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-5 sm:mt-8">
           <div className="block">
             <label htmlFor="restaurant-login-email">
             <span className="text-sm font-semibold text-[#1c160d] dark:text-zinc-200">Email</span>
@@ -146,7 +146,7 @@ const LoginPageV2 = () => {
           <button
             type="submit"
             disabled={loading || restaurantLoading}
-            className="w-full rounded-lg bg-[#f49d25] px-5 py-3 font-bold text-white transition hover:bg-[#e38b14] disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 w-full rounded-lg bg-[#f49d25] px-5 py-3 font-bold text-white transition hover:bg-[#e38b14] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Đang đăng nhập…' : restaurantLoading ? 'Đang tải nhà hàng…' : 'Đăng nhập'}
           </button>

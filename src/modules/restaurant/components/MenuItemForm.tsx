@@ -251,7 +251,7 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 pt-4">
+      <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row">
         <button
           type="submit"
           disabled={loading}
@@ -272,7 +272,7 @@ const MenuItemForm = ({ menuItem = null, restaurantId, onSuccess, onCancel }: Me
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="px-6 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed sm:flex-none"
           >
             Hủy
           </button>
