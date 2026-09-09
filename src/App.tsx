@@ -23,15 +23,20 @@ const RestaurantVouchersPage = lazy(() => import('./modules/restaurant/pages/Res
 const RestaurantLivestreamPage = lazy(() => import('./modules/restaurant/pages/RestaurantLivestreamPage'));
 const AdminDashboard = lazy(() => import('./modules/admin/pages/AdminDashboard'));
 const AdminOrdersPage = lazy(() => import('./modules/admin/pages/AdminOrdersPage'));
+const AdminChatPage = lazy(() => import('./modules/admin/pages/AdminChatPage'));
+const AdminRestaurantsPage = lazy(() => import('./modules/admin/pages/AdminRestaurantsPage'));
 const AdminShippersPage = lazy(() => import('./modules/admin/pages/AdminShippersPage'));
 const AdminRatingsPage = lazy(() => import('./modules/admin/pages/AdminRatingsPage'));
 const AdminCouponsPage = lazy(() => import('./modules/admin/pages/AdminCouponsPage'));
 const AdminFlashSalePage = lazy(() => import('./modules/admin/pages/AdminFlashSalePage'));
+const AdminLivestreamPage = lazy(() => import('./modules/admin/pages/AdminLivestreamPage'));
 const CatalogImportPage = lazy(() => import('./modules/restaurant/pages/CatalogImportPage'));
 const UnauthorizedPage = lazy(() => import('./pages/UnauthorizedPage'));
 const SystemHandbookPage = lazy(() => import('./modules/system-handbook/pages/SystemHandbookPage'));
 const CustomerHomePage = lazy(() => import('./modules/customer/pages/CustomerHomePage'));
 const CustomerPreview = import.meta.env.DEV ? lazy(() => import('./modules/customer-preview/CustomerPreview')) : null;
+const PortalPreview = import.meta.env.DEV ? lazy(() => import('./modules/portal-preview/PortalPreview')) : null;
+const ShipperPreview = import.meta.env.DEV ? lazy(() => import('./modules/shipper-preview/ShipperPreview')) : null;
 const CustomerRestaurantPage = lazy(() => import('./modules/customer/pages/CustomerRestaurantPage'));
 const CustomerCartPage = lazy(() => import('./modules/customer/pages/CustomerCartPage'));
 const CustomerLoginPage = lazy(() => import('./modules/customer/pages/CustomerLoginPage'));
@@ -41,6 +46,7 @@ const CustomerAddressesPage = lazy(() => import('./modules/customer/pages/Custom
 const CustomerCheckoutPage = lazy(() => import('./modules/customer/pages/CustomerCheckoutPage'));
 const CustomerOrdersPage = lazy(() => import('./modules/customer/pages/CustomerOrdersPage'));
 const CustomerOrderDetailPage = lazy(() => import('./modules/customer/pages/CustomerOrderDetailPage'));
+const CustomerAccountPage = lazy(() => import('./modules/customer/pages/CustomerAccountPage'));
 
 const PortalEntry = () => {
   const { user, loading, error, retrySession } = useAuth();
@@ -93,6 +99,7 @@ function PortalRoutes() {
                 <Route path={ROUTES.CUSTOMER_ADDRESSES} element={customerRoute(<CustomerAddressesPage />)} />
                 <Route path={ROUTES.CUSTOMER_ORDERS} element={customerRoute(<CustomerOrdersPage />)} />
                 <Route path="/customer/orders/:orderId" element={customerRoute(<CustomerOrderDetailPage />)} />
+                <Route path={ROUTES.CUSTOMER_ACCOUNT} element={<CustomerAccountPage />} />
                 <Route path={ROUTES.RESTAURANT_DASHBOARD} element={restaurantRoute(<RestaurantDashboard />)} />
                 <Route path={ROUTES.RESTAURANT_PROFILE} element={restaurantRoute(<RestaurantProfilePage />)} />
                 <Route path={ROUTES.RESTAURANT_MENU} element={restaurantRoute(<MenuManagement />)} />
@@ -103,10 +110,13 @@ function PortalRoutes() {
                 <Route path={ROUTES.RESTAURANT_CATALOG_IMPORT} element={restaurantRoute(<CatalogImportPage portal="restaurant" />)} />
                 <Route path={ROUTES.ADMIN_DASHBOARD} element={adminRoute(<AdminDashboard />)} />
                 <Route path={ROUTES.ADMIN_ORDERS} element={adminRoute(<AdminOrdersPage />)} />
+                <Route path={ROUTES.ADMIN_CHAT} element={adminRoute(<AdminChatPage />)} />
+                <Route path={ROUTES.ADMIN_RESTAURANTS} element={adminRoute(<AdminRestaurantsPage />)} />
                 <Route path={ROUTES.ADMIN_SHIPPERS} element={adminRoute(<AdminShippersPage />)} />
                 <Route path={ROUTES.ADMIN_RATINGS} element={adminRoute(<AdminRatingsPage />)} />
                 <Route path={ROUTES.ADMIN_COUPONS} element={adminRoute(<AdminCouponsPage />)} />
                 <Route path={ROUTES.ADMIN_FLASH_SALES} element={adminRoute(<AdminFlashSalePage />)} />
+                <Route path={ROUTES.ADMIN_LIVESTREAMS} element={adminRoute(<AdminLivestreamPage />)} />
                 <Route path={ROUTES.ADMIN_CATALOG_IMPORT} element={adminRoute(<CatalogImportPage portal="admin" />)} />
                 <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
                 <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
@@ -131,6 +141,12 @@ export default function App({ dependencies }: AppProps) {
   const location = useLocation();
   if (CustomerPreview && (location.pathname === '/preview/shopeefood' || location.pathname.startsWith('/preview/shopeefood/'))) {
     return <Suspense fallback={<RouteFallback />}><CustomerPreview /></Suspense>;
+  }
+  if (ShipperPreview && (location.pathname === '/preview/shipper' || location.pathname.startsWith('/preview/shipper/'))) {
+    return <Suspense fallback={<RouteFallback />}><ShipperPreview /></Suspense>;
+  }
+  if (PortalPreview && (location.pathname === '/preview/admin' || location.pathname.startsWith('/preview/admin/') || location.pathname === '/preview/restaurant' || location.pathname.startsWith('/preview/restaurant/'))) {
+    return <Suspense fallback={<RouteFallback />}><PortalPreview /></Suspense>;
   }
   const isPublicHandbook = location.pathname === ROUTES.SYSTEM_OVERVIEW || location.pathname.startsWith(`${ROUTES.SYSTEM_OVERVIEW}/`);
 

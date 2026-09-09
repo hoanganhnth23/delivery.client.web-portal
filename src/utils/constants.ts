@@ -72,17 +72,21 @@ export const ROUTES = {
   CUSTOMER_CART: '/cart',
   CUSTOMER_CHECKOUT: '/customer/checkout',
   CUSTOMER_ADDRESSES: '/customer/addresses',
+  CUSTOMER_ACCOUNT: '/customer/account',
   CUSTOMER_ORDERS: '/customer/orders',
   CUSTOMER_ORDER: (id: number | string) => `/customer/orders/${id}`,
   
   // Admin routes
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_ORDERS: '/admin/orders',
+  ADMIN_CHAT: '/admin/chat',
+  ADMIN_RESTAURANTS: '/admin/restaurants',
   ADMIN_SHIPPERS: '/admin/shippers',
   ADMIN_RATINGS: '/admin/ratings',
   ADMIN_COUPONS: '/admin/coupons',
   ADMIN_FLASH_SALES: '/admin/flash-sales',
   ADMIN_CATALOG_IMPORT: '/admin/catalog-import',
+  ADMIN_LIVESTREAMS: '/admin/livestreams',
   RESTAURANT_DASHBOARD: '/restaurant/dashboard', // Shop Owner dashboard
   RESTAURANT_PROFILE: '/restaurant/profile',
   RESTAURANT_MENU: '/restaurant/menu',

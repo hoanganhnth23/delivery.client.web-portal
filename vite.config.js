@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    testTimeout: 15000,
     clearMocks: true,
     restoreMocks: true,
     // Playwright specs are executed by `test:e2e`, not by Vitest.

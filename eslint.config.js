@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint'
 export default [
   // Playwright writes bundled trace assets to these directories; they are
   // generated artifacts, not application source that ESLint should inspect.
-  { ignores: ['dist', 'coverage', 'test-results', 'playwright-report'] },
+  { ignores: ['dist', 'dist-preview-static', 'coverage', 'test-results', 'playwright-report'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {

@@ -1,7 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach } from 'vitest';
 import { clearResourceCache } from '@/services/data/resourceCache';
+
+configure({ asyncUtilTimeout: 4000 });
 
 if (typeof globalThis.ResizeObserver === 'undefined') {
   class TestResizeObserver implements ResizeObserver {

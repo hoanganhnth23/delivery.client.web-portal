@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
     REGISTRATION_STATUS: (handle: string) => `/api/auth/registrations/${encodeURIComponent(handle)}`,
     REQUEST_EMAIL_VERIFICATION: '/api/auth/email-verification/request',
     CONFIRM_EMAIL_VERIFICATION: '/api/auth/email-verification/confirm',
+    FIREBASE_CHAT_TOKEN: '/api/auth/firebase/chat-token',
     REFRESH_TOKEN: '/api/auth/refresh-token',
     LOGOUT: '/api/auth/logout',
   },
