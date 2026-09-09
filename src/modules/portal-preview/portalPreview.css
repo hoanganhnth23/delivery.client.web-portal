@@ -1,0 +1,278 @@
+/*
+ * Preview-only framing. The page inside this frame is the production portal
+ * component tree; this file only provides the workbench and an optional phone
+ * viewport for visual review.
+ */
+.portal-preview-runtime {
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: #ecebe8;
+  color: #222;
+}
+
+.portal-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 68px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #d8d6d2;
+  background: #fff;
+  color: #262626;
+  font-family: Arial, sans-serif;
+}
+
+.portal-preview-toolbar-intro {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 240px;
+  margin-right: auto;
+}
+
+.portal-preview-toolbar-intro > .material-symbols-outlined {
+  color: #cd4528;
+  font-size: 26px;
+}
+
+.portal-preview-toolbar-intro div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.portal-preview-toolbar-intro strong {
+  font-size: 13px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.portal-preview-toolbar-intro span,
+.portal-preview-toolbar label span {
+  color: #777;
+  font-size: 12px;
+}
+
+.portal-preview-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.portal-preview-toolbar select,
+.portal-preview-reset {
+  min-height: 40px;
+  border: 1px solid #d8d6d2;
+  border-radius: 6px;
+  background: #fff;
+  color: #262626;
+  font: inherit;
+  font-size: 13px;
+}
+
+.portal-preview-toolbar select {
+  padding: 0 10px;
+}
+
+.portal-preview-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.portal-preview-reset:hover {
+  border-color: #cd4528;
+  color: #cd4528;
+}
+
+.portal-preview-frame {
+  min-height: 100dvh;
+  background: #f5f5f5;
+}
+
+.portal-preview-frame > .portal-theme {
+  min-height: 100dvh;
+}
+
+.portal-preview-production-page {
+  min-width: 0;
+}
+
+.portal-order-status-tabs {
+  scrollbar-width: thin;
+  scrollbar-color: #c9c9c9 transparent;
+}
+
+.portal-order-status-tabs::-webkit-scrollbar {
+  height: 5px;
+}
+
+.portal-order-status-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.portal-order-status-tabs::-webkit-scrollbar-thumb {
+  background: #c9c9c9;
+  border-radius: 999px;
+}
+
+.portal-preview-attribution {
+  margin: 0;
+  padding: 8px 16px 12px;
+  background: #ecebe8;
+  color: #777;
+  font-family: Arial, sans-serif;
+  font-size: 11px;
+  text-align: center;
+}
+
+.portal-preview-phone .portal-preview-frame {
+  width: min(430px, 100%);
+  min-height: 100dvh;
+  margin: 0 auto;
+  overflow-x: hidden;
+  background: #f5f5f5;
+  box-shadow: 0 0 0 1px #d8d6d2, 0 14px 42px rgb(38 38 38 / 12%);
+}
+
+.portal-preview-phone .portal-preview-attribution {
+  width: min(430px, 100%);
+  margin: 0 auto;
+}
+
+/* `?view=phone` can be opened from a desktop browser. Make the production
+ * responsive tree use its mobile branch even though the outer viewport is
+ * wide; the normal CSS media queries still apply when the browser itself is
+ * resized to a phone width. */
+.portal-preview-phone .portal-sidebar {
+  display: none !important;
+}
+
+.portal-preview-phone .lg\:hidden {
+  display: flex !important;
+}
+
+.portal-preview-phone .md\:block,
+.portal-preview-phone .sm\:inline,
+.portal-preview-phone .sm\:inline-flex,
+.portal-preview-phone .sm\:block,
+.portal-preview-phone .xl\:block {
+  display: none !important;
+}
+
+.portal-preview-phone .sm\:grid-cols-2,
+.portal-preview-phone .sm\:grid-cols-3,
+.portal-preview-phone .lg\:grid-cols-2,
+.portal-preview-phone .lg\:grid-cols-3,
+.portal-preview-phone .lg\:grid-cols-4,
+.portal-preview-phone .xl\:grid-cols-3,
+.portal-preview-phone .xl\:grid-cols-4 {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.portal-preview-phone .md\:flex-row,
+.portal-preview-phone .lg\:flex-row,
+.portal-preview-phone .sm\:flex-row {
+  flex-direction: column !important;
+  align-items: stretch !important;
+}
+
+.portal-preview-phone .lg\:min-w-\[220px\] {
+  min-width: 0 !important;
+}
+
+.portal-preview-phone .lg\:border-l {
+  border-left-width: 0 !important;
+}
+
+.portal-preview-phone .lg\:border-t-0 {
+  border-top-width: 1px !important;
+}
+
+.portal-preview-phone .lg\:pl-6 {
+  padding-left: 0 !important;
+}
+
+.portal-preview-phone .lg\:pt-0 {
+  padding-top: 1.5rem !important;
+}
+
+.portal-preview-phone .lg\:px-8 {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+.portal-preview-phone .lg\:p-8 {
+  padding: 16px !important;
+}
+
+.portal-preview-phone .sm\:p-6 {
+  padding: 16px !important;
+}
+
+.portal-preview-phone .sm\:px-6 {
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+.portal-preview-phone .sm\:py-6 {
+  padding-top: 16px !important;
+  padding-bottom: 16px !important;
+}
+
+.portal-preview-phone .portal-store-summary {
+  gap: 12px !important;
+  padding: 16px !important;
+}
+
+.portal-preview-phone .portal-store-summary > img {
+  width: 64px;
+  height: 64px;
+}
+
+.portal-preview-phone .portal-store-actions > a {
+  min-height: 80px;
+}
+
+@media (max-width: 760px) {
+  .portal-preview-toolbar {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+    padding: 10px 12px;
+  }
+
+  .portal-preview-toolbar-intro {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .portal-preview-toolbar label {
+    flex: 1 1 150px;
+    justify-content: space-between;
+  }
+
+  .portal-preview-toolbar select {
+    min-width: 0;
+    max-width: 170px;
+  }
+
+  .portal-preview-reset {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-preview-runtime *,
+  .portal-preview-runtime *::before,
+  .portal-preview-runtime *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import type { AdminOrder } from '@/services/api/adminService';
 import { useAppDependencies } from '@/app/dependencies';
 import { useRestaurant } from '@/modules/restaurant/hooks/useRestaurant';
 import { ROUTES } from '@/utils/constants';
+import { usePortalPreviewNavigate } from '@/components/navigation/usePortalPreviewNavigation';
 
 const AdminOrdersPage = () => {
   const { admin: adminService, notifications } = useAppDependencies();
   const { selectRestaurantById } = useRestaurant();
-  const navigate = useNavigate();
+  const navigate = usePortalPreviewNavigate();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -146,11 +146,17 @@ const AdminOrdersPage = () => {
     <AdminLayout>
       <div className="flex flex-col gap-4 sm:gap-6">
         {/* Header & Controls */}
-        <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-border-light bg-surface-light p-3 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:gap-4 sm:p-4 md:flex-row md:items-center">
-          <div className="flex overflow-x-auto w-full md:w-auto gap-2 pb-2 md:pb-0 hide-scrollbar">
+        <div className="flex flex-col gap-3 rounded-xl border border-border-light bg-surface-light p-3 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:gap-4 sm:p-4">
+          <div
+            className="portal-order-status-tabs flex min-w-0 w-full gap-2 overflow-x-auto pb-1 hide-scrollbar"
+            aria-label="Lọc trạng thái đơn hàng"
+            role="group"
+          >
             {statusTabs.map(tab => (
               <button
                 key={tab}
+                type="button"
+                aria-pressed={statusFilter === tab}
                 onClick={() => changeStatusFilter(tab)}
                 className={`min-h-10 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors sm:px-4 ${
                   statusFilter === tab 
@@ -163,7 +169,7 @@ const AdminOrdersPage = () => {
             ))}
           </div>
           
-          <div className="flex w-full flex-col items-stretch gap-3 md:w-auto md:flex-row md:items-center">
+          <div className="flex w-full flex-col items-stretch gap-3 border-t border-border-light pt-3 dark:border-border-dark md:flex-row md:items-center md:justify-end">
             {/* Batch Confirm Button for Fast Local Testing */}
             {pendingOrders.length > 0 && (
               <button
@@ -190,10 +196,11 @@ const AdminOrdersPage = () => {
             <div className="relative w-full md:w-64">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
               <input
-                type="text"
+                type="search"
                 placeholder="Tìm kiếm ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Tìm kiếm đơn hàng"
                 className="pl-10 pr-4 py-2 w-full rounded-lg border border-border-light dark:border-border-dark bg-white dark:bg-surface-dark focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
               />
             </div>

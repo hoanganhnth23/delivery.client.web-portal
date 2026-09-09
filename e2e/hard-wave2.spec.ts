@@ -501,7 +501,7 @@ test.describe('Wave 2 owner and admin mutation cases', () => {
     await page.getByLabel('Mã voucher').fill('FAIL50');
     await page.getByLabel('Tên chiến dịch').fill('Voucher lỗi');
     backend.failNext('/api/promotions/shop', { status: 500, message: 'Voucher write unavailable' });
-    await page.getByRole('button', { name: 'Gửi voucher chờ duyệt' }).click();
+    await page.getByRole('button', { name: 'Tạo voucher' }).click();
     await expect(page.getByLabel('Mã voucher')).toHaveValue('FAIL50');
     expect(backend.requestsFor('/api/promotions/shop').filter((request) => request.method === 'POST')).toHaveLength(1);
     backend.assertNoUnexpectedRequests();

@@ -171,7 +171,7 @@ test.describe('restaurant owner portal', () => {
     await page.getByLabel('Mã voucher').fill('shop50');
     await page.getByLabel('Tên chiến dịch').fill('Shop 50');
     const response = page.waitForResponse((item) => item.url().includes('/api/promotions/shop') && item.request().method() === 'POST');
-    await page.getByRole('button', { name: 'Gửi voucher chờ duyệt' }).click();
+    await page.getByRole('button', { name: 'Tạo voucher' }).click();
     expect((await response).status()).toBe(200);
     expect(backend.requests.some((request) => request.path === '/api/promotions/shop' && request.method === 'POST')).toBeTruthy();
   });

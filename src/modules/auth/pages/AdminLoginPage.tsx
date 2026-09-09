@@ -50,9 +50,9 @@ const AdminLoginPage = () => {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4 sm:p-6">
-      <section className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-lg sm:p-8">
-        <Link to={ROUTES.HOME} className="mb-8 inline-flex items-center gap-2 font-bold text-red-600">
+    <main className="flex min-h-screen items-center justify-center bg-[#f5f5f5] p-4 sm:p-6">
+      <section className="w-full max-w-md rounded-lg border border-[#ebebeb] bg-white p-6 shadow-lg sm:p-8">
+        <Link to={ROUTES.HOME} className="mb-8 inline-flex items-center gap-2 font-bold text-[#ee4d2d]">
           <span className="material-symbols-outlined">admin_panel_settings</span>
           Delivery Admin
         </Link>
@@ -63,7 +63,7 @@ const AdminLoginPage = () => {
         </p>
 
         {errors.general && (
-          <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mt-6 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {errors.general}
           </div>
         )}
@@ -80,7 +80,7 @@ const AdminLoginPage = () => {
               value={formData.email}
               onChange={handleChange}
               autoComplete="username"
-              className="mt-2 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 outline-none focus:ring-2 focus:ring-red-500/30"
+              className="mt-2 w-full rounded-md border border-gray-300 bg-gray-50 px-4 py-3 outline-none focus:ring-2 focus:ring-[#ee4d2d]/30"
             />
             {errors.email && <span className="mt-1 block text-xs text-red-500">{errors.email}</span>}
           </div>
@@ -97,7 +97,7 @@ const AdminLoginPage = () => {
                 value={formData.password}
                 onChange={handleChange}
                 autoComplete="current-password"
-                className="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-red-500/30"
+                className="w-full rounded-md border border-gray-300 bg-gray-50 px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-[#ee4d2d]/30"
               />
               <button
                 type="button"
@@ -116,7 +116,7 @@ const AdminLoginPage = () => {
           <button
             type="submit"
             disabled={loading}
-            className="min-h-11 w-full rounded-lg bg-red-600 px-5 py-3 font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="min-h-11 w-full rounded-md bg-[#ee4d2d] px-5 py-3 font-bold text-white transition hover:bg-[#d73211] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Đang đăng nhập…' : 'Đăng nhập admin'}
           </button>
@@ -124,7 +124,7 @@ const AdminLoginPage = () => {
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Chủ nhà hàng?{' '}
-          <Link to={ROUTES.LOGIN} className="font-bold text-red-600 hover:underline">
+          <Link to={ROUTES.LOGIN} className="font-bold text-[#ee4d2d] hover:underline">
             Đăng nhập portal nhà hàng
           </Link>
         </p>

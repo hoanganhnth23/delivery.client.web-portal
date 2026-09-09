@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useRestaurant } from '@/modules/restaurant/hooks/useRestaurant';
 import { useAuth } from '@/modules/auth/hooks/useAuth';
 import { ROUTES, USER_ROLES } from '@/utils/constants';
-import { useNavigate } from 'react-router-dom';
+import { usePortalPreviewNavigate } from '@/components/navigation/usePortalPreviewNavigation';
 import PortalMobileDrawer from '@/components/navigation/PortalMobileDrawer';
 import { restaurantNavigation } from '@/components/navigation/portalNavigation';
 
@@ -30,7 +30,7 @@ const RestaurantHeader = ({
 }: RestaurantHeaderProps) => {
   const { currentRestaurant, restaurants, setCurrentRestaurant } = useRestaurant();
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const navigate = usePortalPreviewNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);

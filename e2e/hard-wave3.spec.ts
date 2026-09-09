@@ -318,7 +318,7 @@ test.describe('Wave 3A terminal order, owner and admin cases', () => {
     backend.failNext('/api/promotions/shop', { status: 500, message: 'Voucher list unavailable' });
     await page.goto('/restaurant/vouchers');
     await expect(page.getByText('Không thể tải voucher nhà hàng')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Gửi voucher chờ duyệt' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tạo voucher' })).toBeVisible();
     backend.assertNoUnexpectedRequests();
   });
 

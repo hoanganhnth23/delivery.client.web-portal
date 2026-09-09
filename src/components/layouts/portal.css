@@ -1,17 +1,17 @@
 /* Scoped to operational routes; customer and handbook retain their own theme. */
 .portal-theme {
-  --portal-primary: 205 57 30;
-  --portal-hover: 178 45 23;
+  --portal-primary: 238 77 45;
+  --portal-hover: 215 50 17;
   --portal-background: 245 245 245;
   --portal-surface: 255 255 255;
-  --portal-border: 230 230 230;
-  --portal-ink: 34 34 34;
-  --portal-muted: 102 102 102;
+  --portal-border: 235 235 235;
+  --portal-ink: 38 38 38;
+  --portal-muted: 117 117 117;
   --portal-night: 23 23 23;
-  --portal-night-surface: 32 32 32;
-  --portal-night-border: 62 62 62;
+  --portal-night-surface: 35 35 35;
+  --portal-night-border: 60 60 60;
   min-height: 100dvh;
-  font-family: Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', Arial, sans-serif;
   color: rgb(var(--portal-ink));
   background: rgb(var(--portal-background));
 }
@@ -20,8 +20,9 @@
 .portal-theme .rounded-2xl, .portal-theme .rounded-3xl, .portal-theme .rounded-xl { border-radius: 8px; }
 .portal-theme .shadow-sm { box-shadow: none; }
 .portal-theme button, .portal-theme select, .portal-theme input:not([type=checkbox]):not([type=radio]) { min-height: 44px; }
+.portal-theme button:not(.rounded-full), .portal-theme select, .portal-theme input:not([type=checkbox]):not([type=radio]) { border-radius: 6px; }
 .portal-theme button { transition: background-color .15s, color .15s, border-color .15s; }
-.portal-theme :is(button, a, input, select, textarea):focus-visible { outline: 2px solid #c5371d; outline-offset: 3px; }
+.portal-theme :is(button, a, input, select, textarea):focus-visible { outline: 2px solid #2878ce; outline-offset: 2px; }
 .portal-theme button:disabled { cursor: not-allowed; }
 .portal-theme th { font-size: 11px; letter-spacing: .04em; white-space: nowrap; }
 .portal-theme td { font-size: 13px; font-variant-numeric: tabular-nums; }

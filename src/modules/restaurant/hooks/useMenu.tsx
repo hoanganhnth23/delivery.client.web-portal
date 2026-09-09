@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { usePortalPreviewNavigate } from '@/components/navigation/usePortalPreviewNavigation';
 import type {
   DeleteActionResult,
   MenuItem,
@@ -45,7 +45,7 @@ const MenuContext = createContext<MenuContextValue | null>(null);
 
 export const MenuProvider = ({ children }: { children: ReactNode }) => {
   const { menu: menuService } = useAppDependencies();
-  const navigate = useNavigate();
+  const navigate = usePortalPreviewNavigate();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [currentMenuItem, setCurrentMenuItem] = useState<MenuItem | null>(null);
   const [loading, setLoading] = useState(false);

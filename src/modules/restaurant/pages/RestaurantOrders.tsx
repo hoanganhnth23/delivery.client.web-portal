@@ -145,10 +145,12 @@ const RestaurantOrders = () => {
           <div className="mx-auto w-full max-w-[1400px] min-w-0 space-y-6">
             {/* Status Filter */}
             <div className="bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-border-light dark:border-border-dark">
-              <div className="flex items-center gap-2 overflow-x-auto pb-2">
+              <div className="portal-order-status-tabs flex items-center gap-2 overflow-x-auto pb-2" aria-label="Lọc trạng thái đơn hàng" role="group">
                 {statusOptions.map((status) => (
                   <button
                     key={status.value}
+                    type="button"
+                    aria-pressed={selectedStatus === status.value}
                     onClick={() => setSelectedStatus(status.value)}
                     className={`
                       px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all
@@ -269,7 +271,7 @@ const RestaurantOrders = () => {
                         </div>
                       </div>
 
-                      <div className="flex w-full min-w-0 flex-col items-end justify-between gap-6 border-t border-border-light pt-6 dark:border-border-dark lg:min-w-[220px] lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+                      <div className="restaurant-order-side flex w-full min-w-0 flex-col items-end justify-between gap-6 border-t border-border-light pt-6 dark:border-border-dark lg:w-[240px] lg:flex-none lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
                         <div className="text-right">
                           <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold mb-1">Tổng cộng</p>
                           <p className="text-2xl font-black text-primary">

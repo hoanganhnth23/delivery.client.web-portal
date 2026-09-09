@@ -23,6 +23,7 @@ describe('admin dashboard routes', () => {
       .toBeInTheDocument();
     const destinations = [
       ['Đơn hàng', '/admin/orders'],
+      ['Chat CSKH', '/admin/chat'],
       ['Shipper', '/admin/shippers'],
       ['Đánh giá', '/admin/ratings'],
       ['Coupon', '/admin/coupons'],

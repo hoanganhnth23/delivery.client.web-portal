@@ -3,6 +3,7 @@ import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import { useRestaurant } from '../hooks/useRestaurant';
 import { ROUTES } from '@/utils/constants';
+import { useOptionalPortalPreview } from '@/components/navigation/usePortalPreviewNavigation';
 
 const actions = [
   { label: 'Đơn hàng', icon: 'shopping_bag', to: ROUTES.RESTAURANT_ORDERS },
@@ -14,6 +15,8 @@ const actions = [
 
 const RestaurantDashboard = () => {
   const { currentRestaurant } = useRestaurant();
+  const preview = useOptionalPortalPreview();
+  const previewPath = preview?.toPreviewPath ?? ((path: string) => path);
 
   return (
     <div className="flex min-h-screen min-w-0 bg-background-light dark:bg-background-dark">
@@ -39,7 +42,7 @@ const RestaurantDashboard = () => {
             {actions.map((action) => (
               <Link
                 key={action.to}
-                to={action.to}
+                to={previewPath(action.to)}
                 className="flex items-center gap-4 rounded-2xl border border-border-light bg-white p-5 shadow-sm transition hover:border-primary hover:shadow-md dark:border-border-dark dark:bg-surface-dark"
               >
                 <span className="material-symbols-outlined text-3xl text-primary">{action.icon}</span>

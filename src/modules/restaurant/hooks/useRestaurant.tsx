@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { usePortalPreviewNavigate } from '@/components/navigation/usePortalPreviewNavigation';
 import { useAppDependencies } from '@/app/dependencies';
 import { useOptionalAuth } from '@/modules/auth/hooks/useAuth';
 import type {
@@ -48,7 +48,7 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
   const { restaurant: restaurantService, sessionStore } = useAppDependencies();
   const auth = useOptionalAuth();
   const user = auth?.user;
-  const navigate = useNavigate();
+  const navigate = usePortalPreviewNavigate();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(false);

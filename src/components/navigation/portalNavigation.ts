@@ -20,10 +20,12 @@ export const restaurantNavigation: PortalNavigationItem[] = [
 export const adminNavigation: PortalNavigationItem[] = [
   { to: ROUTES.ADMIN_DASHBOARD, icon: 'dashboard', label: 'Dashboard' },
   { to: ROUTES.ADMIN_ORDERS, icon: 'receipt_long', label: 'Đơn hàng' },
+  { to: ROUTES.ADMIN_CHAT, icon: 'support_agent', label: 'Chat CSKH' },
+  { to: ROUTES.ADMIN_RESTAURANTS, icon: 'storefront', label: 'Quản lý nhà hàng' },
   { to: ROUTES.ADMIN_SHIPPERS, icon: 'local_shipping', label: 'Shipper' },
   { to: ROUTES.ADMIN_RATINGS, icon: 'reviews', label: 'Đánh giá' },
   { to: ROUTES.ADMIN_COUPONS, icon: 'sell', label: 'Coupon' },
   { to: ROUTES.ADMIN_FLASH_SALES, icon: 'bolt', label: 'Flash Sale' },
+  { to: ROUTES.ADMIN_LIVESTREAMS, icon: 'live_tv', label: 'Livestream' },
   { to: ROUTES.ADMIN_CATALOG_IMPORT, icon: 'upload_file', label: 'Import dữ liệu' },
-  { to: ROUTES.RESTAURANT_DASHBOARD, icon: 'storefront', label: 'Cổng nhà hàng' },
 ];

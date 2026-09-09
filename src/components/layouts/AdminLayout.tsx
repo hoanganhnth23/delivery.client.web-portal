@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/hooks/useAuth';
 import { ROUTES } from '@/utils/constants';
+import { useOptionalPortalPreview } from '@/components/navigation/usePortalPreviewNavigation';
 import PortalMobileDrawer from '@/components/navigation/PortalMobileDrawer';
 import { adminNavigation as navigation } from '@/components/navigation/portalNavigation';
 
@@ -12,16 +13,20 @@ interface AdminLayoutProps {
 const pageTitles: Record<string, string> = {
   [ROUTES.ADMIN_DASHBOARD]: 'Dashboard',
   [ROUTES.ADMIN_ORDERS]: 'Đơn hàng',
+  [ROUTES.ADMIN_CHAT]: 'Chat CSKH',
+  [ROUTES.ADMIN_RESTAURANTS]: 'Quản lý nhà hàng',
   [ROUTES.ADMIN_SHIPPERS]: 'Shipper',
   [ROUTES.ADMIN_RATINGS]: 'Đánh giá',
   [ROUTES.ADMIN_COUPONS]: 'Coupon',
   [ROUTES.ADMIN_FLASH_SALES]: 'Flash Sale',
+  [ROUTES.ADMIN_LIVESTREAMS]: 'Livestream',
   [ROUTES.ADMIN_CATALOG_IMPORT]: 'Import dữ liệu',
 };
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const preview = useOptionalPortalPreview();
   const { user, logout } = useAuth();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const identity = user?.name || user?.email || 'Quản trị viên';
@@ -29,8 +34,14 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
   const handleLogout = async () => {
     await logout();
+    if (preview) {
+      navigate(preview.toPreviewPath(ROUTES.ADMIN_LOGIN), { replace: true });
+      return;
+    }
     navigate(ROUTES.ADMIN_LOGIN, { replace: true });
   };
+
+  const currentPath = preview?.canonicalPath ?? location.pathname;
 
   return (
     <div className="flex min-h-screen w-full min-w-0 overflow-hidden bg-background-light dark:bg-background-dark">
@@ -50,11 +61,11 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
         <nav className="mt-8 flex flex-col gap-2">
           {navigation.map((item) => {
-            const active = location.pathname === item.to;
+            const active = currentPath === item.to;
             return (
               <Link
                 key={item.to}
-                to={item.to}
+                to={preview?.toPreviewPath(item.to) ?? item.to}
                 aria-current={active ? 'page' : undefined}
                 className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-colors ${
                   active
@@ -92,7 +103,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
               <span aria-hidden="true" className="material-symbols-outlined">menu</span>
             </button>
             <h2 className="min-w-0 truncate text-xl font-bold capitalize text-gray-900 dark:text-white sm:text-2xl">
-              {pageTitles[location.pathname] || location.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard'}
+              {pageTitles[currentPath] || currentPath.split('/').pop()?.replace(/-/g, ' ') || 'Dashboard'}
             </h2>
           </div>
         </header>

@@ -64,6 +64,22 @@ function adminDependencies({
 }
 
 describe('admin read and moderation actions', () => {
+  it('derives coupon lifecycle, shows freeship, and guards pause/resume requests', async () => {
+    const user = userEvent.setup();
+    const coupon = buildAdminCoupon({ rewardType: 'FREESHIP', approvalStatus: 'APPROVED', startTime: '2020-01-01T00:00:00', endTime: '2099-01-01T00:00:00' });
+    let finish!: () => void;
+    const pauseCoupon = vi.fn(() => new Promise<typeof coupon>((resolve) => { finish = () => resolve({ ...coupon, active: false }); }));
+    const resumeCoupon = vi.fn(async () => coupon);
+    const fetchAllCoupons = vi.fn().mockResolvedValueOnce([coupon]).mockResolvedValueOnce([{ ...coupon, active: false }]).mockResolvedValue([coupon]);
+    renderApp({ route: '/admin/coupons', dependencies: adminDependencies({ admin: createAdminFake({ fetchAllCoupons, pauseCoupon, resumeCoupon }) }) });
+    expect(await screen.findByText('Miễn phí vận chuyển')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: `Tạm dừng coupon ${coupon.code}` }));
+    expect(screen.getByRole('button', { name: `Tạm dừng coupon ${coupon.code}` })).toBeDisabled();
+    finish();
+    await user.click(await screen.findByRole('button', { name: `Tiếp tục coupon ${coupon.code}` }));
+    await waitFor(() => expect(resumeCoupon).toHaveBeenCalledWith(coupon.id));
+    expect(pauseCoupon).toHaveBeenCalledTimes(1);
+  });
   it('shows a retryable error instead of an empty shipper list after a failed read', async () => {
     const user = userEvent.setup();
     const notifications = createNotificationFake();
@@ -608,5 +624,29 @@ describe('admin growth actions', () => {
 
     expect(await screen.findByText('Quán Hai • 1 đơn hàng')).toBeInTheDocument();
     await waitFor(() => expect(getMyOrders).toHaveBeenCalledWith(0, 10, 202));
+  });
+
+  it('lists restaurants and opens the selected restaurant portal', async () => {
+    const user = userEvent.setup();
+    const r1 = buildRestaurant({ id: 201, name: 'Quán Một' });
+    const r2 = buildRestaurant({ id: 202, name: 'Quán Hai' });
+    const getAllRestaurants = vi.fn(async () => [r1, r2]);
+
+    renderApp({
+      route: '/admin/restaurants',
+      dependencies: adminDependencies({
+        restaurant: createRestaurantFake({ getAllRestaurants }),
+      }),
+    });
+
+    expect((await screen.findAllByRole('heading', { name: 'Quản lý nhà hàng' })).length).toBeGreaterThan(0);
+    expect(await screen.findByText('Quán Một')).toBeInTheDocument();
+    expect(screen.getByText('Quán Hai')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Mở cổng nhà hàng Quán Hai' }));
+
+    expect(await screen.findByRole('heading', { name: 'Tổng quan' })).toBeInTheDocument();
+    expect(screen.getAllByText('Quán Hai').length).toBeGreaterThan(0);
+    expect(getAllRestaurants).toHaveBeenCalled();
   });
 });

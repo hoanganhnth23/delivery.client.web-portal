@@ -4,6 +4,7 @@ import AdminLayout from '@/components/layouts/AdminLayout';
 import { useAppDependencies } from '@/app/dependencies';
 import type { AdminDashboard } from '@/services/api/adminService';
 import { ROUTES } from '@/utils/constants';
+import { useOptionalPortalPreview } from '@/components/navigation/usePortalPreviewNavigation';
 
 const actions = [
   { label: 'Đơn hàng', icon: 'receipt_long', to: ROUTES.ADMIN_ORDERS },
@@ -135,6 +136,8 @@ const TrendChart = ({ dashboard }: TrendChartProps) => {
 
 const AdminDashboard = () => {
   const { admin: adminService, notifications } = useAppDependencies();
+  const preview = useOptionalPortalPreview();
+  const previewPath = preview?.toPreviewPath ?? ((path: string) => path);
   const [dashboard, setDashboard] = useState<AdminDashboard>(emptyDashboard);
   const [period, setPeriod] = useState<DashboardPeriod>('month');
   const [loading, setLoading] = useState(true);
@@ -241,7 +244,7 @@ const AdminDashboard = () => {
         <div>
           <h2 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">Nghiệp vụ quản trị</h2>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {actions.map((action) => <Link key={action.to} to={action.to} className="flex items-center gap-4 rounded-2xl border border-border-light bg-white p-5 shadow-sm transition hover:border-primary hover:shadow-md dark:border-border-dark dark:bg-surface-dark"><span className="material-symbols-outlined text-3xl text-primary">{action.icon}</span><span className="font-bold text-gray-900 dark:text-white">{action.label}</span></Link>)}
+            {actions.map((action) => <Link key={action.to} to={previewPath(action.to)} className="flex items-center gap-4 rounded-2xl border border-border-light bg-white p-5 shadow-sm transition hover:border-primary hover:shadow-md dark:border-border-dark dark:bg-surface-dark"><span className="material-symbols-outlined text-3xl text-primary">{action.icon}</span><span className="font-bold text-gray-900 dark:text-white">{action.label}</span></Link>)}
           </div>
         </div>
       </section>

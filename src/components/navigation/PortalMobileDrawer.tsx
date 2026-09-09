@@ -1,6 +1,7 @@
 import { useDialogFocus } from './useDialogFocus';
 import { Link, useLocation } from 'react-router-dom';
 import type { PortalNavigationItem } from './portalNavigation';
+import { useOptionalPortalPreview } from './usePortalPreviewNavigation';
 
 interface PortalMobileDrawerProps {
   open: boolean;
@@ -22,7 +23,9 @@ const PortalMobileDrawer = ({
   onLogout,
 }: PortalMobileDrawerProps) => {
   const location = useLocation();
+  const preview = useOptionalPortalPreview();
   const dialogRef = useDialogFocus(open, onClose);
+  const currentPath = preview?.canonicalPath ?? location.pathname;
 
   if (!open) return null;
 
@@ -55,11 +58,11 @@ const PortalMobileDrawer = ({
 
         <nav className="mt-6 flex flex-col gap-2" aria-label="Điều hướng portal">
           {items.map((item) => {
-            const active = location.pathname === item.to;
+            const active = currentPath === item.to;
             return (
               <Link
                 key={item.to}
-                to={item.to}
+                to={preview?.toPreviewPath(item.to) ?? item.to}
                 aria-current={active ? 'page' : undefined}
                 onClick={onClose}
                 className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-colors ${

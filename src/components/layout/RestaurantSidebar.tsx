@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { restaurantNavigation as navigation } from '@/components/navigation/portalNavigation';
+import { useOptionalPortalPreview } from '@/components/navigation/usePortalPreviewNavigation';
 
 interface RestaurantSidebarProps {
   restaurantName?: string;
@@ -8,7 +9,9 @@ interface RestaurantSidebarProps {
 
 const RestaurantSidebar = ({ restaurantName, restaurantImage }: RestaurantSidebarProps) => {
   const location = useLocation();
+  const preview = useOptionalPortalPreview();
   const identity = restaurantName?.trim() || 'Nhà hàng chưa được gán';
+  const currentPath = preview?.canonicalPath ?? location.pathname;
 
   return (
     <aside className="portal-sidebar hidden w-72 flex-shrink-0 flex-col border-r border-border-light bg-surface-light p-6 dark:border-border-dark dark:bg-surface-dark lg:flex">
@@ -37,12 +40,12 @@ const RestaurantSidebar = ({ restaurantName, restaurantImage }: RestaurantSideba
 
       <nav className="mt-8 flex flex-col gap-2">
         {navigation.map((item) => {
-          const active = location.pathname === item.to;
+          const active = currentPath === item.to;
           return (
             <Link
               key={item.to}
-              to={item.to}
-                aria-current={active ? 'page' : undefined}
+              to={preview?.toPreviewPath(item.to) ?? item.to}
+              aria-current={active ? 'page' : undefined}
               className={`flex items-center gap-3 rounded-lg px-4 py-3 transition-colors ${
                 active
                   ? 'bg-primary/10 font-bold text-primary'
