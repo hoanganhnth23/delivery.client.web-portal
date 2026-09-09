@@ -1,0 +1,140 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.principalId is string;
+    }
+
+    function principalId() {
+      return request.auth.token.principalId;
+    }
+
+    function isSupportAgent() {
+      return signedIn()
+        && request.auth.token.supportAgent == true
+        && request.auth.token.role == 'ADMIN';
+    }
+
+    function isCustomer() {
+      return signedIn() && request.auth.token.role == 'USER';
+    }
+
+    function conversationPath(conversationId) {
+      return /databases/$(database)/documents/conversations/$(conversationId);
+    }
+
+    function conversationExists(conversationId) {
+      return exists(conversationPath(conversationId));
+    }
+
+    function conversationIsSupport(conversationId) {
+      return conversationExists(conversationId)
+        && get(conversationPath(conversationId)).data.isSupportChat == true;
+    }
+
+    function conversationIsOpen(conversationId) {
+      return conversationIsSupport(conversationId)
+        && get(conversationPath(conversationId)).data.status == 'open';
+    }
+
+    function ownsConversation(conversationId) {
+      return conversationExists(conversationId)
+        && get(conversationPath(conversationId)).data.principalId == principalId();
+    }
+
+    function validConversationIdentity() {
+      return request.resource.data.isSupportChat == true
+        && request.resource.data.principalId == principalId()
+        && request.resource.data.status == 'open';
+    }
+
+    function validConversationShape() {
+      return request.resource.data.keys().hasOnly([
+          'principalId', 'userId', 'userEmail', 'userName', 'isSupportChat',
+          'status', 'createdAt', 'updatedAt', 'unreadCount',
+          'customerUnreadCount', 'agentUnreadCount', 'lastMessage',
+          'closedAt', 'closedBy', 'closeReason'
+        ])
+        && request.resource.data.userEmail is string
+        && request.resource.data.userEmail.size() <= 320
+        && request.resource.data.userName is string
+        && request.resource.data.userName.size() <= 160
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validMessageShape() {
+      return request.resource.data.keys().hasOnly([
+          'conversationId', 'principalId', 'senderPrincipalId', 'senderRole',
+          'sender', 'content', 'type', 'timestamp', 'isRead', 'readAt'
+        ])
+        && request.resource.data.conversationId is string
+        && request.resource.data.principalId is string
+        && request.resource.data.senderPrincipalId is string
+        && request.resource.data.senderRole is string
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.content.size() <= 2000
+        && request.resource.data.type == 'text'
+        && request.resource.data.timestamp is timestamp
+        && request.resource.data.isRead == false;
+    }
+
+    match /conversations/{conversationId} {
+      allow read: if isSupportAgent()
+        || (isCustomer() && resource.data.principalId == principalId());
+
+      allow create: if isCustomer()
+        && validConversationIdentity()
+        && validConversationShape();
+
+      allow update: if (isSupportAgent()
+          || (isCustomer() && resource.data.principalId == principalId()))
+        && request.resource.data.principalId == resource.data.principalId
+        && request.resource.data.isSupportChat == resource.data.isSupportChat
+        && request.resource.data.keys().hasOnly([
+          'principalId', 'userId', 'userEmail', 'userName', 'isSupportChat',
+          'status', 'createdAt', 'updatedAt', 'unreadCount',
+          'customerUnreadCount', 'agentUnreadCount', 'lastMessage',
+          'closedAt', 'closedBy', 'closeReason'
+        ])
+        && request.resource.data.updatedAt is timestamp
+        && (
+          request.resource.data.status == resource.data.status
+          || (resource.data.status == 'open' && request.resource.data.status == 'closed')
+        );
+
+      allow delete: if false;
+    }
+
+    match /messages/{messageId} {
+      allow read: if signedIn()
+        && (isSupportAgent() || ownsConversation(resource.data.conversationId));
+
+      allow create: if signedIn()
+        && validMessageShape()
+        && conversationIsOpen(request.resource.data.conversationId)
+        && get(conversationPath(request.resource.data.conversationId)).data.principalId
+             == request.resource.data.principalId
+        && (
+          (isCustomer()
+            && request.resource.data.principalId == principalId()
+            && request.resource.data.senderPrincipalId == principalId()
+            && request.resource.data.senderRole == 'USER'
+            && request.resource.data.sender == 'user')
+          || (isSupportAgent()
+            && request.resource.data.senderPrincipalId == principalId()
+            && request.resource.data.senderRole == 'ADMIN'
+            && request.resource.data.sender == 'support')
+        );
+
+      allow update: if signedIn()
+        && (isSupportAgent() || ownsConversation(resource.data.conversationId))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead', 'readAt'])
+        && request.resource.data.isRead == true;
+
+      allow delete: if false;
+    }
+  }
+}

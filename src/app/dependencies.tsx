@@ -7,6 +7,11 @@ import * as addressService from '@/services/api/addressService';
 import adminService from '@/services/api/adminService';
 import { flashSaleAdminService } from '@/services/api/flashSaleService';
 import { livestreamHostService } from '@/services/api/livestreamService';
+import firebaseSupportChatService, {
+  type SupportChatServicePort,
+} from '@/modules/admin/services/firebaseChatService';
+
+export type { SupportChatServicePort } from '@/modules/admin/services/firebaseChatService';
 import * as promotionService from '@/services/api/promotionService';
 import TokenStorage from '@/services/storage/localStorage';
 import { toast } from 'react-hot-toast';
@@ -134,6 +139,7 @@ export interface AppDependencies {
   admin: AdminServicePort;
   flashSaleAdmin: FlashSaleAdminServicePort;
   livestreamHost: LivestreamHostServicePort;
+  supportChat: SupportChatServicePort;
   notifications: NotificationPort;
   clock: ClockPort;
   delay: DelayPort;
@@ -150,6 +156,7 @@ export const productionDependencies: AppDependencies = {
   admin: adminService,
   flashSaleAdmin: flashSaleAdminService,
   livestreamHost: livestreamHostService,
+  supportChat: firebaseSupportChatService,
   notifications: toast,
   clock: { now: () => new Date() },
   delay: {

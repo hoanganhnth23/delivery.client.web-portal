@@ -41,6 +41,8 @@ interface RefreshTokenResponse {
 interface UserProfileResponse {
   id?: number;
   userId?: number;
+  authId?: number;
+  principalId?: number;
   email: string;
   fullName?: string;
   role: string;
@@ -150,6 +152,7 @@ export const authService = {
       // Decode JWT để lấy user info (hoặc dùng info từ response)
       const userInfo: User = {
         id: authId,
+        authId,
         email: email,
         name: email.split('@')[0], // Temporary name từ email
         role,
@@ -322,6 +325,10 @@ export const authService = {
       // Convert response data to User type
       const user: User = {
         id: profileId,
+        authId:
+          profileData.authId ??
+          profileData.principalId ??
+          currentUser?.authId,
         email,
         name: profileData.fullName?.trim() || email.split('@')[0],
         role: profileData.role,
