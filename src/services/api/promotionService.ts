@@ -1,3 +1,4 @@
+import { voucherDate, voucherLocalToUtc } from '@/utils/voucher';
 import apiClient, { handleError, handleResponse } from './apiClient';
 import { API_ENDPOINTS } from './endpoints';
 import {
@@ -77,7 +78,7 @@ const parseVoucher = (value: unknown, label: string): CustomerVoucher => {
     ...(layer ? { layer } : {}),
     ...(fundingSource ? { fundingSource } : {}),
     ...(typeof item.approvalStatus === 'string' ? { approvalStatus: item.approvalStatus } : {}),
-    ...(typeof item.endTime === 'string' ? { endTime: item.endTime } : {}),
+    ...(typeof item.endTime === 'string' ? { endTime: voucherDate(item.endTime).toISOString() } : {}),
   };
 };
 
@@ -123,7 +124,9 @@ export interface CreateShopVoucherRequest {
 }
 
 export const createShopVoucher = async (request: CreateShopVoucherRequest): Promise<CustomerVoucher> => {
-  try { return parseVoucher(handleResponse(await apiClient.post(API_ENDPOINTS.PROMOTION.CREATE_SHOP, request)), 'shop voucher'); }
+  try { return parseVoucher(handleResponse(await apiClient.post(API_ENDPOINTS.PROMOTION.CREATE_SHOP, {
+    ...request, startTime: voucherLocalToUtc(request.startTime), endTime: voucherLocalToUtc(request.endTime),
+  })), 'shop voucher'); }
   catch (error) { throw handleError(error); }
 };
 

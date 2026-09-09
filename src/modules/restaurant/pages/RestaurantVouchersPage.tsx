@@ -63,8 +63,12 @@ const RestaurantVouchersPage = () => {
     }
     setSaving(true);
     try {
-      await promotion.createShopVoucher({ ...form, code: form.code.trim().toUpperCase(), restaurantId: currentRestaurant.id });
-      notifications.success('Voucher đã gửi chờ quản trị viên duyệt');
+      const created = await promotion.createShopVoucher({ ...form, code: form.code.trim().toUpperCase(), restaurantId: currentRestaurant.id });
+      notifications.success(created.approvalStatus === 'APPROVED'
+        ? 'Tạo voucher thành công, voucher đã được tự động duyệt.'
+        : created.approvalStatus === 'PENDING'
+          ? 'Voucher đã gửi chờ quản trị viên duyệt'
+          : 'Tạo voucher thành công');
       setForm((current) => ({ ...current, code: '', name: '', description: '' }));
       await load();
     } catch {
@@ -78,7 +82,7 @@ const RestaurantVouchersPage = () => {
     <div className="flex min-h-screen w-full min-w-0 bg-background-light dark:bg-background-dark">
       <RestaurantSidebar restaurantName={currentRestaurant?.name} restaurantImage={currentRestaurant?.image} />
       <main className="min-w-0 flex-1">
-        <RestaurantHeader title="Voucher nhà hàng" subtitle="Voucher shop cần ADMIN duyệt trước khi phát hành" />
+        <RestaurantHeader title="Voucher nhà hàng" subtitle="Voucher mới được tự động duyệt sau khi kiểm tra hợp lệ" />
         <div className="grid gap-4 p-4 sm:gap-6 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:p-8">
           <form onSubmit={submit} className="rounded-2xl border border-border-light bg-white p-4 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:p-6">
             <h2 className="text-xl font-black">Tạo voucher giảm giá món</h2>
@@ -96,10 +100,10 @@ const RestaurantVouchersPage = () => {
               <label className="text-sm font-semibold">Bắt đầu<input type="datetime-local" value={form.startTime} onChange={(event) => update('startTime', event.target.value)} className="mt-1 w-full rounded-lg border p-2" required /></label>
               <label className="text-sm font-semibold">Kết thúc<input type="datetime-local" value={form.endTime} onChange={(event) => update('endTime', event.target.value)} className="mt-1 w-full rounded-lg border p-2" required /></label>
             </div>
-            <button type="submit" disabled={saving || !currentRestaurant} className="mt-6 w-full rounded-lg bg-primary px-4 py-3 font-bold text-white disabled:opacity-50">{saving ? 'Đang gửi…' : 'Gửi voucher chờ duyệt'}</button>
+            <button type="submit" disabled={saving || !currentRestaurant} className="mt-6 w-full rounded-lg bg-primary px-4 py-3 font-bold text-white disabled:opacity-50">{saving ? 'Đang tạo…' : 'Tạo voucher'}</button>
           </form>
           <section className="rounded-2xl border border-border-light bg-white p-4 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:p-6">
-            <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center"><div><h2 className="text-xl font-black">Chiến dịch của cửa hàng</h2><p className="mt-1 text-sm text-gray-500">Voucher chỉ hoạt động sau khi ADMIN duyệt.</p></div><button type="button" onClick={() => void load()} className="min-h-10 rounded-lg border px-3 py-2 text-sm font-semibold">Làm mới</button></div>
+            <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center"><div><h2 className="text-xl font-black">Chiến dịch của cửa hàng</h2><p className="mt-1 text-sm text-gray-500">Voucher mới do cửa hàng tài trợ được tự động duyệt; voucher cũ đang chờ vẫn cần ADMIN duyệt.</p></div><button type="button" onClick={() => void load()} className="min-h-10 rounded-lg border px-3 py-2 text-sm font-semibold">Làm mới</button></div>
             {loading && <p className="mt-6 text-sm text-gray-500">Đang tải…</p>}
             {error && <p className="mt-6 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             {!loading && !error && vouchers.length === 0 && <p className="mt-6 text-sm text-gray-500">Chưa có chiến dịch nào.</p>}

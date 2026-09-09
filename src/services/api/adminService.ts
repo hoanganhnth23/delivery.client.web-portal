@@ -1,3 +1,4 @@
+import { voucherDate, voucherLocalToUtc } from '@/utils/voucher';
 import apiClient, { handleResponse, handleError } from './apiClient';
 import { API_ENDPOINTS } from './endpoints';
 import {
@@ -243,8 +244,8 @@ const parseAdminCoupon = (value: unknown, label: string): AdminCoupon => {
       : requireNumber(coupon.maxDiscountValue, `${label}.maxDiscountValue`),
     totalQuantity: requireInteger(coupon.totalQuantity, `${label}.totalQuantity`, 1),
     usedQuantity: requireInteger(coupon.usedQuantity, `${label}.usedQuantity`),
-    startTime: requireTimestamp(coupon.startTime, `${label}.startTime`),
-    endTime: requireTimestamp(coupon.endTime, `${label}.endTime`),
+    startTime: voucherDate(requireTimestamp(coupon.startTime, `${label}.startTime`)).toISOString(),
+    endTime: voucherDate(requireTimestamp(coupon.endTime, `${label}.endTime`)).toISOString(),
     minOrderValue: requireNumber(coupon.minOrderValue, `${label}.minOrderValue`),
     scopeType,
     scopeRefId,
@@ -394,7 +395,9 @@ class AdminService {
    */
   async createCoupon(data: CreateAdminCouponRequest): Promise<AdminCoupon> {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.PROMOTION.CREATE_PLATFORM, data);
+      const response = await apiClient.post(API_ENDPOINTS.PROMOTION.CREATE_PLATFORM, {
+        ...data, startTime: voucherLocalToUtc(data.startTime), endTime: voucherLocalToUtc(data.endTime),
+      });
       return parseAdminCoupon(handleResponse(response), 'coupon');
     } catch (error) {
       return handleError(error);

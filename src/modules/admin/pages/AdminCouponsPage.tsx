@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import { useDialogFocus } from '@/components/navigation/useDialogFocus';
 import type { AdminCoupon, CreateAdminCouponRequest } from '@/services/api/adminService';
 import { useAppDependencies } from '@/app/dependencies';
 import { formatDateTimeLocal, isValidDateTimeRange } from '@/utils/dateTime';
+import { voucherDate, voucherLifecycle } from '@/utils/voucher';
 
 const AdminCouponsPage = () => {
   const { admin: adminService, notifications, clock } = useAppDependencies();
@@ -14,6 +15,10 @@ const AdminCouponsPage = () => {
   const dialogRef = useDialogFocus(showModal, () => setShowModal(false));
   const [creating, setCreating] = useState(false);
   const [deletingCouponId, setDeletingCouponId] = useState<number | null>(null);
+  const [togglingCouponId, setTogglingCouponId] = useState<number | null>(null);
+  const mutationLock = useRef(false);
+  const [reviewing, setReviewing] = useState(false);
+  const mutationPending = deletingCouponId !== null || togglingCouponId !== null || reviewing;
   const [error, setError] = useState<string | null>(null);
   const [newCoupon, setNewCoupon] = useState<CreateAdminCouponRequest>({
     code: '',
@@ -95,8 +100,9 @@ const AdminCouponsPage = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (deletingCouponId !== null) return;
+    if (mutationLock.current) return;
     if (!confirm('Bạn có chắc muốn xóa coupon này?')) return;
+    mutationLock.current = true;
     setDeletingCouponId(id);
     try {
       await adminService.deleteCoupon(id);
@@ -105,17 +111,40 @@ const AdminCouponsPage = () => {
     } catch {
       notifications.error('Lỗi khi xóa coupon');
     } finally {
+      mutationLock.current = false;
       setDeletingCouponId(null);
     }
   };
 
   const reviewShopCoupon = async (id: number, action: 'approve' | 'reject') => {
+    if (mutationLock.current) return;
+    mutationLock.current = true;
+    setReviewing(true);
     try {
       if (action === 'approve') await adminService.approveShopCoupon(id);
       else await adminService.rejectShopCoupon(id);
       notifications.success(action === 'approve' ? 'Đã duyệt voucher nhà hàng' : 'Đã từ chối voucher nhà hàng');
       await loadCoupons();
     } catch { notifications.error('Không thể cập nhật trạng thái voucher nhà hàng'); }
+    finally {
+      mutationLock.current = false;
+      setReviewing(false);
+    }
+  };
+  const toggleCoupon = async (coupon: AdminCoupon) => {
+    if (mutationLock.current || (!coupon.active && coupon.approvalStatus && coupon.approvalStatus !== 'APPROVED')) return;
+    mutationLock.current = true;
+    setTogglingCouponId(coupon.id);
+    try {
+      if (coupon.active) await adminService.pauseCoupon(coupon.id);
+      else await adminService.resumeCoupon(coupon.id);
+      await loadCoupons();
+    }
+    catch { notifications.error('Không thể cập nhật trạng thái coupon'); }
+    finally {
+      mutationLock.current = false;
+      setTogglingCouponId(null);
+    }
   };
 
   return (
@@ -148,7 +177,7 @@ const AdminCouponsPage = () => {
         </div>
       )}
 
-      {pendingShopCoupons.length > 0 && <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20 sm:p-5"><h2 className="font-bold text-amber-900 dark:text-amber-200">Voucher nhà hàng chờ duyệt</h2><div className="mt-3 space-y-2">{pendingShopCoupons.map((coupon) => <div key={coupon.id} className="flex flex-col items-start justify-between gap-3 rounded-lg bg-white p-3 dark:bg-surface-dark sm:flex-row sm:items-center"><span className="break-words"><b>{coupon.code}</b> · {coupon.name} <small className="text-gray-500">SHOP #{coupon.scopeRefId}</small></span><span className="flex gap-2"><button type="button" onClick={() => void reviewShopCoupon(coupon.id, 'approve')} className="min-h-9 rounded-lg bg-green-600 px-3 py-1 text-xs font-bold text-white">Duyệt</button><button type="button" onClick={() => void reviewShopCoupon(coupon.id, 'reject')} className="min-h-9 rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white">Từ chối</button></span></div>)}</div></section>}
+      {pendingShopCoupons.length > 0 && <section className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20 sm:p-5"><h2 className="font-bold text-amber-900 dark:text-amber-200">Voucher nhà hàng chờ duyệt</h2><div className="mt-3 space-y-2">{pendingShopCoupons.map((coupon) => <div key={coupon.id} className="flex flex-col items-start justify-between gap-3 rounded-lg bg-white p-3 dark:bg-surface-dark sm:flex-row sm:items-center"><span className="break-words"><b>{coupon.code}</b> · {coupon.name} <small className="text-gray-500">SHOP #{coupon.scopeRefId}</small></span><span className="flex gap-2"><button type="button" disabled={mutationPending} onClick={() => void reviewShopCoupon(coupon.id, 'approve')} className="min-h-9 rounded-lg bg-green-600 px-3 py-1 text-xs font-bold text-white">Duyệt</button><button type="button" disabled={mutationPending} onClick={() => void reviewShopCoupon(coupon.id, 'reject')} className="min-h-9 rounded-lg bg-red-600 px-3 py-1 text-xs font-bold text-white">Từ chối</button></span></div>)}</div></section>}
 
       <div className="overflow-hidden rounded-xl border border-border-light bg-white shadow-sm dark:border-border-dark dark:bg-surface-dark">
         <div className="overflow-x-auto">
@@ -179,7 +208,7 @@ const AdminCouponsPage = () => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium">
-                      {coupon.rewardType === 'FIXED' ? `${coupon.discountValue.toLocaleString()}đ` : `${coupon.discountValue}%`}
+                      {coupon.rewardType === 'FREESHIP' ? 'Miễn phí vận chuyển' : coupon.rewardType === 'FIXED' ? `${coupon.discountValue.toLocaleString()}đ` : `${coupon.discountValue}%`}
                     </div>
                     <div className="text-xs text-gray-400">Min: {coupon.minOrderValue.toLocaleString()}đ</div>
                   </td>
@@ -193,19 +222,20 @@ const AdminCouponsPage = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-xs text-gray-500">Bắt đầu: {new Date(coupon.startTime).toLocaleDateString()}</div>
-                    <div className="text-xs text-gray-500">Kết thúc: {new Date(coupon.endTime).toLocaleDateString()}</div>
+                    <div className="text-xs text-gray-500">Bắt đầu: {voucherDate(coupon.startTime).toLocaleString()}</div>
+                    <div className="text-xs text-gray-500">Kết thúc: {voucherDate(coupon.endTime).toLocaleString()}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${coupon.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {coupon.active ? 'ĐANG CHẠY' : 'DỪNG'}
+                      {voucherLifecycle(coupon, clock.now())}
                     </span>
                   </td>
                   <td className="px-6 py-4">
+                    <button type="button" onClick={() => void toggleCoupon(coupon)} disabled={mutationPending || (!coupon.active && !!coupon.approvalStatus && coupon.approvalStatus !== 'APPROVED')} aria-label={`${coupon.active ? 'Tạm dừng' : 'Tiếp tục'} coupon ${coupon.code}`} className="mr-3 text-primary disabled:opacity-50"><span className="material-symbols-outlined">{coupon.active ? 'pause' : 'play_arrow'}</span></button>
                     <button
                       type="button"
                       onClick={() => void handleDelete(coupon.id)}
-                      disabled={deletingCouponId !== null}
+                      disabled={mutationPending}
                       aria-label={`Xóa coupon ${coupon.code}`}
                       className="text-red-500 transition-colors hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >

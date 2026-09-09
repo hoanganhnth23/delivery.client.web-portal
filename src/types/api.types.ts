@@ -114,6 +114,8 @@ export type DeleteActionResult = ActionResult<DeleteData>;
 // ============================================
 export interface User {
   id: number;
+  /** Stable Auth identity; `id` remains the User profile id for portal APIs. */
+  authId?: number;
   email: string;
   name: string;
   role: string;

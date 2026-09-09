@@ -152,7 +152,7 @@ export function createPromotionFake(
       active: false,
       layer: 'SHOP_DISCOUNT' as const,
       fundingSource: 'SHOP' as const,
-      approvalStatus: 'PENDING',
+      approvalStatus: 'APPROVED',
     })),
     listShopVouchers: vi.fn(async () => []),
     ...overrides,
