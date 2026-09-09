@@ -4,6 +4,7 @@ import { API_ENDPOINTS } from './endpoints';
 import {
   optionalPositiveInteger,
   optionalString,
+  optionalText,
   requireArray,
   requireBoolean,
   requireEnum,
@@ -235,7 +236,7 @@ const parseAdminCoupon = (value: unknown, label: string): AdminCoupon => {
     id: requireInteger(coupon.id, `${label}.id`, 1),
     code: requireString(coupon.code, `${label}.code`),
     name: requireString(coupon.name, `${label}.name`),
-    description: optionalString(coupon.description, `${label}.description`) ?? '',
+    description: optionalText(coupon.description, `${label}.description`) ?? '',
     creatorType,
     rewardType: requireEnum(coupon.rewardType, REWARD_TYPES, `${label}.rewardType`),
     discountValue: requireNumber(coupon.discountValue, `${label}.discountValue`),
