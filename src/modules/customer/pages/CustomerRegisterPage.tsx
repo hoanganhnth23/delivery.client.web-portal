@@ -48,9 +48,8 @@ const CustomerRegisterPage = () => {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f5f5f5] p-4 sm:p-6">
       <section className="w-full max-w-lg rounded-lg border border-[#eeeeee] bg-white p-6 shadow-lg sm:rounded-lg sm:p-8">
-        <Link to={ROUTES.HOME} className="inline-flex items-center gap-2 text-xl font-bold text-[#ee4d2d]">
-          <span aria-hidden="true" className="material-symbols-outlined">local_dining</span>
-          Delivery
+        <Link to={ROUTES.HOME} className="inline-flex items-center text-2xl font-bold tracking-tight text-[#ee4d2d]">
+          Shopee<span className="font-normal">Food</span>
         </Link>
         <h1 className="mt-6 text-2xl font-bold sm:mt-8 sm:text-3xl">Tạo tài khoản khách hàng</h1>
         <p className="mt-2 text-sm text-[#777777] sm:text-base">Đăng ký xong, hãy kiểm tra email để kích hoạt tài khoản.</p>

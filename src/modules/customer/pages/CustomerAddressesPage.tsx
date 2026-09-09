@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAppDependencies } from '@/app/dependencies';
 import type { UserAddress } from '@/types/api.types';
 import { CustomerShell } from '../components/CustomerShell';
 import { formatAddress } from '@/services/api/addressService';
 import { getErrorMessage, isVietnamCoordinate } from '../utils';
+import { ROUTES } from '@/utils/constants';
 
 type AddressForm = {
   label: string;
@@ -20,7 +22,17 @@ type AddressForm = {
 };
 
 const emptyForm: AddressForm = {
-  label: 'Nhà', recipientName: '', phoneNumber: '', addressLine: '', ward: '', district: '', city: '', postalCode: '', latitude: '', longitude: '', isDefault: false,
+  label: 'Nhà riêng',
+  recipientName: '',
+  phoneNumber: '',
+  addressLine: '',
+  ward: '',
+  district: '',
+  city: 'TP. Hồ Chí Minh',
+  postalCode: '',
+  latitude: '10.776889',
+  longitude: '106.700806',
+  isDefault: false,
 };
 
 const toForm = (address: UserAddress): AddressForm => ({
@@ -40,8 +52,14 @@ const toForm = (address: UserAddress): AddressForm => ({
 const CustomerAddressesPage = () => {
   const { auth, address: addressService } = useAppDependencies();
   const userId = auth.getCurrentUser()?.id;
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isCheckoutContext = searchParams.get('context') === 'checkout';
+  const selectedIdFromParam = searchParams.get('selectedId') ? Number(searchParams.get('selectedId')) : null;
+
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
-  const [editing, setEditing] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [form, setForm] = useState<AddressForm>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -53,15 +71,18 @@ const CustomerAddressesPage = () => {
     try {
       setLoading(true);
       setError(null);
-      setAddresses(await addressService.getUserAddresses(userId));
+      const data = await addressService.getUserAddresses(userId);
+      setAddresses(data);
     } catch (caught) {
-      setError(getErrorMessage(caught, 'Không thể tải địa chỉ'));
+      setError(getErrorMessage(caught, 'Không thể tải danh sách địa chỉ'));
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { void load(); /* one load per authenticated profile */ // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   const coordinates = useMemo(() => {
@@ -70,42 +91,101 @@ const CustomerAddressesPage = () => {
     return { latitude, longitude };
   }, [form.latitude, form.longitude]);
 
-  const setField = <K extends keyof AddressForm>(field: K, value: AddressForm[K]) => setForm((current) => ({ ...current, [field]: value }));
+  const setField = <K extends keyof AddressForm>(field: K, value: AddressForm[K]) =>
+    setForm((current) => ({ ...current, [field]: value }));
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setError('Trình duyệt không hỗ trợ lấy vị trí hiện tại');
+      setError('Trình duyệt không hỗ trợ định vị GPS tự động');
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setField('latitude', position.coords.latitude.toFixed(6));
         setField('longitude', position.coords.longitude.toFixed(6));
-        setNotice('Đã lấy tọa độ hiện tại');
+        setNotice('Đã cập nhật tọa độ GPS thành công');
       },
-      () => setError('Không thể lấy vị trí. Bạn có thể nhập tọa độ thủ công.'),
+      () => setError('Không thể lấy tọa độ hiện tại. Bạn có thể nhập tọa độ thủ công.'),
       { enableHighAccuracy: false, timeout: 10_000 },
     );
+  };
+
+  const handleSelectForCheckout = (address: UserAddress) => {
+    if (!isVietnamCoordinate(address.latitude, address.longitude)) {
+      setError('Địa chỉ này chưa có tọa độ hợp lệ. Vui lòng bấm Sửa để cập nhật tọa độ trước khi dùng.');
+      return;
+    }
+    try {
+      window.sessionStorage.setItem('delivery.selected-address-id', String(address.id));
+    } catch {
+      // Ignore storage errors
+    }
+    navigate(ROUTES.CUSTOMER_CHECKOUT);
+  };
+
+  const startCreate = () => {
+    setEditingId(null);
+    setForm({
+      ...emptyForm,
+      isDefault: addresses.length === 0,
+      recipientName: auth.getCurrentUser()?.name || '',
+    });
+    setIsCreating(true);
+  };
+
+  const startEdit = (address: UserAddress) => {
+    setIsCreating(false);
+    setEditingId(address.id);
+    setForm(toForm(address));
+  };
+
+  const cancelForm = () => {
+    setIsCreating(false);
+    setEditingId(null);
+    setForm(emptyForm);
   };
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!userId) return;
     if (!isVietnamCoordinate(coordinates.latitude, coordinates.longitude)) {
-      setError('Vui lòng nhập tọa độ giao hàng hợp lệ trong Việt Nam');
+      setError('Vui lòng cung cấp tọa độ giao hàng hợp lệ tại Việt Nam');
       return;
     }
     try {
       setSaving(true);
       setError(null);
       const input = {
-        label: form.label.trim(), recipientName: form.recipientName.trim(), phoneNumber: form.phoneNumber.trim(), addressLine: form.addressLine.trim(), ward: form.ward.trim(), district: form.district.trim(), city: form.city.trim(), postalCode: form.postalCode.trim() || undefined, latitude: coordinates.latitude, longitude: coordinates.longitude, isDefault: form.isDefault,
+        label: form.label.trim() || 'Nhà riêng',
+        recipientName: form.recipientName.trim(),
+        phoneNumber: form.phoneNumber.trim(),
+        addressLine: form.addressLine.trim(),
+        ward: form.ward.trim(),
+        district: form.district.trim(),
+        city: form.city.trim(),
+        postalCode: form.postalCode.trim() || undefined,
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        isDefault: form.isDefault,
       };
-      if (editing) await addressService.updateAddress(editing, input);
-      else await addressService.createAddress(userId, input);
-      setForm(emptyForm);
-      setEditing(null);
-      setNotice('Đã lưu địa chỉ');
+
+      if (editingId) {
+        await addressService.updateAddress(editingId, input);
+        setNotice('Đã cập nhật địa chỉ thành công');
+      } else {
+        const created = await addressService.createAddress(userId, input);
+        setNotice('Đã thêm địa chỉ mới thành công');
+        if (isCheckoutContext) {
+          try {
+            window.sessionStorage.setItem('delivery.selected-address-id', String(created.id));
+          } catch {
+            // Ignore
+          }
+          navigate(ROUTES.CUSTOMER_CHECKOUT);
+          return;
+        }
+      }
+      cancelForm();
       await load();
     } catch (caught) {
       setError(getErrorMessage(caught, 'Không thể lưu địa chỉ'));
@@ -115,47 +195,387 @@ const CustomerAddressesPage = () => {
   };
 
   const remove = async (address: UserAddress) => {
-    if (!window.confirm(`Xóa địa chỉ ${address.label}?`)) return;
+    if (!window.confirm(`Bạn có chắc muốn xóa địa chỉ "${address.label}: ${address.addressLine}"?`)) return;
     try {
       await addressService.deleteAddress(address.id);
+      setNotice('Đã xóa địa chỉ');
       await load();
-    } catch (caught) { setError(getErrorMessage(caught, 'Không thể xóa địa chỉ')); }
+    } catch (caught) {
+      setError(getErrorMessage(caught, 'Không thể xóa địa chỉ'));
+    }
   };
 
   const setDefault = async (address: UserAddress) => {
     try {
       await addressService.setDefaultAddress(address.id);
+      setNotice(`Đã đặt "${address.label}" làm địa chỉ mặc định`);
       await load();
-    } catch (caught) { setError(getErrorMessage(caught, 'Không thể đặt địa chỉ mặc định')); }
+    } catch (caught) {
+      setError(getErrorMessage(caught, 'Không thể đặt địa chỉ mặc định'));
+    }
   };
 
+  const pageTitle = isCheckoutContext ? 'Chọn địa chỉ giao hàng' : 'Địa chỉ của tôi';
+
   return (
-    <CustomerShell title="Địa chỉ giao hàng">
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <section className="rounded-lg border border-[#eeeeee] bg-white p-4 sm:rounded-lg sm:p-6">
-          {loading && <p>Đang tải địa chỉ…</p>}
-          {error && <div role="alert" className="mb-5 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
-          {!loading && addresses.length === 0 && <p className="rounded-lg border border-dashed border-[#dddddd] p-6 text-center text-[#777777] sm:p-8">Bạn chưa có địa chỉ nào.</p>}
-          <div className="space-y-4">
-            {addresses.map((address) => (
-              <article key={address.id} className="rounded-lg border border-[#eeeeee] p-4">
-                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold">{address.label}</h3>{address.isDefault && <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-bold text-green-700">Mặc định</span>}</div><p className="mt-2 break-words font-semibold">{address.recipientName} · {address.phoneNumber}</p><p className="mt-1 break-words text-sm text-[#777777]">{formatAddress(address)}</p>{!isVietnamCoordinate(address.latitude, address.longitude) && <p className="mt-2 text-xs font-bold text-amber-700">Thiếu tọa độ — chưa dùng được khi checkout</p>}</div><div className="flex shrink-0 gap-2"><button type="button" onClick={() => { setEditing(address.id); setForm(toForm(address)); }} className="min-h-9 text-sm font-bold text-[#c5371d]">Sửa</button><button type="button" onClick={() => void remove(address)} className="min-h-9 text-sm font-bold text-red-600">Xóa</button></div></div>
-                {!address.isDefault && <button type="button" onClick={() => void setDefault(address)} className="mt-3 text-sm font-bold text-[#777777] underline">Đặt mặc định</button>}
-              </article>
-            ))}
+    <CustomerShell title={pageTitle}>
+      <div className="mx-auto max-w-3xl space-y-5 sm:space-y-6">
+        {/* Context Notice if from Checkout */}
+        {isCheckoutContext && (
+          <div className="flex items-center justify-between rounded-xl border border-orange-200 bg-[#fff5ef] p-4 text-xs text-[#d35433] sm:text-sm">
+            <div className="flex items-center gap-2 font-medium">
+              <span className="material-symbols-outlined text-lg">local_shipping</span>
+              <span>Chọn địa chỉ nhận món cho đơn hàng hiện tại của bạn</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate(ROUTES.CUSTOMER_CHECKOUT)}
+              className="font-bold text-[#ee4d2d] underline"
+            >
+              Quay lại checkout
+            </button>
           </div>
-        </section>
-        <section className="h-fit rounded-lg border border-[#eeeeee] bg-white p-4 sm:rounded-lg sm:p-6 lg:sticky lg:top-24">
-          <div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold">{editing ? 'Sửa địa chỉ' : 'Thêm địa chỉ'}</h2>{editing && <button type="button" onClick={() => { setEditing(null); setForm(emptyForm); }} className="text-sm font-bold text-[#777777]">Hủy sửa</button>}</div>
-          {notice && <p role="status" className="mt-3 text-sm font-semibold text-green-700">{notice}</p>}
-          <form onSubmit={submit} className="mt-5 space-y-4">
-            {([['label', 'Nhãn', 'Nhà'], ['recipientName', 'Tên người nhận', 'Nguyễn Văn A'], ['phoneNumber', 'Số điện thoại', '090…'], ['addressLine', 'Số nhà, tên đường', '12 Nguyễn Huệ'], ['ward', 'Phường/Xã', 'Bến Nghé'], ['district', 'Quận/Huyện', 'Quận 1'], ['city', 'Tỉnh/Thành phố', 'TP. Hồ Chí Minh']] as const).map(([field, label, placeholder]) => <label key={field} className="block text-sm font-bold">{label}<input required value={form[field]} onChange={(event) => setField(field, event.target.value)} placeholder={placeholder} className="mt-1.5 w-full rounded-md border border-[#dddddd] px-3 py-2.5 font-normal outline-none focus:ring-2 focus:ring-[#ee4d2d]/30" /></label>)}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2"><label className="block text-sm font-bold">Latitude<input required type="number" step="any" value={form.latitude} onChange={(event) => setField('latitude', event.target.value)} className="mt-1.5 w-full rounded-md border border-[#dddddd] px-3 py-2.5 font-normal" /></label><label className="block text-sm font-bold">Longitude<input required type="number" step="any" value={form.longitude} onChange={(event) => setField('longitude', event.target.value)} className="mt-1.5 w-full rounded-md border border-[#dddddd] px-3 py-2.5 font-normal" /></label></div>
-            <button type="button" onClick={useCurrentLocation} className="w-full rounded-md border border-[#ee4d2d] px-4 py-2.5 text-sm font-bold text-[#c5371d]">Dùng vị trí hiện tại</button>
-            <label className="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={form.isDefault} onChange={(event) => setField('isDefault', event.target.checked)} /> Đặt làm địa chỉ mặc định</label>
-            <button type="submit" disabled={saving} className="w-full rounded-md bg-[#ee4d2d] px-4 py-3 font-bold text-white disabled:opacity-50">{saving ? 'Đang lưu…' : 'Lưu địa chỉ'}</button>
-          </form>
-        </section>
+        )}
+
+        {error && (
+          <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+        {notice && (
+          <div role="status" className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">
+            {notice}
+          </div>
+        )}
+
+        {/* Loading state */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center gap-3 text-sm text-[#777777]">
+              <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-[#ee4d2d] border-t-transparent" />
+              <span>Đang tải danh sách địa chỉ…</span>
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && addresses.length === 0 && !isCreating && (
+          <div className="rounded-2xl border border-dashed border-[#dddddd] bg-white p-8 text-center sm:p-12">
+            <span className="material-symbols-outlined text-5xl text-[#dacbc3]">location_off</span>
+            <h2 className="mt-3 text-lg font-bold text-[#222222]">Chưa có địa chỉ nào</h2>
+            <p className="mt-1 text-sm text-[#777777]">Thêm địa chỉ giao hàng để thuận tiện đặt món nhanh chóng hơn.</p>
+            <button
+              type="button"
+              onClick={startCreate}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#ee4d2d] px-5 py-2.5 font-bold text-white shadow-sm hover:bg-[#d84023]"
+            >
+              <span className="material-symbols-outlined text-lg">add</span>
+              <span>Thêm địa chỉ mới</span>
+            </button>
+          </div>
+        )}
+
+        {/* List of Addresses (ShopeeFood sf-addresses style) */}
+        {!loading && addresses.length > 0 && !isCreating && editingId === null && (
+          <div className="space-y-3">
+            <div className="overflow-hidden rounded-2xl border border-[#eeeeee] bg-white shadow-sm divide-y divide-[#eeeeee]">
+              {addresses.map((address) => {
+                const isSelected = selectedIdFromParam === address.id;
+                const isHome = address.label.toLowerCase().includes('nhà');
+                const isOffice = address.label.toLowerCase().includes('văn phòng') || address.label.toLowerCase().includes('công ty');
+                const iconName = isOffice ? 'work' : isHome ? 'home' : 'location_on';
+
+                return (
+                  <article
+                    key={address.id}
+                    className={`flex items-start justify-between gap-3 p-4 transition sm:p-5 ${
+                      isSelected ? 'border-l-4 border-l-[#ee4d2d] bg-[#fff9f6]' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    {/* Main Address Info */}
+                    <div
+                      className={`flex flex-1 items-start gap-3.5 ${isCheckoutContext ? 'cursor-pointer' : ''}`}
+                      onClick={() => {
+                        if (isCheckoutContext) handleSelectForCheckout(address);
+                      }}
+                    >
+                      <span className="material-symbols-outlined mt-0.5 text-2xl text-[#ee4d2d]" aria-hidden="true">
+                        {iconName}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <b className="text-sm font-bold text-[#222222] sm:text-base">
+                            {address.recipientName}
+                          </b>
+                          <span className="text-xs text-[#777777] sm:text-sm">· {address.phoneNumber}</span>
+                          <span className="rounded border border-[#dddddd] bg-gray-50 px-2 py-0.5 text-[11px] font-semibold text-[#555555]">
+                            {address.label}
+                          </span>
+                          {address.isDefault && (
+                            <span className="rounded border border-[#ee4d2d] bg-[#fff5ef] px-2 py-0.5 text-[11px] font-bold text-[#ee4d2d]">
+                              Mặc định
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-1.5 text-xs text-[#555555] sm:text-sm leading-relaxed">
+                          {formatAddress(address)}
+                        </p>
+
+                        {!isVietnamCoordinate(address.latitude, address.longitude) ? (
+                          <p className="mt-2 text-xs font-bold text-red-600">
+                            ⚠ Thiếu tọa độ GPS — Vui lòng bấm Sửa để bổ sung
+                          </p>
+                        ) : (
+                          <span className="mt-1.5 inline-block text-[11px] text-[#999999]">
+                            Tọa độ: {address.latitude?.toFixed(4)}, {address.longitude?.toFixed(4)}
+                          </span>
+                        )}
+
+                        {/* Button for checkout selection */}
+                        {isCheckoutContext && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectForCheckout(address);
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-[#ee4d2d] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#d84023]"
+                            >
+                              <span className="material-symbols-outlined text-base">check</span>
+                              <span>Giao đến địa chỉ này</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions: Edit, Delete, Set Default */}
+                    <div className="flex shrink-0 flex-col items-end gap-2 text-right">
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => startEdit(address)}
+                          className="text-xs font-bold text-[#ee4d2d] hover:underline sm:text-sm"
+                        >
+                          Sửa
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void remove(address)}
+                          className="text-xs font-semibold text-[#999999] hover:text-red-600 sm:text-sm"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                      {!address.isDefault && (
+                        <button
+                          type="button"
+                          onClick={() => void setDefault(address)}
+                          className="text-[11px] font-medium text-[#777777] hover:text-[#222222] hover:underline"
+                        >
+                          Đặt làm mặc định
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {/* ShopeeFood .sf-new-address button */}
+            <button
+              type="button"
+              onClick={startCreate}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#ffd3c7] bg-white p-4 font-bold text-[#ee4d2d] shadow-sm transition hover:border-[#ee4d2d] hover:bg-[#fff9f6]"
+            >
+              <span className="material-symbols-outlined text-2xl">add_circle_outline</span>
+              <span>Thêm địa chỉ mới</span>
+            </button>
+          </div>
+        )}
+
+        {/* Add/Edit Form */}
+        {(isCreating || editingId !== null) && (
+          <section className="overflow-hidden rounded-2xl border border-[#eeeeee] bg-white p-5 shadow-sm sm:p-7">
+            <div className="flex items-center justify-between border-b border-[#eeeeee] pb-4">
+              <h2 className="text-base font-bold text-[#222222] sm:text-lg">
+                {editingId !== null ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ giao hàng mới'}
+              </h2>
+              <button
+                type="button"
+                onClick={cancelForm}
+                className="text-xs font-bold text-[#777777] hover:text-[#222222]"
+              >
+                Hủy bỏ
+              </button>
+            </div>
+
+            <form onSubmit={submit} className="mt-5 space-y-4 text-sm">
+              {/* Quick Label Selector */}
+              <div>
+                <label className="block font-bold text-[#444444] mb-2">Loại địa chỉ</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Nhà riêng', 'Văn phòng', 'Khác'].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setField('label', type)}
+                      className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
+                        form.label === type
+                          ? 'border border-[#ee4d2d] bg-[#fff5ef] text-[#ee4d2d]'
+                          : 'border border-[#dddddd] bg-gray-50 text-[#666666] hover:bg-gray-100'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recipient info */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="block font-bold">
+                  Họ và tên người nhận <span className="text-red-500">*</span>
+                  <input
+                    required
+                    value={form.recipientName}
+                    onChange={(e) => setField('recipientName', e.target.value)}
+                    placeholder="Ví dụ: Nguyễn Văn A"
+                    className="mt-1.5 w-full rounded-xl border border-[#dddddd] px-3.5 py-2.5 font-normal outline-none focus:border-[#ee4d2d] focus:ring-2 focus:ring-[#ee4d2d]/20"
+                  />
+                </label>
+                <label className="block font-bold">
+                  Số điện thoại <span className="text-red-500">*</span>
+                  <input
+                    required
+                    type="tel"
+                    value={form.phoneNumber}
+                    onChange={(e) => setField('phoneNumber', e.target.value)}
+                    placeholder="Ví dụ: 0901234567"
+                    className="mt-1.5 w-full rounded-xl border border-[#dddddd] px-3.5 py-2.5 font-normal outline-none focus:border-[#ee4d2d] focus:ring-2 focus:ring-[#ee4d2d]/20"
+                  />
+                </label>
+              </div>
+
+              {/* Address details */}
+              <label className="block font-bold">
+                Số nhà, tên đường, toà nhà <span className="text-red-500">*</span>
+                <input
+                  required
+                  value={form.addressLine}
+                  onChange={(e) => setField('addressLine', e.target.value)}
+                  placeholder="Ví dụ: 123 Nguyễn Huệ, Tầng 5"
+                  className="mt-1.5 w-full rounded-xl border border-[#dddddd] px-3.5 py-2.5 font-normal outline-none focus:border-[#ee4d2d] focus:ring-2 focus:ring-[#ee4d2d]/20"
+                />
+              </label>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <label className="block font-bold">
+                  Phường / Xã <span className="text-red-500">*</span>
+                  <input
+                    required
+                    value={form.ward}
+                    onChange={(e) => setField('ward', e.target.value)}
+                    placeholder="Phường Bến Nghé"
+                    className="mt-1.5 w-full rounded-xl border border-[#dddddd] px-3.5 py-2.5 font-normal outline-none focus:border-[#ee4d2d] focus:ring-2 focus:ring-[#ee4d2d]/20"
+                  />
+                </label>
+                <label className="block font-bold">
+                  Quận / Huyện <span className="text-red-500">*</span>
+                  <input
+                    required
+                    value={form.district}
+                    onChange={(e) => setField('district', e.target.value)}
+                    placeholder="Quận 1"
+                    className="mt-1.5 w-full rounded-xl border border-[#dddddd] px-3.5 py-2.5 font-normal outline-none focus:border-[#ee4d2d] focus:ring-2 focus:ring-[#ee4d2d]/20"
+                  />
+                </label>
+                <label className="block font-bold">
+                  Tỉnh / Thành phố <span className="text-red-500">*</span>
+                  <input
+                    required
+                    value={form.city}
+                    onChange={(e) => setField('city', e.target.value)}
+                    placeholder="TP. Hồ Chí Minh"
+                    className="mt-1.5 w-full rounded-xl border border-[#dddddd] px-3.5 py-2.5 font-normal outline-none focus:border-[#ee4d2d] focus:ring-2 focus:ring-[#ee4d2d]/20"
+                  />
+                </label>
+              </div>
+
+              {/* Coordinates & GPS */}
+              <div className="rounded-xl border border-[#eeeeee] bg-[#fafafa] p-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-[#333333]">Tọa độ định vị giao hàng</span>
+                  <button
+                    type="button"
+                    onClick={useCurrentLocation}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#ee4d2d] hover:underline"
+                  >
+                    <span className="material-symbols-outlined text-base">my_location</span>
+                    <span>Lấy vị trí GPS của tôi</span>
+                  </button>
+                </div>
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block text-xs font-semibold text-[#666666]">
+                    Vĩ độ (Latitude)
+                    <input
+                      required
+                      type="number"
+                      step="any"
+                      value={form.latitude}
+                      onChange={(e) => setField('latitude', e.target.value)}
+                      placeholder="10.776889"
+                      className="mt-1 w-full rounded-lg border border-[#dddddd] bg-white px-3 py-2 text-sm font-normal"
+                    />
+                  </label>
+                  <label className="block text-xs font-semibold text-[#666666]">
+                    Kinh độ (Longitude)
+                    <input
+                      required
+                      type="number"
+                      step="any"
+                      value={form.longitude}
+                      onChange={(e) => setField('longitude', e.target.value)}
+                      placeholder="106.700806"
+                      className="mt-1 w-full rounded-lg border border-[#dddddd] bg-white px-3 py-2 text-sm font-normal"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              {/* Default address checkbox */}
+              <label className="flex items-center gap-2.5 cursor-pointer pt-1 font-medium text-[#444444]">
+                <input
+                  type="checkbox"
+                  checked={form.isDefault}
+                  onChange={(e) => setField('isDefault', e.target.checked)}
+                  className="h-4 w-4 rounded text-[#ee4d2d] focus:ring-[#ee4d2d]"
+                />
+                <span>Đặt làm địa chỉ nhận hàng mặc định</span>
+              </label>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={cancelForm}
+                  className="flex-1 rounded-xl border border-[#dddddd] py-3 font-bold text-[#666666] hover:bg-gray-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-[2] rounded-xl bg-[#ee4d2d] py-3 font-bold text-white shadow-sm hover:bg-[#d84023] disabled:opacity-50"
+                >
+                  {saving ? 'Đang lưu địa chỉ…' : editingId !== null ? 'Lưu thay đổi' : 'Hoàn tất & Thêm mới'}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
       </div>
     </CustomerShell>
   );

@@ -18,11 +18,15 @@ import AccountPage from "./AccountPage";
 import AccountProfilePage from "./AccountProfilePage";
 import AccountSettingsPage from "./AccountSettingsPage";
 import type { PreviewTheme } from "./AccountSettingsPage";
+import CustomerLiveStreamViewer, { LIVE_STREAMS_DATA } from "./CustomerLiveStreamViewer";
+import SupportChatPage from "./SupportChatPage";
+import { resetPreviewSupportChat } from "../support-preview/previewSupportChat";
 
 const base = "/preview/shopeefood";
 const money = (v: number) => `${v.toLocaleString("vi-VN")}đ`;
 const screens = [
   ["home", "Trang chủ"],
+  ["live", "ShopeeFood Live"],
   ["search", "Tìm kiếm"],
   ["restaurant/1", "Chi tiết quán"],
   ["cart", "Giỏ hàng"],
@@ -30,6 +34,7 @@ const screens = [
   ["account", "Tôi · Tài khoản"],
   ["account/profile", "Thông tin cá nhân"],
   ["account/settings", "Cài đặt"],
+  ["support", "Hỗ trợ CSKH"],
   ["checkout", "Checkout"],
   ["orders", "Đơn hàng"],
   ["login", "Đăng nhập"],
@@ -212,6 +217,13 @@ export default function CustomerPreview() {
       >
         <Icon name="home" />
         Trang chủ
+      </button>
+      <button
+        className={route.startsWith("live") ? "active" : ""}
+        onClick={() => go("live")}
+      >
+        <Icon name="live_tv" />
+        Live
       </button>
       <button
         className={route.startsWith("order") ? "active" : ""}
@@ -400,6 +412,47 @@ export default function CustomerPreview() {
                     <b>{r.items[2].name}</b>
                     <span>{money(r.items[2].price)}</span>
                   </button>
+                ))}
+              </div>
+            </section>
+            <section className="sf-live-section">
+              <div className="sf-section-title">
+                <div className="sf-live-title-wrap">
+                  <span className="sf-live-dot-pulse" />
+                  <h2>ShopeeFood Live</h2>
+                  <span className="sf-live-pill">Đang phát</span>
+                </div>
+                <button onClick={() => go("live")}>
+                  Xem tất cả <Icon name="chevron_right" />
+                </button>
+              </div>
+              <div className="sf-live-cards-scroll">
+                {LIVE_STREAMS_DATA.map((stream) => (
+                  <div
+                    key={stream.id}
+                    className="sf-live-card"
+                    onClick={() => go(`live/${stream.id}`)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="sf-live-card-thumb">
+                      <img src={stream.thumbnail} alt={stream.title} />
+                      <div className="sf-live-card-badge">
+                        <span className="sf-live-badge-red">🔴 LIVE</span>
+                        <span className="sf-live-badge-viewers">{stream.viewers.toLocaleString()}</span>
+                      </div>
+                      <div className="sf-live-card-deal-tag">
+                        <span>{stream.dealTag}</span>
+                      </div>
+                    </div>
+                    <div className="sf-live-card-info">
+                      <div className="sf-live-card-host">
+                        <img src={stream.restaurantImage} alt={stream.restaurantName} />
+                        <span className="truncate">{stream.restaurantName}</span>
+                      </div>
+                      <p className="sf-live-card-title">{stream.title}</p>
+                    </div>
+                  </div>
                 ))}
               </div>
             </section>
@@ -626,6 +679,7 @@ export default function CustomerPreview() {
   else if (route === "account") content = <>{heading("Tôi")}<AccountPage signedIn={signedIn} navigate={go} logout={() => { setSignedIn(false); go("login"); }} />{nav}</>;
   else if (route === "account/profile") content = <>{heading("Thông tin cá nhân", "account")}<AccountProfilePage />{nav}</>;
   else if (route === "account/settings") content = <>{heading("Cài đặt", "account")}<AccountSettingsPage theme={theme} setTheme={setTheme} debugEnabled={debugEnabled} setDebugEnabled={setDebugEnabled} route={route} width={width} />{nav}</>;
+  else if (route === "support") content = <SupportChatPage onBack={() => go("account")} />;
   else if (route === "addresses")
     content = (
       <>
@@ -982,6 +1036,20 @@ export default function CustomerPreview() {
         </section>
       </>
     );
+  else if (route === "live" || route.startsWith("live/")) {
+    const liveStreamId = route.startsWith("live/") ? route.split("/")[1] : undefined;
+    content = (
+      <CustomerLiveStreamViewer
+        streamId={liveStreamId}
+        onClose={() => go("home")}
+        onAddToCart={(item, rest) => {
+          dispatch({ type: "add", item, restaurantId: rest.id, quantity: 1, note: "" });
+        }}
+        cartCount={count}
+        onOpenCart={() => go("cart")}
+      />
+    );
+  }
   else
     content = (
       <>
@@ -998,7 +1066,7 @@ export default function CustomerPreview() {
             <Icon name="location_on" /><span><small>Giao đến</small><b>{homeAddress?.line ?? "Chọn địa chỉ giao hàng"}</b></span><Icon name="expand_more" />
           </button>
           <nav aria-label="Điều hướng desktop">
-            {[["home", "restaurant", "Khám phá"], ["orders", "receipt_long", "Đơn hàng"], ["cart", "shopping_bag", `Giỏ hàng${count ? ` (${count})` : ""}`], ["account", "person", "Tôi"]].map(([path, icon, label]) => (
+            {[["home", "restaurant", "Khám phá"], ["live", "live_tv", "Live"], ["orders", "receipt_long", "Đơn hàng"], ["cart", "shopping_bag", `Giỏ hàng${count ? ` (${count})` : ""}`], ["account", "person", "Tôi"]].map(([path, icon, label]) => (
               <button key={path} onClick={() => go(path)} aria-current={route === path || route.startsWith(`${path}/`) ? "page" : undefined}><Icon name={icon} />{label}</button>
             ))}
           </nav>
@@ -1079,6 +1147,7 @@ export default function CustomerPreview() {
           className="sf-reset"
           onClick={() => {
             dispatch({ type: "reset" });
+            resetPreviewSupportChat();
             setSignedIn(true);
             setTheme("light");
             setDebugEnabled(false);
