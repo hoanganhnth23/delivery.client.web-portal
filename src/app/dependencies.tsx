@@ -106,7 +106,20 @@ export type FlashSaleAdminServicePort = Pick<
   | 'getCampaignItems'
   | 'updateCampaignStatus'
 >;
-export type LivestreamHostServicePort = Pick<typeof livestreamHostService, 'inspect' | 'create' | 'start' | 'end'>;
+export type LivestreamHostServicePort = Pick<
+  typeof livestreamHostService,
+  | 'inspect'
+  | 'getActive'
+  | 'getById'
+  | 'create'
+  | 'start'
+  | 'join'
+  | 'end'
+  | 'pinProduct'
+  | 'unpinProduct'
+  | 'listProducts'
+  | 'listPinnedProducts'
+>;
 
 export interface NotificationPort {
   success(message: string): unknown;

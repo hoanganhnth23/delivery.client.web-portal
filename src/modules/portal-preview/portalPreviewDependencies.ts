@@ -44,6 +44,10 @@ import type {
 import type {
   CreateLivestreamRequest,
   Livestream,
+  LivestreamProduct,
+  JoinLivestreamResponse,
+  PinLivestreamProductRequest,
+  StartLivestreamResponse,
 } from '@/services/api/livestreamService';
 import { USER_ROLES } from '@/utils/constants';
 import customerCatalog from '../customer-preview/catalog.json';
@@ -410,10 +414,20 @@ export function createPortalPreviewDependencies(
   ];
   let liveStreams: Livestream[] = [{
     id: '00000000-0000-4000-8000-000000000001',
+    sellerId: PREVIEW_USER_IDS.owner,
     restaurantId: PREVIEW_RESTAURANT_ID,
     title: 'Bếp Hà Đông hôm nay',
+    description: null,
     status: 'CREATED',
     streamProvider: 'AGORA',
+    roomId: 'preview-room-1',
+    channelName: 'preview-channel-1',
+    startedAt: null,
+    endedAt: null,
+    viewCount: 0,
+    createdAt: PREVIEW_DATE,
+    updatedAt: PREVIEW_DATE,
+    pinnedProducts: [],
   }];
 
   const user = previewUser(kind);
@@ -706,23 +720,93 @@ export function createPortalPreviewDependencies(
 
   const livestreamHost: LivestreamHostServicePort = {
     inspect: async (restaurantId) => clone(liveStreams.filter((stream) => stream.restaurantId === restaurantId)),
+    getActive: async () => clone(liveStreams.filter((stream) => stream.status === 'LIVE')),
+    getById: async (id) => clone(liveStreams.find((stream) => stream.id === id) ?? liveStreams[0]),
     create: async (request: CreateLivestreamRequest) => {
       const stream: Livestream = {
         id: `00000000-0000-4000-8000-${String(liveStreams.length + 2).padStart(12, '0')}`,
+        sellerId: PREVIEW_USER_IDS.owner,
         restaurantId: request.restaurantId,
         title: request.title,
+        description: request.description ?? null,
         status: 'CREATED',
         streamProvider: 'AGORA',
+        roomId: `preview-room-${liveStreams.length + 2}`,
+        channelName: `preview-channel-${liveStreams.length + 2}`,
+        startedAt: null,
+        endedAt: null,
+        viewCount: 0,
+        createdAt: PREVIEW_DATE,
+        updatedAt: PREVIEW_DATE,
+        pinnedProducts: [],
       };
       liveStreams = [stream, ...liveStreams];
       return clone(stream);
     },
     start: async (id) => {
       liveStreams = liveStreams.map((stream) => stream.id === id ? { ...stream, status: 'LIVE' } : stream);
+      const stream = liveStreams.find((item) => item.id === id)!;
+      const response: StartLivestreamResponse = {
+        livestreamId: stream.id,
+        channelName: stream.channelName,
+        status: 'LIVE',
+        token: 'preview-host-token',
+        uid: PREVIEW_USER_IDS.owner,
+        role: 'HOST',
+        tokenExpiresAt: PREVIEW_DATE,
+        title: stream.title,
+        restaurantId: stream.restaurantId,
+        startedAt: PREVIEW_DATE,
+      };
+      return clone(response);
+    },
+    join: async (id) => {
+      const stream = liveStreams.find((item) => item.id === id) ?? liveStreams[0];
+      const response: JoinLivestreamResponse = {
+        livestreamId: stream.id,
+        channelName: stream.channelName,
+        title: stream.title,
+        restaurantId: stream.restaurantId,
+        token: 'preview-viewer-token',
+        uid: PREVIEW_USER_IDS.owner + 1,
+        tokenExpiresAt: PREVIEW_DATE,
+        sellerId: stream.sellerId,
+        startedAt: stream.startedAt ?? PREVIEW_DATE,
+        currentViewers: null,
+      };
+      return clone(response);
     },
     end: async (id) => {
       liveStreams = liveStreams.map((stream) => stream.id === id ? { ...stream, status: 'ENDED' } : stream);
+      return clone(liveStreams.find((stream) => stream.id === id)!);
     },
+    pinProduct: async (id, request: PinLivestreamProductRequest) => {
+      const stream = liveStreams.find((item) => item.id === id) ?? liveStreams[0];
+      const pinnedProduct: LivestreamProduct = {
+        id: request.productId,
+        livestreamId: stream.id,
+        productId: request.productId,
+        productName: request.productName ?? 'Preview product',
+        productImage: request.productImage ?? null,
+        restaurantId: stream.restaurantId,
+        restaurantName: request.restaurantName ?? 'Preview restaurant',
+        priceAtLive: request.priceAtLive,
+        isPinned: true,
+        createdAt: PREVIEW_DATE,
+        pinnedAt: PREVIEW_DATE,
+      };
+      liveStreams = liveStreams.map((item) => item.id === stream.id
+        ? { ...item, pinnedProducts: [...item.pinnedProducts.filter((product) => product.productId !== request.productId), pinnedProduct] }
+        : item);
+      return clone(pinnedProduct);
+    },
+    unpinProduct: async (id, productId) => {
+      liveStreams = liveStreams.map((stream) => stream.id === id
+        ? { ...stream, pinnedProducts: stream.pinnedProducts.map((product) => product.productId === productId ? { ...product, isPinned: false, pinnedAt: null } : product) }
+        : stream);
+    },
+    listProducts: async (id) => clone(liveStreams.find((stream) => stream.id === id)?.pinnedProducts ?? []),
+    listPinnedProducts: async (id) => clone(liveStreams.find((stream) => stream.id === id)?.pinnedProducts.filter((product) => product.isPinned) ?? []),
   };
 
   const supportChat: SupportChatServicePort = createPreviewSupportChatService();

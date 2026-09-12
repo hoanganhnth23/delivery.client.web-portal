@@ -16,10 +16,20 @@ import { renderApp } from '@/test/renderApp';
 
 const stream: Livestream = {
   id: '00000000-0000-4000-8000-000000000001',
+  sellerId: 7,
   restaurantId: 201,
   title: 'Bếp trực tiếp',
+  description: null,
   status: 'CREATED',
   streamProvider: 'AGORA',
+  roomId: 'room-1',
+  channelName: 'channel-1',
+  startedAt: null,
+  endedAt: null,
+  viewCount: 0,
+  createdAt: '2026-09-12T00:00:00.000Z',
+  updatedAt: '2026-09-12T00:00:00.000Z',
+  pinnedProducts: [],
 };
 
 function ownerDependencies(overrides: Partial<AppDependencies> = {}) {
@@ -48,8 +58,19 @@ describe('restaurant livestream controls', () => {
       .mockResolvedValueOnce([{ ...createdStream, status: 'LIVE' as const }])
       .mockResolvedValueOnce([{ ...createdStream, status: 'ENDED' as const }]);
     const create = vi.fn(async (request) => ({ ...createdStream, title: request.title }));
-    const start = vi.fn(async () => undefined);
-    const end = vi.fn(async () => undefined);
+    const start = vi.fn(async () => ({
+      livestreamId: createdStream.id,
+      channelName: createdStream.channelName,
+      status: 'LIVE' as const,
+      token: 'test-host-token',
+      uid: 7,
+      role: 'HOST' as const,
+      tokenExpiresAt: '2026-09-12T01:00:00.000Z',
+      title: createdStream.title,
+      restaurantId: createdStream.restaurantId,
+      startedAt: '2026-09-12T00:00:00.000Z',
+    }));
+    const end = vi.fn(async () => ({ ...createdStream, status: 'ENDED' as const }));
 
     renderApp({
       route: '/restaurant/livestream',

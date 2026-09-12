@@ -14,6 +14,13 @@ import {
   type NotificationPort,
   type LivestreamHostServicePort,
 } from '@/app/dependencies';
+import type {
+  JoinLivestreamResponse,
+  LivestreamProduct,
+  LivestreamResponse,
+  PinLivestreamProductRequest,
+  StartLivestreamResponse,
+} from '@/services/api/livestreamService';
 import { buildMenuItem, buildOrder, buildRestaurant, buildUser } from './builders';
 
 export function createAuthFake(
@@ -308,17 +315,35 @@ export function createNotificationFake(
 export function createLivestreamHostFake(
   overrides: Partial<LivestreamHostServicePort> = {},
 ): LivestreamHostServicePort {
+  const stream: LivestreamResponse = {
+    id: '00000000-0000-4000-8000-000000000001',
+    sellerId: 1,
+    restaurantId: 1,
+    title: 'Livestream',
+    description: null,
+    status: 'CREATED',
+    streamProvider: 'AGORA',
+    roomId: 'preview-room-1',
+    channelName: 'preview-channel-1',
+    startedAt: null,
+    endedAt: null,
+    viewCount: 0,
+    createdAt: '2026-09-12T00:00:00.000Z',
+    updatedAt: '2026-09-12T00:00:00.000Z',
+    pinnedProducts: [],
+  };
   return {
     inspect: vi.fn(async () => []),
-    create: vi.fn(async (request) => ({
-      id: '00000000-0000-4000-8000-000000000001',
-      restaurantId: request.restaurantId,
-      title: request.title,
-      status: 'CREATED' as const,
-      streamProvider: 'AGORA' as const,
-    })),
-    start: vi.fn(async () => undefined),
-    end: vi.fn(async () => undefined),
+    getActive: vi.fn(async () => []),
+    getById: vi.fn(async () => ({ ...stream })),
+    create: vi.fn(async (request): Promise<LivestreamResponse> => ({ ...stream, restaurantId: request.restaurantId, title: request.title, description: request.description ?? null })),
+    start: vi.fn(async (): Promise<StartLivestreamResponse> => ({ livestreamId: stream.id, channelName: stream.channelName, status: 'LIVE', token: 'test-host-token', uid: 1, role: 'HOST', tokenExpiresAt: '2026-09-12T01:00:00.000Z', title: stream.title, restaurantId: stream.restaurantId, startedAt: '2026-09-12T00:00:00.000Z' })),
+    join: vi.fn(async (): Promise<JoinLivestreamResponse> => ({ livestreamId: stream.id, channelName: stream.channelName, title: stream.title, restaurantId: stream.restaurantId, token: 'test-viewer-token', uid: 2, tokenExpiresAt: '2026-09-12T01:00:00.000Z', sellerId: stream.sellerId, startedAt: '2026-09-12T00:00:00.000Z', currentViewers: null })),
+    end: vi.fn(async (): Promise<LivestreamResponse> => ({ ...stream, status: 'ENDED', endedAt: '2026-09-12T01:00:00.000Z' })),
+    pinProduct: vi.fn(async (_id: string, request: PinLivestreamProductRequest): Promise<LivestreamProduct> => ({ id: 1, livestreamId: stream.id, productId: request.productId, productName: request.productName ?? 'Preview product', productImage: request.productImage ?? null, restaurantId: stream.restaurantId, restaurantName: request.restaurantName ?? 'Preview restaurant', priceAtLive: request.priceAtLive, isPinned: true, createdAt: stream.createdAt, pinnedAt: stream.updatedAt })),
+    unpinProduct: vi.fn(async () => undefined),
+    listProducts: vi.fn(async () => []),
+    listPinnedProducts: vi.fn(async () => []),
     ...overrides,
   };
 }

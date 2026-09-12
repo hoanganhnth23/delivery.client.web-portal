@@ -118,9 +118,15 @@ export const API_ENDPOINTS = {
   LIVESTREAM: {
     ACTIVE: '/api/livestreams/active',
     CREATE: '/api/livestreams',
+    GET_BY_ID: (id: string) => `/api/livestreams/${id}`,
     START: (id: string) => `/api/livestreams/${id}/start`,
+    JOIN: (id: string) => `/api/livestreams/${id}/join`,
     END: (id: string) => `/api/livestreams/${id}/end`,
     INSPECT_RESTAURANT: (restaurantId: number) => `/api/livestreams/restaurant/${restaurantId}`,
+    PRODUCTS: (id: string) => `/api/livestreams/${id}/products`,
+    PINNED_PRODUCTS: (id: string) => `/api/livestreams/${id}/products/pinned`,
+    PIN_PRODUCT: (id: string) => `/api/livestreams/${id}/products/pin`,
+    UNPIN_PRODUCT: (id: string, productId: number) => `/api/livestreams/${id}/products/${productId}/pin`,
   },
 
 } as const;
