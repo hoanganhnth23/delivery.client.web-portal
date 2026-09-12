@@ -1,19 +1,16 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import { useAppDependencies } from '@/app/dependencies';
 import { useRestaurant } from '../hooks/useRestaurant';
-import type { Livestream } from '@/services/api/livestreamService';
+import type { Livestream, LivestreamProduct } from '@/services/api/livestreamService';
 import type { MenuItem } from '@/types/api.types';
 
 interface PinnedItem {
   id: number;
   name: string;
   originalPrice: number;
-  livePrice: number;
   image: string;
-  stock: number;
-  sold: number;
 }
 
 interface ChatMessage {
@@ -23,36 +20,6 @@ interface ChatMessage {
   time: string;
   isHost?: boolean;
 }
-
-const DEFAULT_MENU_PREVIEWS: PinnedItem[] = [
-  {
-    id: 101,
-    name: 'Cơm tấm sườn bì chả đặc biệt',
-    originalPrice: 65000,
-    livePrice: 45000,
-    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80',
-    stock: 50,
-    sold: 18,
-  },
-  {
-    id: 102,
-    name: 'Trà sữa ô long nướng kem cheese',
-    originalPrice: 45000,
-    livePrice: 29000,
-    image: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=400&auto=format&fit=crop&q=80',
-    stock: 80,
-    sold: 34,
-  },
-  {
-    id: 103,
-    name: 'Bún bò Huế thập cẩm giò nạc',
-    originalPrice: 60000,
-    livePrice: 42000,
-    image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&auto=format&fit=crop&q=80',
-    stock: 40,
-    sold: 12,
-  },
-];
 
 const SAMPLE_VIEWER_CHATS: Array<{ sender: string; text: string }> = [
   { sender: 'Minh Anh', text: 'Cơm sườn trông mướt quá shop ơi!' },
@@ -78,8 +45,16 @@ export default function RestaurantLivestreamPage() {
   const [camEnabled, setCamEnabled] = useState(true);
   const [colorFilter, setColorFilter] = useState<'normal' | 'vivid' | 'warm'>('vivid');
   const [showGrid, setShowGrid] = useState(false);
-  const [pinnedItemId, setPinnedItemId] = useState<number>(101);
-  const [availableItems, setAvailableItems] = useState<PinnedItem[]>(DEFAULT_MENU_PREVIEWS);
+  const [availableItems, setAvailableItems] = useState<PinnedItem[]>([]);
+  const [menuLoading, setMenuLoading] = useState(true);
+  const [menuError, setMenuError] = useState<string | null>(null);
+  const [pinnedProducts, setPinnedProducts] = useState<LivestreamProduct[]>([]);
+  const [pinnedLoading, setPinnedLoading] = useState(false);
+  const [pinnedError, setPinnedError] = useState<string | null>(null);
+  const [pinActionError, setPinActionError] = useState<string | null>(null);
+  const [pinningProductId, setPinningProductId] = useState<number | null>(null);
+  const [livePrices, setLivePrices] = useState<Record<number, string>>({});
+  const pinnedRequestId = useRef(0);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: '1', sender: 'Hệ thống', text: 'Chào mừng bạn đến với Studio Live! Chuẩn bị món ăn và bắt đầu phát sóng nào.', time: '10:00' },
     { id: '2', sender: 'Lan Hương', text: 'Chào shop, hôm nay có món gì hot không ạ?', time: '10:01' },
@@ -131,36 +106,78 @@ export default function RestaurantLivestreamPage() {
     }
   }, [streams, activeStreamId]);
 
-  // Load menu items if available
-  useEffect(() => {
-    if (!currentRestaurant) return;
-    void (async () => {
-      try {
-        const raw = await menuService.getMyMenuItems(currentRestaurant.id);
-        const menuData: MenuItem[] = Array.isArray(raw) ? raw : [];
-        if (menuData.length > 0) {
-          const mapped: PinnedItem[] = menuData.map((item, idx) => ({
-            id: item.id,
-            name: item.name,
-            originalPrice: item.price,
-            livePrice: Math.round(item.price * 0.75),
-            image: item.image || DEFAULT_MENU_PREVIEWS[idx % DEFAULT_MENU_PREVIEWS.length].image,
-            stock: 60,
-            sold: Math.floor(Math.random() * 20) + 5,
-          }));
-          setAvailableItems(mapped);
-          setPinnedItemId(mapped[0].id);
-        }
-      } catch {
-        // Fallback to default preview items
-      }
-    })();
+  const loadMenu = useCallback(async () => {
+    if (!currentRestaurant) {
+      setAvailableItems([]);
+      setMenuLoading(false);
+      return;
+    }
+    setMenuLoading(true);
+    setMenuError(null);
+    try {
+      const raw = await menuService.getMyMenuItems(currentRestaurant.id);
+      const menuData: MenuItem[] = Array.isArray(raw) ? raw : [];
+      setAvailableItems(menuData
+        .filter((item) => item.status === 'AVAILABLE')
+        .map((item) => ({
+          id: item.id,
+          name: item.name,
+          originalPrice: item.price,
+          image: item.image,
+        })));
+      setLivePrices({});
+    } catch {
+      setAvailableItems([]);
+      setMenuError('Không thể tải thực đơn.');
+    } finally {
+      setMenuLoading(false);
+    }
   }, [currentRestaurant, menuService]);
+
+  useEffect(() => {
+    void loadMenu();
+  }, [loadMenu]);
 
   const activeStream = useMemo(
     () => streams.find((s) => s.id === activeStreamId) ?? streams[0] ?? null,
     [streams, activeStreamId],
   );
+
+  const loadPinnedProducts = useCallback(async (streamId: string) => {
+    const requestId = ++pinnedRequestId.current;
+    setPinnedProducts((current) => current.filter((product) => product.livestreamId === streamId));
+    setPinnedLoading(true);
+    setPinnedError(null);
+    setPinActionError(null);
+    try {
+      const products = await livestreamHost.listPinnedProducts(streamId);
+      if (pinnedRequestId.current !== requestId) return;
+      setPinnedProducts(products);
+      setLivePrices((current) => ({
+        ...current,
+        ...Object.fromEntries(products.map((product) => [product.productId, String(product.priceAtLive)])),
+      }));
+    } catch {
+      if (pinnedRequestId.current === requestId) {
+        setPinnedError('Không thể tải món ghim.');
+      }
+    } finally {
+      if (pinnedRequestId.current === requestId) {
+        setPinnedLoading(false);
+      }
+    }
+  }, [livestreamHost]);
+
+  useEffect(() => {
+    if (!activeStream) {
+      pinnedRequestId.current += 1;
+      setPinnedProducts([]);
+      setPinnedError(null);
+      setPinnedLoading(false);
+      return;
+    }
+    void loadPinnedProducts(activeStream.id);
+  }, [activeStream, loadPinnedProducts]);
 
   const isLive = activeStream?.status === 'LIVE';
 
@@ -248,7 +265,58 @@ export default function RestaurantLivestreamPage() {
     setReplyText('');
   };
 
-  const pinnedItem = availableItems.find((item) => item.id === pinnedItemId) ?? availableItems[0];
+  const pinnedProductById = useMemo(
+    () => new Map(pinnedProducts.map((product) => [product.productId, product])),
+    [pinnedProducts],
+  );
+  const pinnedItems = availableItems.filter((item) => pinnedProductById.has(item.id));
+  const featuredPinnedItem = pinnedItems[0] ?? null;
+  const featuredPinnedProduct = featuredPinnedItem
+    ? pinnedProductById.get(featuredPinnedItem.id) ?? null
+    : null;
+
+  const pinItem = async (item: PinnedItem) => {
+    if (!activeStream || pinningProductId !== null) return;
+    const priceAtLive = Number(livePrices[item.id]);
+    if (!Number.isFinite(priceAtLive) || priceAtLive <= 0) {
+      setPinActionError(`Giá live cho ${item.name} phải lớn hơn 0.`);
+      return;
+    }
+    setPinningProductId(item.id);
+    setPinActionError(null);
+    try {
+      const product = await livestreamHost.pinProduct(activeStream.id, {
+        productId: item.id,
+        priceAtLive,
+      });
+      setPinnedProducts((current) => [
+        ...current.filter((entry) => entry.productId !== item.id),
+        product,
+      ]);
+      notifications.success(`Đã ghim ${item.name}`);
+    } catch {
+      setPinActionError(`Không thể ghim ${item.name}.`);
+      notifications.error(`Không thể ghim ${item.name}`);
+    } finally {
+      setPinningProductId(null);
+    }
+  };
+
+  const unpinItem = async (item: PinnedItem) => {
+    if (!activeStream || pinningProductId !== null) return;
+    setPinningProductId(item.id);
+    setPinActionError(null);
+    try {
+      await livestreamHost.unpinProduct(activeStream.id, item.id);
+      setPinnedProducts((current) => current.filter((entry) => entry.productId !== item.id));
+      notifications.success(`Đã bỏ ghim ${item.name}`);
+    } catch {
+      setPinActionError(`Không thể bỏ ghim ${item.name}.`);
+      notifications.error(`Không thể bỏ ghim ${item.name}`);
+    } finally {
+      setPinningProductId(null);
+    }
+  };
 
   return (
     <div className="flex min-h-screen min-w-0 bg-background-light dark:bg-background-dark">
@@ -392,27 +460,35 @@ export default function RestaurantLivestreamPage() {
                         </div>
 
                         {/* Center Dish Showcase Preview */}
-                        {pinnedItem && (
+                        {featuredPinnedItem && featuredPinnedProduct && (
                           <div className="relative z-10 my-auto flex max-w-sm items-center gap-3 rounded-2xl bg-black/70 p-3 shadow-2xl backdrop-blur-md border border-white/20">
-                            <img
-                              src={pinnedItem.image}
-                              alt={pinnedItem.name}
-                              className="h-16 w-16 rounded-xl object-cover shadow"
-                            />
+                            {featuredPinnedItem.image ? (
+                              <img
+                                src={featuredPinnedItem.image}
+                                alt={featuredPinnedItem.name}
+                                className="h-16 w-16 rounded-xl object-cover shadow"
+                              />
+                            ) : (
+                              <span className="flex h-16 w-16 items-center justify-center rounded-xl bg-white/10" aria-hidden="true">
+                                <span className="material-symbols-outlined">restaurant</span>
+                              </span>
+                            )}
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5">
                                 <span className="rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white uppercase">
                                   Món đang ghim
                                 </span>
-                                <span className="text-[11px] text-yellow-400 font-semibold">Đã bán {pinnedItem.sold}</span>
+                                {pinnedItems.length > 1 && (
+                                  <span className="text-[11px] text-yellow-400 font-semibold">+{pinnedItems.length - 1} món</span>
+                                )}
                               </div>
-                              <p className="mt-0.5 truncate text-sm font-bold text-white">{pinnedItem.name}</p>
+                              <p className="mt-0.5 truncate text-sm font-bold text-white">{featuredPinnedItem.name}</p>
                               <div className="mt-0.5 flex items-baseline gap-2">
                                 <span className="text-sm font-black text-primary">
-                                  {pinnedItem.livePrice.toLocaleString('vi-VN')}đ
+                                  {featuredPinnedProduct.priceAtLive.toLocaleString('vi-VN')}đ
                                 </span>
                                 <span className="text-xs text-neutral-400 line-through">
-                                  {pinnedItem.originalPrice.toLocaleString('vi-VN')}đ
+                                  {featuredPinnedItem.originalPrice.toLocaleString('vi-VN')}đ
                                 </span>
                               </div>
                             </div>
@@ -505,12 +581,43 @@ export default function RestaurantLivestreamPage() {
                       <div className="mb-3 flex items-center justify-between">
                         <h3 className="font-bold text-gray-900 dark:text-white">Món ghim trên Live</h3>
                         <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                          {availableItems.length} món sẵn có
+                          {pinnedProducts.length} món đang ghim
                         </span>
                       </div>
-                      <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
-                        {availableItems.map((item) => {
-                          const isPinned = item.id === pinnedItemId;
+                      {pinnedLoading && (
+                        <p role="status" className="mb-2 text-xs text-gray-500">Đang tải món ghim…</p>
+                      )}
+                      {pinnedError && (
+                        <div className="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                          <p role="alert">{pinnedError}</p>
+                          <button
+                            type="button"
+                            onClick={() => void loadPinnedProducts(activeStream.id)}
+                            className="mt-1 font-bold underline"
+                          >
+                            Thử tải món ghim
+                          </button>
+                        </div>
+                      )}
+                      {menuError && (
+                        <div className="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-300">
+                          <p>{menuError}</p>
+                          <button type="button" onClick={() => void loadMenu()} className="mt-1 font-bold underline">
+                            Thử tải thực đơn
+                          </button>
+                        </div>
+                      )}
+                      {pinActionError && <p role="alert" className="mb-2 text-xs font-semibold text-red-600">{pinActionError}</p>}
+                      <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                        {menuLoading ? (
+                          <p className="py-4 text-center text-xs text-gray-500">Đang tải thực đơn…</p>
+                        ) : availableItems.length === 0 && !menuError ? (
+                          <p className="py-4 text-center text-xs text-gray-500">Không có món đang bán để ghim.</p>
+                        ) : availableItems.map((item) => {
+                          const isPinned = pinnedProductById.has(item.id);
+                          const isPending = pinningProductId === item.id;
+                          const enteredPrice = livePrices[item.id] ?? '';
+                          const validPrice = Number.isFinite(Number(enteredPrice)) && Number(enteredPrice) > 0;
                           return (
                             <div
                               key={item.id}
@@ -520,23 +627,46 @@ export default function RestaurantLivestreamPage() {
                                   : 'border-gray-200 bg-gray-50 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800/60'
                               }`}
                             >
-                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                <img src={item.image} alt={item.name} className="h-10 w-10 rounded-lg object-cover" />
+                              <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                                {item.image ? (
+                                  <img src={item.image} alt={item.name} className="h-10 w-10 rounded-lg object-cover" />
+                                ) : (
+                                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-700" aria-hidden="true">
+                                    <span className="material-symbols-outlined text-base">restaurant</span>
+                                  </span>
+                                )}
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate text-xs font-bold text-gray-900 dark:text-white">{item.name}</p>
-                                  <p className="text-xs font-black text-primary">{item.livePrice.toLocaleString('vi-VN')}đ</p>
+                                  <p className="text-[11px] text-gray-500">Giá menu: {item.originalPrice.toLocaleString('vi-VN')}đ</p>
+                                  <label className="mt-1 block text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                                    <span className="sr-only">Giá live cho {item.name}</span>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      step="1"
+                                      inputMode="numeric"
+                                      aria-label={`Giá live cho ${item.name}`}
+                                      value={enteredPrice}
+                                      disabled={isPinned || isPending}
+                                      onChange={(event) => setLivePrices((current) => ({ ...current, [item.id]: event.target.value }))}
+                                      placeholder="Nhập giá live"
+                                      className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 disabled:bg-gray-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:disabled:bg-gray-800"
+                                    />
+                                  </label>
                                 </div>
                               </div>
                               <button
                                 type="button"
-                                onClick={() => setPinnedItemId(item.id)}
+                                aria-label={`${isPinned ? 'Bỏ ghim' : 'Ghim'} ${item.name}`}
+                                disabled={isPending || pinnedLoading || (!isPinned && !validPrice)}
+                                onClick={() => void (isPinned ? unpinItem(item) : pinItem(item))}
                                 className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
                                   isPinned
                                     ? 'bg-primary text-white'
                                     : 'border border-gray-300 text-gray-700 hover:bg-gray-200 dark:border-gray-600 dark:text-gray-300'
-                                }`}
+                                } disabled:cursor-not-allowed disabled:opacity-50`}
                               >
-                                {isPinned ? 'Đang ghim' : 'Ghim món'}
+                                {isPending ? 'Đang cập nhật…' : isPinned ? 'Bỏ ghim' : 'Ghim món'}
                               </button>
                             </div>
                           );
