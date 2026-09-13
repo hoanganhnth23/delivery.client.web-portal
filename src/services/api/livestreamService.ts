@@ -97,6 +97,20 @@ export interface StartLivestreamResponse {
   startedAt: string;
 }
 
+export interface RenewLivestreamTokenResponse {
+  livestreamId: string;
+  channelName: string;
+  token: string;
+  uid: number;
+  role: 'HOST' | 'VIEWER';
+  tokenExpiresAt: string;
+}
+
+export type LivestreamTokenIdentity = Pick<
+  RenewLivestreamTokenResponse,
+  'channelName' | 'uid' | 'role'
+>;
+
 const parseUuid = (value: unknown, label: string): string => {
   const id = requireString(value, label);
   if (!uuid.test(id)) throw new Error(`${label} must be a UUID`);
@@ -198,6 +212,21 @@ export const parseJoinLivestreamResponse = (value: unknown, label = 'join livest
   };
 };
 
+export const parseRenewLivestreamTokenResponse = (
+  value: unknown,
+  label = 'renew livestream token',
+): RenewLivestreamTokenResponse => {
+  const row = requireRecord(value, label);
+  return {
+    livestreamId: parseUuid(row.livestreamId, `${label}.livestreamId`),
+    channelName: requireString(row.channelName, `${label}.channelName`),
+    token: requireString(row.token, `${label}.token`),
+    uid: requireInteger(row.uid, `${label}.uid`, 0),
+    role: requireEnum(row.role, ['HOST', 'VIEWER'] as const, `${label}.role`),
+    tokenExpiresAt: requireTimestamp(row.tokenExpiresAt, `${label}.tokenExpiresAt`),
+  };
+};
+
 export const livestreamHostService = {
   inspect: async (restaurantId: number): Promise<LivestreamResponse[]> => requireArray(handleResponse(await apiClient.get(API_ENDPOINTS.LIVESTREAM.INSPECT_RESTAURANT(restaurantId))), 'livestreams', parseLivestreamResponse),
   getActive: async (): Promise<LivestreamResponse[]> => requireArray(handleResponse(await apiClient.get(API_ENDPOINTS.LIVESTREAM.ACTIVE)), 'active livestreams', parseLivestreamResponse),
@@ -205,6 +234,20 @@ export const livestreamHostService = {
   create: async (request: CreateLivestreamRequest): Promise<LivestreamResponse> => parseLivestreamResponse(handleResponse(await apiClient.post(API_ENDPOINTS.LIVESTREAM.CREATE, request)), 'livestream'),
   start: async (id: string): Promise<StartLivestreamResponse> => parseStartLivestreamResponse(handleResponse(await apiClient.post(API_ENDPOINTS.LIVESTREAM.START(id))), 'start livestream'),
   join: async (id: string): Promise<JoinLivestreamResponse> => parseJoinLivestreamResponse(handleResponse(await apiClient.post(API_ENDPOINTS.LIVESTREAM.JOIN(id))), 'join livestream'),
+  renewToken: async (id: string, expected: LivestreamTokenIdentity): Promise<string> => {
+    const renewal = parseRenewLivestreamTokenResponse(
+      handleResponse(await apiClient.post(API_ENDPOINTS.LIVESTREAM.RENEW_TOKEN(id))),
+    );
+    if (
+      renewal.livestreamId !== id
+      || renewal.channelName !== expected.channelName
+      || renewal.uid !== expected.uid
+      || renewal.role !== expected.role
+    ) {
+      throw new Error('renew livestream token identity does not match the active media session');
+    }
+    return renewal.token;
+  },
   end: async (id: string): Promise<LivestreamResponse> => parseLivestreamResponse(handleResponse(await apiClient.post(API_ENDPOINTS.LIVESTREAM.END(id))), 'ended livestream'),
   pinProduct: async (id: string, request: PinLivestreamProductRequest): Promise<LivestreamProduct> => parseLivestreamProduct(handleResponse(await apiClient.post(API_ENDPOINTS.LIVESTREAM.PIN_PRODUCT(id), request)), 'livestream product'),
   unpinProduct: async (id: string, productId: number): Promise<void> => { handleResponse<void>(await apiClient.delete(API_ENDPOINTS.LIVESTREAM.UNPIN_PRODUCT(id, productId))); },

@@ -15,6 +15,7 @@ import type {
   SessionStorePort,
   SupportChatServicePort,
 } from '@/app/dependencies';
+import { previewLivestreamMedia } from '@/services/media/livestreamMedia';
 import type {
   MenuItem,
   Order,
@@ -776,6 +777,7 @@ export function createPortalPreviewDependencies(
       };
       return clone(response);
     },
+    renewToken: async () => 'preview-renewed-token',
     end: async (id) => {
       liveStreams = liveStreams.map((stream) => stream.id === id ? { ...stream, status: 'ENDED' } : stream);
       return clone(liveStreams.find((stream) => stream.id === id)!);
@@ -840,6 +842,14 @@ export function createPortalPreviewDependencies(
     admin,
     flashSaleAdmin,
     livestreamHost,
+    livestreamModeration: {
+      list: async (page = 0, size = 20) => ({ content: [], page, size, totalElements: 0, totalPages: 0 }),
+      moderate: async (id, request) => ({
+        auditId: 1, livestreamId: id, action: request.action,
+        productId: request.productId ?? null, appliedAt: PREVIEW_DATE,
+      }),
+    },
+    livestreamMedia: previewLivestreamMedia,
     supportChat,
     notifications,
     clock,

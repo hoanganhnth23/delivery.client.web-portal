@@ -58,6 +58,7 @@ export const CustomerShell = ({
           </Link>
 
           {/* Desktop Navigation */}
+          <Link className="hidden min-h-11 items-center text-sm font-semibold text-primary md:inline-flex" to={ROUTES.CUSTOMER_LIVESTREAMS}>Livestream</Link>
           <nav className="ml-2 hidden items-center gap-5 text-sm font-semibold text-[#555555] md:flex">
             <Link className="transition hover:text-[#ee4d2d]" to={ROUTES.HOME}>
               Nhà hàng

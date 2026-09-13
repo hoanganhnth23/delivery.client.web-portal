@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { AppDependencies } from '@/app/dependencies';
 import type { Livestream, LivestreamProduct } from '@/services/api/livestreamService';
+import type { LivestreamMediaPort } from '@/services/media/livestreamMedia';
+import type { ViewerSession } from '@/services/media/agoraViewer';
 import { USER_ROLES } from '@/utils/constants';
 import { buildMenuItem, buildUser } from '@/test/builders';
 import {
@@ -72,6 +74,71 @@ function ownerDependencies(overrides: Partial<AppDependencies> = {}) {
 }
 
 describe('restaurant livestream controls', () => {
+  it('publishes the host camera and microphone, controls tracks, then disposes media on end', async () => {
+    const user = userEvent.setup();
+    const liveStream = { ...stream, status: 'LIVE' as const, startedAt: '2026-09-12T00:00:00.000Z' };
+    const inspect = vi.fn().mockResolvedValueOnce([stream]).mockResolvedValue([liveStream]);
+    const session = {
+      livestreamId: stream.id,
+      channelName: stream.channelName,
+      status: 'LIVE' as const,
+      token: 'test-host-token',
+      uid: 7,
+      role: 'HOST' as const,
+      tokenExpiresAt: '2026-09-12T01:00:00.000Z',
+      title: stream.title,
+      restaurantId: stream.restaurantId,
+      startedAt: '2026-09-12T00:00:00.000Z',
+    };
+    const publisherStart = vi.fn(async (_session: ViewerSession) => undefined);
+    const publisher = {
+      start: publisherStart,
+      setMicrophoneEnabled: vi.fn(async () => undefined),
+      setCameraEnabled: vi.fn(async () => undefined),
+      stop: vi.fn(async () => undefined),
+    };
+    const media: LivestreamMediaPort = {
+      mode: 'runtime',
+      createViewer: vi.fn(() => ({ start: vi.fn(async () => undefined), stop: vi.fn(async () => undefined) })),
+      createPublisher: vi.fn(() => publisher),
+    };
+    const end = vi.fn(async () => ({ ...liveStream, status: 'ENDED' as const }));
+    const renewToken = vi.fn(async () => 'renewed-host-token');
+
+    renderApp({
+      route: '/restaurant/livestream',
+      dependencies: ownerDependencies({
+        livestreamHost: createLivestreamHostFake({
+          inspect,
+          start: vi.fn(async () => session),
+          renewToken,
+          end,
+        }),
+        livestreamMedia: media,
+      }),
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Bắt đầu' }));
+    await waitFor(() => expect(publisherStart).toHaveBeenCalledWith(expect.objectContaining(session)));
+    expect(media.createPublisher).toHaveBeenCalled();
+    const mediaSession = publisherStart.mock.calls[0][0];
+    await expect(mediaSession.renewToken!()).resolves.toBe('renewed-host-token');
+    expect(renewToken).toHaveBeenCalledWith(stream.id, {
+      channelName: session.channelName,
+      uid: session.uid,
+      role: 'HOST',
+    });
+
+    await user.click(screen.getByTitle('Tắt Micro'));
+    await user.click(screen.getByTitle('Tắt Camera'));
+    expect(publisher.setMicrophoneEnabled).toHaveBeenCalledWith(false);
+    expect(publisher.setCameraEnabled).toHaveBeenCalledWith(false);
+
+    await user.click(screen.getByRole('button', { name: 'Kết thúc' }));
+    await waitFor(() => expect(end).toHaveBeenCalledWith(stream.id));
+    expect(publisher.stop).toHaveBeenCalledTimes(1);
+  });
+
   it('inspects, creates, starts, and ends a stream through injected Gateway actions', async () => {
     const user = userEvent.setup();
     const createdStream = { ...stream, id: '00000000-0000-4000-8000-000000000002' };

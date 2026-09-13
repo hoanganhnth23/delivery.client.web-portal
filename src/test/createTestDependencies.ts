@@ -21,6 +21,7 @@ import type {
   PinLivestreamProductRequest,
   StartLivestreamResponse,
 } from '@/services/api/livestreamService';
+import { previewLivestreamMedia } from '@/services/media/livestreamMedia';
 import { buildMenuItem, buildOrder, buildRestaurant, buildUser } from './builders';
 
 export function createAuthFake(
@@ -339,6 +340,7 @@ export function createLivestreamHostFake(
     create: vi.fn(async (request): Promise<LivestreamResponse> => ({ ...stream, restaurantId: request.restaurantId, title: request.title, description: request.description ?? null })),
     start: vi.fn(async (): Promise<StartLivestreamResponse> => ({ livestreamId: stream.id, channelName: stream.channelName, status: 'LIVE', token: 'test-host-token', uid: 1, role: 'HOST', tokenExpiresAt: '2026-09-12T01:00:00.000Z', title: stream.title, restaurantId: stream.restaurantId, startedAt: '2026-09-12T00:00:00.000Z' })),
     join: vi.fn(async (): Promise<JoinLivestreamResponse> => ({ livestreamId: stream.id, channelName: stream.channelName, title: stream.title, restaurantId: stream.restaurantId, token: 'test-viewer-token', uid: 2, tokenExpiresAt: '2026-09-12T01:00:00.000Z', sellerId: stream.sellerId, startedAt: '2026-09-12T00:00:00.000Z', currentViewers: null })),
+    renewToken: vi.fn(async () => 'test-renewed-token'),
     end: vi.fn(async (): Promise<LivestreamResponse> => ({ ...stream, status: 'ENDED', endedAt: '2026-09-12T01:00:00.000Z' })),
     pinProduct: vi.fn(async (_id: string, request: PinLivestreamProductRequest): Promise<LivestreamProduct> => ({ id: 1, livestreamId: stream.id, productId: request.productId, productName: request.productName ?? 'Preview product', productImage: request.productImage ?? null, restaurantId: stream.restaurantId, restaurantName: request.restaurantName ?? 'Preview restaurant', priceAtLive: request.priceAtLive, isPinned: true, createdAt: stream.createdAt, pinnedAt: stream.updatedAt })),
     unpinProduct: vi.fn(async () => undefined),
@@ -379,6 +381,11 @@ export function createTestDependencies(
     admin: createAdminFake(),
     flashSaleAdmin: createFlashSaleAdminFake(),
     livestreamHost: createLivestreamHostFake(),
+    livestreamModeration: {
+      list: async (page = 0, size = 20) => ({ content: [], page, size, totalElements: 0, totalPages: 0 }),
+      moderate: async () => { throw new Error('Provide a moderation fake for this test'); },
+    },
+    livestreamMedia: previewLivestreamMedia,
     notifications: createNotificationFake(),
     clock: { now: vi.fn(() => new Date(2026, 6, 29, 8, 0, 0)) },
     delay: { wait: vi.fn(async () => undefined) },

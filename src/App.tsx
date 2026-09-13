@@ -34,6 +34,7 @@ const CatalogImportPage = lazy(() => import('./modules/restaurant/pages/CatalogI
 const UnauthorizedPage = lazy(() => import('./pages/UnauthorizedPage'));
 const SystemHandbookPage = lazy(() => import('./modules/system-handbook/pages/SystemHandbookPage'));
 const CustomerHomePage = lazy(() => import('./modules/customer/pages/CustomerHomePage'));
+const CustomerLivestreamPage = lazy(() => import('./modules/customer/pages/CustomerLivestreamPage'));
 const CustomerPreview = import.meta.env.DEV ? lazy(() => import('./modules/customer-preview/CustomerPreview')) : null;
 const PortalPreview = import.meta.env.DEV ? lazy(() => import('./modules/portal-preview/PortalPreview')) : null;
 const ShipperPreview = import.meta.env.DEV ? lazy(() => import('./modules/shipper-preview/ShipperPreview')) : null;
@@ -98,6 +99,8 @@ function PortalRoutes() {
                 <Route path={ROUTES.CUSTOMER_CHECKOUT} element={customerRoute(<CustomerCheckoutPage />)} />
                 <Route path={ROUTES.CUSTOMER_ADDRESSES} element={customerRoute(<CustomerAddressesPage />)} />
                 <Route path={ROUTES.CUSTOMER_ORDERS} element={customerRoute(<CustomerOrdersPage />)} />
+                <Route path={ROUTES.CUSTOMER_LIVESTREAMS} element={customerRoute(<CustomerLivestreamPage />)} />
+                <Route path={`${ROUTES.CUSTOMER_LIVESTREAMS}/:livestreamId`} element={customerRoute(<CustomerLivestreamPage />)} />
                 <Route path="/customer/orders/:orderId" element={customerRoute(<CustomerOrderDetailPage />)} />
                 <Route path={ROUTES.CUSTOMER_ACCOUNT} element={<CustomerAccountPage />} />
                 <Route path={ROUTES.RESTAURANT_DASHBOARD} element={restaurantRoute(<RestaurantDashboard />)} />

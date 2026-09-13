@@ -56,10 +56,13 @@
 .live-monitor-body { display: grid; grid-template-columns: minmax(0,1fr) 300px; }
 .live-monitor-stage { display: flex; flex-direction: column; background: #172126; color: #f1f5f9; padding: 20px; min-width: 0; }
 .live-stage-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; }
-.live-video-placeholder { text-align: center; padding: 56px 12px; margin: auto 0; }
-.live-video-placeholder > span { font-size: 36px; color: #94a3b8; margin-bottom: 12px; }
-.live-video-placeholder h3 { font-size: 16px; font-weight: 600; }
-.live-video-placeholder p { font-size: 12px; color: #cbd5e1; margin-top: 8px; }
+.live-video-placeholder { position: relative; min-height: 280px; overflow: hidden; text-align: center; margin: auto 0; background: #0a0f12; }
+.live-video-surface { position: absolute; inset: 0; }
+.live-video-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 12px; background: rgba(10, 15, 18, 0.92); }
+.live-video-status > span { font-size: 36px; color: #94a3b8; margin-bottom: 12px; }
+.live-video-status h3 { font-size: 16px; font-weight: 600; }
+.live-video-status p { font-size: 12px; color: #cbd5e1; margin-top: 8px; }
+.live-video-status .live-button { margin-top: 16px; }
 .live-stage-product { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid #ffffff30; padding-top: 16px; font-size: 14px; overflow-wrap: anywhere; }
 .live-stage-product .live-label { color: #cbd5e1; }
 .live-inspector { display: flex; flex-direction: column; gap: 12px; padding: 20px; min-width: 0; }
@@ -91,7 +94,7 @@
   .live-overlay { padding: 0; }
   .live-dialog { height: 100dvh; max-height: 100dvh; border-radius: 0; padding-bottom: env(safe-area-inset-bottom); }
   .live-monitor-body { grid-template-columns: minmax(0,1fr); }
-  .live-video-placeholder { padding: 32px 8px; }
+  .live-video-placeholder { min-height: 220px; }
 }
 .dark .live-workspace { color: #e2e8f0; }
 .dark .live-workspace :is(.live-list,.live-summary,.live-search,.live-dialog,.live-dialog-header,.live-button,.live-filters button) { background: #1e293b; border-color: #475569; color: #e2e8f0; }

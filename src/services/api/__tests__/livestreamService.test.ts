@@ -142,4 +142,39 @@ describe('livestream host Gateway adapter', () => {
     });
     expect(client.delete).toHaveBeenCalledWith('/api/livestreams/00000000-0000-4000-8000-000000000001/products/9001/pin');
   });
+
+  it('renews a server-derived token through the exact Gateway route', async () => {
+    client.post.mockResolvedValue(response({
+      livestreamId: stream.id,
+      channelName: stream.channelName,
+      token: 'renewed-viewer-token',
+      uid: 123,
+      role: 'VIEWER',
+      tokenExpiresAt: '2026-09-12T13:00:00Z',
+    }) as never);
+
+    await expect(livestreamHostService.renewToken(stream.id, {
+      channelName: stream.channelName,
+      uid: 123,
+      role: 'VIEWER',
+    })).resolves.toBe('renewed-viewer-token');
+    expect(client.post).toHaveBeenCalledWith(`/api/livestreams/${stream.id}/token/renew`);
+  });
+
+  it('rejects a renewed token for a different active media identity', async () => {
+    client.post.mockResolvedValue(response({
+      livestreamId: stream.id,
+      channelName: stream.channelName,
+      token: 'wrong-role-token',
+      uid: 123,
+      role: 'HOST',
+      tokenExpiresAt: '2026-09-12T13:00:00Z',
+    }) as never);
+
+    await expect(livestreamHostService.renewToken(stream.id, {
+      channelName: stream.channelName,
+      uid: 123,
+      role: 'VIEWER',
+    })).rejects.toThrow('identity');
+  });
 });

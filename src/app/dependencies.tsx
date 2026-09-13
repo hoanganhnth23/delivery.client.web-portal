@@ -7,6 +7,8 @@ import * as addressService from '@/services/api/addressService';
 import adminService from '@/services/api/adminService';
 import { flashSaleAdminService } from '@/services/api/flashSaleService';
 import { livestreamHostService } from '@/services/api/livestreamService';
+import { livestreamModerationService } from '@/services/api/livestreamModerationService';
+import { agoraLivestreamMedia, type LivestreamMediaPort } from '@/services/media/livestreamMedia';
 import firebaseSupportChatService, {
   type SupportChatServicePort,
 } from '@/modules/admin/services/firebaseChatService';
@@ -114,6 +116,7 @@ export type LivestreamHostServicePort = Pick<
   | 'create'
   | 'start'
   | 'join'
+  | 'renewToken'
   | 'end'
   | 'pinProduct'
   | 'unpinProduct'
@@ -152,6 +155,8 @@ export interface AppDependencies {
   admin: AdminServicePort;
   flashSaleAdmin: FlashSaleAdminServicePort;
   livestreamHost: LivestreamHostServicePort;
+  livestreamModeration: typeof livestreamModerationService;
+  livestreamMedia: LivestreamMediaPort;
   supportChat: SupportChatServicePort;
   notifications: NotificationPort;
   clock: ClockPort;
@@ -169,6 +174,8 @@ export const productionDependencies: AppDependencies = {
   admin: adminService,
   flashSaleAdmin: flashSaleAdminService,
   livestreamHost: livestreamHostService,
+  livestreamModeration: livestreamModerationService,
+  livestreamMedia: agoraLivestreamMedia,
   supportChat: firebaseSupportChatService,
   notifications: toast,
   clock: { now: () => new Date() },

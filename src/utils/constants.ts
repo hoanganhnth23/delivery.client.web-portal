@@ -74,6 +74,7 @@ export const ROUTES = {
   CUSTOMER_ADDRESSES: '/customer/addresses',
   CUSTOMER_ACCOUNT: '/customer/account',
   CUSTOMER_ORDERS: '/customer/orders',
+  CUSTOMER_LIVESTREAMS: '/customer/livestreams',
   CUSTOMER_ORDER: (id: number | string) => `/customer/orders/${id}`,
   
   // Admin routes

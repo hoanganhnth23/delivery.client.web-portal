@@ -26,7 +26,7 @@ describe('livestream responsive workspace', () => {
     const user = setup();
     await user.click(await screen.findByTestId('btn-monitor-00000000-0000-4000-8000-000000000002'));
     const monitor = screen.getByRole('dialog', { name: /Giám sát: Trà Sữa/ });
-    expect(within(monitor).getByText('Chưa kết nối video trực tiếp')).toBeInTheDocument();
+    expect(within(monitor).getByText('Khung giám sát preview')).toBeInTheDocument();
     await user.click(within(monitor).getByRole('button', { name: 'Gửi cảnh báo đến Host' }));
     expect(screen.getByRole('dialog', { name: /Cảnh báo kiểm duyệt/ })).toBeInTheDocument();
     await user.keyboard('{Escape}');
@@ -51,6 +51,9 @@ describe('livestream responsive workspace', () => {
     await user.click(within(warning).getByRole('button', { name: 'Gửi cảnh báo' }));
     expect(within(monitor).getByText('Kiểm tra thông tin món')).toBeInTheDocument();
     await user.click(within(monitor).getByRole('button', { name: 'Dừng phát sóng khẩn cấp' }));
+    const stop = screen.getByRole('dialog', { name: 'Dừng phát sóng' });
+    await user.type(within(stop).getByLabelText('Lý do dừng'), 'Kiểm thử kiểm duyệt');
+    await user.click(within(stop).getByRole('button', { name: 'Xác nhận dừng' }));
     expect(await within(monitor).findByText('Đã kết thúc')).toBeInTheDocument();
     expect(within(monitor).queryByRole('button', { name: 'Dừng phát sóng khẩn cấp' })).not.toBeInTheDocument();
   });

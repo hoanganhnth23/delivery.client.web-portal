@@ -3,8 +3,9 @@ import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import { useAppDependencies } from '@/app/dependencies';
 import { useRestaurant } from '../hooks/useRestaurant';
-import type { Livestream, LivestreamProduct } from '@/services/api/livestreamService';
+import type { Livestream, LivestreamProduct, StartLivestreamResponse } from '@/services/api/livestreamService';
 import type { MenuItem } from '@/types/api.types';
+import { useLivestreamPublisher } from '../hooks/useLivestreamPublisher';
 import './restaurantLivestream.css';
 
 interface PinnedItem {
@@ -43,9 +44,33 @@ const SAMPLE_VIEWER_CHATS: Array<{ sender: string; text: string }> = [
   { sender: 'Phương Thảo', text: 'Món trà sữa ô long có ít ngọt không ạ?' },
 ];
 
+const formatDuration = (startedAt: string | null, endedAt: string | null): string => {
+  if (!startedAt || !endedAt) return '—';
+  const seconds = Math.max(0, Math.floor((Date.parse(endedAt) - Date.parse(startedAt)) / 1000));
+  if (!Number.isFinite(seconds)) return '—';
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+    : `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
+};
+
 export default function RestaurantLivestreamPage() {
   const { currentRestaurant } = useRestaurant();
-  const { livestreamHost, menu: menuService, notifications } = useAppDependencies();
+  const { livestreamHost, livestreamMedia, menu: menuService, notifications } = useAppDependencies();
+  const {
+    targetRef: studioTargetRef,
+    status: studioStatus,
+    error: studioError,
+    streamId: studioStreamId,
+    microphoneEnabled,
+    cameraEnabled,
+    connect: connectStudio,
+    disconnect: disconnectStudio,
+    setMicrophoneEnabled,
+    setCameraEnabled,
+  } = useLivestreamPublisher(livestreamMedia);
   const [streams, setStreams] = useState<Livestream[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,8 +80,7 @@ export default function RestaurantLivestreamPage() {
 
   // Studio Interactive State
   const [activeStreamId, setActiveStreamId] = useState<string | null>(null);
-  const [micEnabled, setMicEnabled] = useState(true);
-  const [camEnabled, setCamEnabled] = useState(true);
+  const [hostSession, setHostSession] = useState<StartLivestreamResponse | null>(null);
   const [colorFilter, setColorFilter] = useState<'normal' | 'vivid' | 'warm'>('vivid');
   const [showGrid, setShowGrid] = useState(false);
   const [availableItems, setAvailableItems] = useState<PinnedItem[]>([]);
@@ -69,18 +93,18 @@ export default function RestaurantLivestreamPage() {
   const [pinningProductId, setPinningProductId] = useState<number | null>(null);
   const [livePrices, setLivePrices] = useState<Record<number, string>>({});
   const pinnedRequestId = useMemo(() => new RequestGeneration(), []);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => livestreamMedia.mode === 'preview' ? [
     { id: '1', sender: 'Hệ thống', text: 'Chào mừng bạn đến với Studio Live! Chuẩn bị món ăn và bắt đầu phát sóng nào.', time: '10:00' },
     { id: '2', sender: 'Lan Hương', text: 'Chào shop, hôm nay có món gì hot không ạ?', time: '10:01' },
-  ]);
+  ] : []);
   const [replyText, setReplyText] = useState('');
   const [summaryData, setSummaryData] = useState<{
     streamTitle: string;
     duration: string;
     viewers: number;
-    hearts: string;
-    revenue: number;
-    orders: number;
+    hearts: string | null;
+    revenue: number | null;
+    orders: number | null;
   } | null>(null);
 
   // Form label ID
@@ -197,7 +221,7 @@ export default function RestaurantLivestreamPage() {
 
   // Realtime comments simulation during live
   useEffect(() => {
-    if (!isLive) return;
+    if (!isLive || livestreamMedia.mode !== 'preview') return;
     const interval = window.setInterval(() => {
       const randomChat = SAMPLE_VIEWER_CHATS[Math.floor(Math.random() * SAMPLE_VIEWER_CHATS.length)];
       const now = new Date();
@@ -213,7 +237,7 @@ export default function RestaurantLivestreamPage() {
       ]);
     }, 4500);
     return () => window.clearInterval(interval);
-  }, [isLive]);
+  }, [isLive, livestreamMedia.mode]);
 
   const create = async () => {
     if (!currentRestaurant || !title.trim() || saving) return;
@@ -239,19 +263,39 @@ export default function RestaurantLivestreamPage() {
     if (transitioningId) return;
     setTransitioningId(stream.id);
     try {
-      await livestreamHost[action](stream.id);
-      await load();
       if (action === 'start') {
-        notifications.success('Đã bắt đầu livestream');
+        const session = await livestreamHost.start(stream.id);
+        setHostSession(session);
+        setStreams((current) => current.map((entry) => entry.id === stream.id
+          ? { ...entry, status: 'LIVE', startedAt: session.startedAt }
+          : entry));
+        try {
+          await connectStudio({
+            ...session,
+            renewToken: () => livestreamHost.renewToken(stream.id, {
+              channelName: session.channelName,
+              uid: session.uid,
+              role: 'HOST',
+            }),
+          });
+          notifications.success('Đã bắt đầu livestream và kết nối camera');
+        } catch {
+          notifications.error('Phiên đã bắt đầu nhưng camera chưa kết nối');
+        }
+        await load();
       } else {
+        const ended = await livestreamHost.end(stream.id);
+        if (studioStreamId === stream.id) await disconnectStudio();
+        setHostSession(null);
+        setStreams((current) => current.map((entry) => entry.id === stream.id ? ended : entry));
         notifications.success('Đã kết thúc livestream');
         setSummaryData({
-          streamTitle: stream.title,
-          duration: '38:20',
-          viewers: 1420,
-          hearts: '18.6K',
-          revenue: 3850000,
-          orders: 28,
+          streamTitle: ended.title,
+          duration: formatDuration(ended.startedAt, ended.endedAt),
+          viewers: ended.viewCount,
+          hearts: null,
+          revenue: null,
+          orders: null,
         });
       }
     } catch {
@@ -263,7 +307,7 @@ export default function RestaurantLivestreamPage() {
 
   const handleSendReply = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!replyText.trim()) return;
+    if (livestreamMedia.mode !== 'preview' || !replyText.trim()) return;
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     setChatMessages((prev) => [
@@ -277,6 +321,39 @@ export default function RestaurantLivestreamPage() {
       },
     ]);
     setReplyText('');
+  };
+
+  const toggleMicrophone = async () => {
+    try {
+      await setMicrophoneEnabled(!microphoneEnabled);
+    } catch {
+      notifications.error('Không thể cập nhật micro');
+    }
+  };
+
+  const toggleCamera = async () => {
+    try {
+      await setCameraEnabled(!cameraEnabled);
+    } catch {
+      notifications.error('Không thể cập nhật camera');
+    }
+  };
+
+  const reconnectStudio = async () => {
+    if (!hostSession || studioStatus === 'connecting') return;
+    try {
+      await connectStudio({
+        ...hostSession,
+        renewToken: () => livestreamHost.renewToken(hostSession.livestreamId, {
+          channelName: hostSession.channelName,
+          uid: hostSession.uid,
+          role: 'HOST',
+        }),
+      });
+      notifications.success('Đã kết nối lại studio');
+    } catch {
+      notifications.error('Không thể kết nối lại studio');
+    }
   };
 
   const pinnedProductById = useMemo(
@@ -443,14 +520,47 @@ export default function RestaurantLivestreamPage() {
                             : ''
                         }`}
                         style={{
-                          backgroundImage: camEnabled
+                          backgroundImage: cameraEnabled
                             ? 'radial-gradient(ellipse at center, #262626 0%, #0a0a0a 100%)'
                             : 'none',
                         }}
                       >
+                        <div
+                          ref={studioTargetRef}
+                          aria-label="Xem trước camera livestream"
+                          className="absolute inset-0"
+                        />
+
+                        {studioStatus !== 'connected' && (
+                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-3 bg-neutral-900/95 p-6 text-center text-neutral-300">
+                            <span className="material-symbols-outlined text-6xl" aria-hidden="true">
+                              {studioStatus === 'connecting' ? 'sync' : studioError ? 'videocam_off' : 'videocam'}
+                            </span>
+                            <p role={studioError ? 'alert' : 'status'} className="max-w-md text-sm font-medium">
+                              {studioError
+                                ?? (activeStream.status === 'ENDED'
+                                  ? 'Phiên phát sóng đã kết thúc.'
+                                  : studioStatus === 'connecting'
+                                  ? 'Đang xin quyền và kết nối camera, micro…'
+                                  : activeStream.status === 'LIVE'
+                                  ? 'Studio chưa kết nối camera trên thiết bị này.'
+                                  : 'Camera và micro sẽ mở khi bạn bắt đầu phát sóng.')}
+                            </p>
+                            {studioError && hostSession?.livestreamId === activeStream.id && (
+                              <button
+                                type="button"
+                                onClick={() => void reconnectStudio()}
+                                className="rounded-lg bg-white px-4 py-2 text-sm font-bold text-neutral-900"
+                              >
+                                Kết nối lại studio
+                              </button>
+                            )}
+                          </div>
+                        )}
+
                         {/* Camera off placeholder */}
-                        {!camEnabled && (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900 text-neutral-400">
+                        {studioStatus === 'connected' && !cameraEnabled && (
+                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center bg-neutral-900 text-neutral-400">
                             <span className="material-symbols-outlined text-6xl">videocam_off</span>
                             <p className="mt-2 text-sm font-medium">Camera đang tắt</p>
                           </div>
@@ -492,11 +602,11 @@ export default function RestaurantLivestreamPage() {
                           <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs font-bold backdrop-blur">
                               <span className="material-symbols-outlined text-sm text-red-400">visibility</span>
-                              <span>{isLive ? '1.250' : '0'}</span>
+                              <span>{activeStream.viewCount.toLocaleString('vi-VN')}</span>
                             </div>
                             <div className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 text-xs font-bold backdrop-blur">
                               <span className="material-symbols-outlined text-sm text-pink-400">favorite</span>
-                              <span>{isLive ? '8.9K' : '0'}</span>
+                              <span>{livestreamMedia.mode === 'preview' && isLive ? '8.9K' : '—'}</span>
                             </div>
                           </div>
                         </div>
@@ -542,26 +652,30 @@ export default function RestaurantLivestreamPage() {
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => setMicEnabled(!micEnabled)}
+                              onClick={() => void toggleMicrophone()}
+                              disabled={studioStatus !== 'connected'}
+                              aria-label={microphoneEnabled ? 'Tắt Micro' : 'Bật Micro'}
                               className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
-                                micEnabled ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-red-500 text-white'
-                              }`}
-                              title={micEnabled ? 'Tắt Micro' : 'Bật Micro'}
+                                microphoneEnabled ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-red-500 text-white'
+                              } disabled:cursor-not-allowed disabled:opacity-40`}
+                              title={microphoneEnabled ? 'Tắt Micro' : 'Bật Micro'}
                             >
                               <span className="material-symbols-outlined text-lg">
-                                {micEnabled ? 'mic' : 'mic_off'}
+                                {microphoneEnabled ? 'mic' : 'mic_off'}
                               </span>
                             </button>
                             <button
                               type="button"
-                              onClick={() => setCamEnabled(!camEnabled)}
+                              onClick={() => void toggleCamera()}
+                              disabled={studioStatus !== 'connected'}
+                              aria-label={cameraEnabled ? 'Tắt Camera' : 'Bật Camera'}
                               className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
-                                camEnabled ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-red-500 text-white'
-                              }`}
-                              title={camEnabled ? 'Tắt Camera' : 'Bật Camera'}
+                                cameraEnabled ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-red-500 text-white'
+                              } disabled:cursor-not-allowed disabled:opacity-40`}
+                              title={cameraEnabled ? 'Tắt Camera' : 'Bật Camera'}
                             >
                               <span className="material-symbols-outlined text-lg">
-                                {camEnabled ? 'videocam' : 'videocam_off'}
+                                {cameraEnabled ? 'videocam' : 'videocam_off'}
                               </span>
                             </button>
                             <button
@@ -598,20 +712,20 @@ export default function RestaurantLivestreamPage() {
                     {/* Stream metrics strip */}
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                       <div className="rounded-xl border border-gray-200 bg-white p-3 text-center dark:border-gray-800 dark:bg-surface-dark">
-                        <span className="text-xs text-gray-500">Mắt xem cao nhất</span>
-                        <p className="text-lg font-black text-gray-900 dark:text-white">{isLive ? '1.420' : '0'}</p>
+                        <span className="text-xs text-gray-500">Lượt vào xem</span>
+                        <p className="text-lg font-black text-gray-900 dark:text-white">{activeStream.viewCount.toLocaleString('vi-VN')}</p>
                       </div>
                       <div className="rounded-xl border border-gray-200 bg-white p-3 text-center dark:border-gray-800 dark:bg-surface-dark">
                         <span className="text-xs text-gray-500">Lượt tim</span>
-                        <p className="text-lg font-black text-pink-500">{isLive ? '18.4K' : '0'}</p>
+                        <p className="text-lg font-black text-pink-500">{livestreamMedia.mode === 'preview' && isLive ? '18.4K' : '—'}</p>
                       </div>
                       <div className="rounded-xl border border-gray-200 bg-white p-3 text-center dark:border-gray-800 dark:bg-surface-dark">
                         <span className="text-xs text-gray-500">Đơn hàng live</span>
-                        <p className="text-lg font-black text-primary">{isLive ? '28 đơn' : '0'}</p>
+                        <p className="text-lg font-black text-primary">{livestreamMedia.mode === 'preview' && isLive ? '28 đơn' : '—'}</p>
                       </div>
                       <div className="rounded-xl border border-gray-200 bg-white p-3 text-center dark:border-gray-800 dark:bg-surface-dark">
                         <span className="text-xs text-gray-500">Doanh số tạm tính</span>
-                        <p className="text-lg font-black text-emerald-600">{isLive ? '3.850.000đ' : '0đ'}</p>
+                        <p className="text-lg font-black text-emerald-600">{livestreamMedia.mode === 'preview' && isLive ? '3.850.000đ' : '—'}</p>
                       </div>
                     </div>
                   </div>
@@ -720,12 +834,17 @@ export default function RestaurantLivestreamPage() {
                     <div className="flex h-72 flex-col rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-surface-dark">
                       <div className="mb-2 flex items-center justify-between border-b pb-2 dark:border-gray-800">
                         <h3 className="font-bold text-gray-900 dark:text-white">Bình luận khán giả</h3>
-                        <span className="flex items-center gap-1 text-xs text-emerald-600 font-semibold">
+                        <span className="flex items-center gap-1 text-xs text-gray-500 font-semibold">
                           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Trực tiếp
+                          {livestreamMedia.mode === 'preview' ? 'Dữ liệu preview' : 'Chưa kết nối realtime'}
                         </span>
                       </div>
                       <div className="flex-1 space-y-2 overflow-y-auto pr-1">
+                        {livestreamMedia.mode !== 'preview' && (
+                          <p role="status" className="rounded-xl bg-gray-100 p-3 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                            Bình luận realtime chưa được bật. Khu vực này không hiển thị dữ liệu giả trên web thật.
+                          </p>
+                        )}
                         {chatMessages.map((msg) => (
                           <div
                             key={msg.id}
@@ -748,10 +867,12 @@ export default function RestaurantLivestreamPage() {
                           value={replyText}
                           onChange={(e) => setReplyText(e.target.value)}
                           placeholder="Nhập trả lời khách..."
+                          disabled={livestreamMedia.mode !== 'preview'}
                           className="flex-1 rounded-xl border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs text-gray-900 outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                         />
                         <button
                           type="submit"
+                          disabled={livestreamMedia.mode !== 'preview'}
                           className="rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-white shadow transition hover:bg-primary/90"
                         >
                           Gửi
@@ -857,18 +978,18 @@ export default function RestaurantLivestreamPage() {
                 </div>
                 <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
                   <span className="text-xs text-gray-400">Lượt thả tim</span>
-                  <p className="text-base font-bold text-pink-500">{summaryData.hearts}</p>
+                  <p className="text-base font-bold text-pink-500">{summaryData.hearts ?? '—'}</p>
                 </div>
                 <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
                   <span className="text-xs text-gray-400">Đơn hàng chốt</span>
-                  <p className="text-base font-bold text-primary">{summaryData.orders} đơn</p>
+                  <p className="text-base font-bold text-primary">{summaryData.orders === null ? '—' : `${summaryData.orders} đơn`}</p>
                 </div>
               </div>
 
               <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center dark:border-emerald-900 dark:bg-emerald-950/40">
                 <span className="text-xs text-emerald-700 dark:text-emerald-300">Tổng doanh thu chốt trên live</span>
                 <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
-                  {summaryData.revenue.toLocaleString('vi-VN')}đ
+                  {summaryData.revenue === null ? 'Chưa có dữ liệu' : `${summaryData.revenue.toLocaleString('vi-VN')}đ`}
                 </p>
               </div>
 
