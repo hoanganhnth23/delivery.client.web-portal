@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import { useAppDependencies } from '@/app/dependencies';
 import { useRestaurant } from '../hooks/useRestaurant';
 import type { Livestream, LivestreamProduct } from '@/services/api/livestreamService';
 import type { MenuItem } from '@/types/api.types';
+import './restaurantLivestream.css';
 
 interface PinnedItem {
   id: number;
@@ -19,6 +20,19 @@ interface ChatMessage {
   text: string;
   time: string;
   isHost?: boolean;
+}
+
+class RequestGeneration {
+  private value = 0;
+
+  next(): number {
+    this.value += 1;
+    return this.value;
+  }
+
+  isCurrent(requestId: number): boolean {
+    return this.value === requestId;
+  }
 }
 
 const SAMPLE_VIEWER_CHATS: Array<{ sender: string; text: string }> = [
@@ -54,7 +68,7 @@ export default function RestaurantLivestreamPage() {
   const [pinActionError, setPinActionError] = useState<string | null>(null);
   const [pinningProductId, setPinningProductId] = useState<number | null>(null);
   const [livePrices, setLivePrices] = useState<Record<number, string>>({});
-  const pinnedRequestId = useRef(0);
+  const pinnedRequestId = useMemo(() => new RequestGeneration(), []);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: '1', sender: 'Hệ thống', text: 'Chào mừng bạn đến với Studio Live! Chuẩn bị món ăn và bắt đầu phát sóng nào.', time: '10:00' },
     { id: '2', sender: 'Lan Hương', text: 'Chào shop, hôm nay có món gì hot không ạ?', time: '10:01' },
@@ -142,42 +156,42 @@ export default function RestaurantLivestreamPage() {
     () => streams.find((s) => s.id === activeStreamId) ?? streams[0] ?? null,
     [streams, activeStreamId],
   );
-
   const loadPinnedProducts = useCallback(async (streamId: string) => {
-    const requestId = ++pinnedRequestId.current;
+    const requestId = pinnedRequestId.next();
+    setPinningProductId(null);
     setPinnedProducts((current) => current.filter((product) => product.livestreamId === streamId));
     setPinnedLoading(true);
     setPinnedError(null);
     setPinActionError(null);
     try {
       const products = await livestreamHost.listPinnedProducts(streamId);
-      if (pinnedRequestId.current !== requestId) return;
+      if (!pinnedRequestId.isCurrent(requestId)) return;
       setPinnedProducts(products);
       setLivePrices((current) => ({
         ...current,
         ...Object.fromEntries(products.map((product) => [product.productId, String(product.priceAtLive)])),
       }));
     } catch {
-      if (pinnedRequestId.current === requestId) {
+      if (pinnedRequestId.isCurrent(requestId)) {
         setPinnedError('Không thể tải món ghim.');
       }
     } finally {
-      if (pinnedRequestId.current === requestId) {
+      if (pinnedRequestId.isCurrent(requestId)) {
         setPinnedLoading(false);
       }
     }
-  }, [livestreamHost]);
+  }, [livestreamHost, pinnedRequestId]);
 
   useEffect(() => {
     if (!activeStream) {
-      pinnedRequestId.current += 1;
+      pinnedRequestId.next();
       setPinnedProducts([]);
       setPinnedError(null);
       setPinnedLoading(false);
       return;
     }
     void loadPinnedProducts(activeStream.id);
-  }, [activeStream, loadPinnedProducts]);
+  }, [activeStream, loadPinnedProducts, pinnedRequestId]);
 
   const isLive = activeStream?.status === 'LIVE';
 
@@ -269,7 +283,21 @@ export default function RestaurantLivestreamPage() {
     () => new Map(pinnedProducts.map((product) => [product.productId, product])),
     [pinnedProducts],
   );
-  const pinnedItems = availableItems.filter((item) => pinnedProductById.has(item.id));
+  const displayItems = useMemo(() => {
+    const menuById = new Map(availableItems.map((item) => [item.id, item]));
+    pinnedProducts.forEach((product) => {
+      if (!menuById.has(product.productId)) {
+        menuById.set(product.productId, {
+          id: product.productId,
+          name: product.productName ?? `Sản phẩm #${product.productId}`,
+          originalPrice: product.priceAtLive,
+          image: product.productImage ?? '',
+        });
+      }
+    });
+    return [...menuById.values()];
+  }, [availableItems, pinnedProducts]);
+  const pinnedItems = displayItems.filter((item) => pinnedProductById.has(item.id));
   const featuredPinnedItem = pinnedItems[0] ?? null;
   const featuredPinnedProduct = featuredPinnedItem
     ? pinnedProductById.get(featuredPinnedItem.id) ?? null
@@ -277,6 +305,8 @@ export default function RestaurantLivestreamPage() {
 
   const pinItem = async (item: PinnedItem) => {
     if (!activeStream || pinningProductId !== null) return;
+    const streamId = activeStream.id;
+    const requestGeneration = pinnedRequestId.next();
     const priceAtLive = Number(livePrices[item.id]);
     if (!Number.isFinite(priceAtLive) || priceAtLive <= 0) {
       setPinActionError(`Giá live cho ${item.name} phải lớn hơn 0.`);
@@ -285,41 +315,53 @@ export default function RestaurantLivestreamPage() {
     setPinningProductId(item.id);
     setPinActionError(null);
     try {
-      const product = await livestreamHost.pinProduct(activeStream.id, {
+      const product = await livestreamHost.pinProduct(streamId, {
         productId: item.id,
         priceAtLive,
       });
+      if (!pinnedRequestId.isCurrent(requestGeneration)) return;
       setPinnedProducts((current) => [
         ...current.filter((entry) => entry.productId !== item.id),
         product,
       ]);
       notifications.success(`Đã ghim ${item.name}`);
     } catch {
-      setPinActionError(`Không thể ghim ${item.name}.`);
-      notifications.error(`Không thể ghim ${item.name}`);
+      if (pinnedRequestId.isCurrent(requestGeneration)) {
+        setPinActionError(`Không thể ghim ${item.name}.`);
+        notifications.error(`Không thể ghim ${item.name}`);
+      }
     } finally {
-      setPinningProductId(null);
+      if (pinnedRequestId.isCurrent(requestGeneration)) {
+        setPinningProductId(null);
+      }
     }
   };
 
   const unpinItem = async (item: PinnedItem) => {
     if (!activeStream || pinningProductId !== null) return;
+    const streamId = activeStream.id;
+    const requestGeneration = pinnedRequestId.next();
     setPinningProductId(item.id);
     setPinActionError(null);
     try {
-      await livestreamHost.unpinProduct(activeStream.id, item.id);
+      await livestreamHost.unpinProduct(streamId, item.id);
+      if (!pinnedRequestId.isCurrent(requestGeneration)) return;
       setPinnedProducts((current) => current.filter((entry) => entry.productId !== item.id));
       notifications.success(`Đã bỏ ghim ${item.name}`);
     } catch {
-      setPinActionError(`Không thể bỏ ghim ${item.name}.`);
-      notifications.error(`Không thể bỏ ghim ${item.name}`);
+      if (pinnedRequestId.isCurrent(requestGeneration)) {
+        setPinActionError(`Không thể bỏ ghim ${item.name}.`);
+        notifications.error(`Không thể bỏ ghim ${item.name}`);
+      }
     } finally {
-      setPinningProductId(null);
+      if (pinnedRequestId.isCurrent(requestGeneration)) {
+        setPinningProductId(null);
+      }
     }
   };
 
   return (
-    <div className="flex min-h-screen min-w-0 bg-background-light dark:bg-background-dark">
+    <div className="restaurant-livestream-page flex min-h-screen min-w-0 bg-background-light dark:bg-background-dark">
       <RestaurantSidebar
         restaurantName={currentRestaurant?.name}
         restaurantImage={currentRestaurant?.image}
@@ -611,9 +653,9 @@ export default function RestaurantLivestreamPage() {
                       <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
                         {menuLoading ? (
                           <p className="py-4 text-center text-xs text-gray-500">Đang tải thực đơn…</p>
-                        ) : availableItems.length === 0 && !menuError ? (
+                        ) : displayItems.length === 0 && !menuError ? (
                           <p className="py-4 text-center text-xs text-gray-500">Không có món đang bán để ghim.</p>
-                        ) : availableItems.map((item) => {
+                        ) : displayItems.map((item) => {
                           const isPinned = pinnedProductById.has(item.id);
                           const isPending = pinningProductId === item.id;
                           const enteredPrice = livePrices[item.id] ?? '';

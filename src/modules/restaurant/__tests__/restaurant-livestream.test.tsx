@@ -243,4 +243,62 @@ describe('restaurant livestream controls', () => {
     expect(await screen.findByRole('button', { name: 'Bỏ ghim Phở test' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ghim Cơm test' })).toBeInTheDocument();
   });
+
+  it('keeps unavailable API pins visible so they can always be unpinned', async () => {
+    const user = userEvent.setup();
+    const archivedPin = pinnedProduct(pho, 62_000);
+    const unpinProduct = vi.fn(async () => undefined);
+
+    renderApp({
+      route: '/restaurant/livestream',
+      dependencies: ownerDependencies({
+        menu: createMenuFake({ getMyMenuItems: vi.fn(async () => [rice]) }),
+        livestreamHost: createLivestreamHostFake({
+          inspect: vi.fn(async () => [stream]),
+          listPinnedProducts: vi.fn(async () => [archivedPin]),
+          unpinProduct,
+        }),
+      }),
+    });
+
+    await user.click(await screen.findByRole('button', { name: 'Bỏ ghim Phở test' }));
+    await waitFor(() => expect(unpinProduct).toHaveBeenCalledWith(stream.id, pho.id));
+    expect(screen.queryByRole('button', { name: 'Bỏ ghim Phở test' })).not.toBeInTheDocument();
+  });
+
+  it('ignores a late pin response after switching to another room', async () => {
+    const user = userEvent.setup();
+    const secondStream: Livestream = {
+      ...stream,
+      id: '00000000-0000-4000-8000-000000000002',
+      title: 'Bếp tối',
+      roomId: 'room-2',
+      channelName: 'channel-2',
+    };
+    let resolvePin: ((product: LivestreamProduct) => void) | undefined;
+    const pinProduct = vi.fn(() => new Promise<LivestreamProduct>((resolve) => {
+      resolvePin = resolve;
+    }));
+    const listPinnedProducts = vi.fn(async () => []);
+
+    renderApp({
+      route: '/restaurant/livestream',
+      dependencies: ownerDependencies({
+        menu: createMenuFake({ getMyMenuItems: vi.fn(async () => [rice, pho]) }),
+        livestreamHost: createLivestreamHostFake({
+          inspect: vi.fn(async () => [stream, secondStream]),
+          listPinnedProducts,
+          pinProduct,
+        }),
+      }),
+    });
+
+    await user.type(await screen.findByLabelText('Giá live cho Cơm test'), '45000');
+    await user.click(screen.getByRole('button', { name: 'Ghim Cơm test' }));
+    await user.click(screen.getByRole('button', { name: 'Xem Studio' }));
+    await waitFor(() => expect(listPinnedProducts).toHaveBeenLastCalledWith(secondStream.id));
+    resolvePin?.(pinnedProduct(rice, 45_000));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ghim Cơm test' })).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Bỏ ghim Cơm test' })).not.toBeInTheDocument();
+  });
 });

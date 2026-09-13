@@ -1,0 +1,13 @@
+.sf-live-viewer { min-height: 100dvh; }
+.sf-live-viewer-root { min-height: 100dvh; }
+.sf-live-viewer button { min-height: 44px; }
+.sf-live-bag-sheet { max-height: min(78dvh, 720px); overflow-y: auto; }
+@media (max-width: 639px) {
+  .sf-live-viewer { padding-bottom: env(safe-area-inset-bottom); }
+  .sf-live-comments { max-height: 30dvh; overflow-y: auto; }
+  .sf-live-bag-backdrop { align-items: flex-end; }
+  .sf-live-bag-sheet { width: 100%; border-radius: 16px 16px 0 0; }
+}
+@media (min-width: 768px) {
+  .sf-live-viewer { max-width: 1200px; margin: 0 auto; }
+}

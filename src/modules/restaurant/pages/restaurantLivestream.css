@@ -1,0 +1,9 @@
+.restaurant-livestream-page { min-width: 0; }
+.restaurant-livestream-page section > div { border-radius: 8px; box-shadow: 0 1px 3px #0f172a12; }
+@media (max-width: 639px) {
+  .restaurant-livestream-page section { padding: 12px; }
+  .restaurant-livestream-page button { min-height: 44px; }
+}
+@media (min-width: 640px) {
+  .restaurant-livestream-page section { max-width: 1400px; margin: auto; }
+}

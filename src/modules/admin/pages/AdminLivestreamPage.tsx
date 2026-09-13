@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useDialogFocus } from '@/components/navigation/useDialogFocus';
+import './adminLivestream.css';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import { useAppDependencies } from '@/app/dependencies';
 
@@ -138,6 +140,18 @@ export default function AdminLivestreamPage() {
   const [warningText, setWarningText] = useState('');
   const [stoppingId, setStoppingId] = useState<string | null>(null);
 
+  const monitorRef = useDialogFocus(Boolean(monitoredRoom), () => setMonitoredRoom(null), Boolean(warningModalRoom));
+  const warningRef = useDialogFocus(Boolean(warningModalRoom), () => setWarningModalRoom(null));
+
+  const openWarning = (room: AdminLivestreamRoom) => {
+    setWarningModalRoom(room);
+    setWarningText(room.warning || '');
+  };
+  const statusLabel = (room: AdminLivestreamRoom) => ({
+    LIVE: 'Đang phát', CREATED: 'Sẵn sàng', SCHEDULED: 'Lên lịch', ENDED: 'Đã kết thúc',
+  }[room.status]);
+  const money = (value: number) => value.toLocaleString('vi-VN') + 'đ';
+
   // Sync if any streams exist in backend for current restaurant
   useEffect(() => {
     void (async () => {
@@ -180,7 +194,7 @@ export default function AdminLivestreamPage() {
       if (filter === 'ENDED' && room.status !== 'ENDED') return false;
       if (filter === 'WARNING' && !room.warning) return false;
       if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
+        const query = searchQuery.trim().toLowerCase();
         const matchTitle = room.title.toLowerCase().includes(query);
         const matchName = room.restaurantName.toLowerCase().includes(query);
         if (!matchTitle && !matchName) return false;
@@ -261,432 +275,113 @@ export default function AdminLivestreamPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6 pb-12">
-        {/* Page Header */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <section className="live-workspace" aria-label="Quản lý livestream">
+        <header className="live-heading">
           <div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white">
-              Quản lý & Giám sát Livestream
-            </h1>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Giám sát toàn bộ phiên phát sóng trực tiếp trên nền tảng, kiểm duyệt nội dung và hỗ trợ can thiệp thời gian thực.
-            </p>
+            <h1>Quản lý & Giám sát Livestream</h1>
+            <p>Theo dõi phiên phát sóng và xử lý nội dung cần chú ý.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              Cổng Agora Gateway: Hoạt động tốt
-            </span>
-          </div>
-        </div>
-
-        {/* Platform KPI Summary */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-surface-dark">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Phòng đang phát</span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400">
-                <span className="material-symbols-outlined text-lg">live_tv</span>
-              </span>
-            </div>
-            <p className="mt-2 text-2xl font-black text-red-600">{stats.liveCount} phòng</p>
-            <span className="text-xs text-gray-500">Đang trực tiếp toàn sàn</span>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-surface-dark">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Tổng mắt xem</span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
-                <span className="material-symbols-outlined text-lg">visibility</span>
-              </span>
-            </div>
-            <p className="mt-2 text-2xl font-black text-gray-900 dark:text-white">
-              {stats.totalViewers.toLocaleString()}
-            </p>
-            <span className="text-xs text-blue-600 font-semibold">Khách đang xem live</span>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-surface-dark">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Doanh số live hôm nay</span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
-                <span className="material-symbols-outlined text-lg">payments</span>
-              </span>
-            </div>
-            <p className="mt-2 text-2xl font-black text-emerald-600">
-              {stats.totalRevenue.toLocaleString('vi-VN')}đ
-            </p>
-            <span className="text-xs text-gray-500">{stats.totalOrders} đơn hàng phát sinh</span>
-          </div>
-
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-surface-dark">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Tỉ lệ chốt đơn</span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400">
-                <span className="material-symbols-outlined text-lg">trending_up</span>
-              </span>
-            </div>
-            <p className="mt-2 text-2xl font-black text-purple-600">8.4%</p>
-            <span className="text-xs text-emerald-600 font-semibold">+2.1% so với hôm qua</span>
-          </div>
-        </div>
-
-        {/* Filter Bar & Search */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { key: 'ALL', label: `Tất cả (${rooms.length})` },
-              { key: 'LIVE', label: `Đang phát sóng (${stats.liveCount})` },
-              { key: 'SCHEDULED', label: 'Đã lên lịch' },
-              { key: 'ENDED', label: 'Đã kết thúc' },
-              { key: 'WARNING', label: `Cần chú ý (${rooms.filter((r) => r.warning).length})` },
-            ].map((tab) => (
-              <button
-                key={tab.key}
-                type="button"
-                onClick={() => setFilter(tab.key as typeof filter)}
-                className={`rounded-xl px-4 py-2 text-xs font-bold transition ${
-                  filter === tab.key
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200 dark:bg-surface-dark dark:text-gray-300 dark:border-gray-800'
-                }`}
-              >
-                {tab.label}
-              </button>
+          <span className="live-demo">Dữ liệu mô phỏng</span>
+        </header>
+        <dl className="live-summary">
+          <div><dt>Đang phát</dt><dd>{stats.liveCount}<small>phòng</small></dd></div>
+          <div><dt>Mắt xem trực tiếp</dt><dd>{stats.totalViewers.toLocaleString('vi-VN')}</dd></div>
+          <div><dt>Doanh số mẫu</dt><dd>{money(stats.totalRevenue)}</dd></div>
+          <div><dt>Cần chú ý</dt><dd>{rooms.filter((room) => room.warning).length}<small>phòng</small></dd></div>
+        </dl>
+        <div className="live-toolbar">
+          <div className="live-filters" role="group" aria-label="Lọc trạng thái livestream">
+            {([
+              ['ALL', `Tất cả (${rooms.length})`],
+              ['LIVE', `Đang phát sóng (${stats.liveCount})`],
+              ['SCHEDULED', 'Đã lên lịch'],
+              ['ENDED', 'Đã kết thúc'],
+              ['WARNING', `Cần chú ý (${rooms.filter((room) => room.warning).length})`],
+            ] as const).map(([key, label]) => (
+              <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}</button>
             ))}
           </div>
-
-          <div className="relative w-full sm:w-72">
-            <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-lg">search</span>
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm quán hoặc tiêu đề live..."
-              className="w-full rounded-xl border border-gray-200 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-primary dark:border-gray-800 dark:bg-surface-dark dark:text-white"
-            />
-          </div>
+          <label className="live-search">
+            <span className="material-symbols-outlined" aria-hidden="true">search</span>
+            <input type="search" aria-label="Tìm livestream" placeholder="Tìm quán hoặc tiêu đề live…" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+          </label>
         </div>
-
-        {/* Livestream Table */}
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-surface-dark">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-800 dark:bg-gray-800/50">
-                <tr>
-                  <th className="py-3.5 pl-6 pr-3 font-semibold">Nhà hàng & Tiêu đề Live</th>
-                  <th className="px-3 py-3.5 font-semibold">Món đang ghim</th>
-                  <th className="px-3 py-3.5 font-semibold">Trạng thái & Bắt đầu</th>
-                  <th className="px-3 py-3.5 font-semibold">Mắt xem & Đơn hàng</th>
-                  <th className="px-3 py-3.5 font-semibold">Doanh số live</th>
-                  <th className="py-3.5 pl-3 pr-6 text-right font-semibold">Hành động kiểm duyệt</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {filteredRooms.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-gray-400">
-                      Không tìm thấy phòng livestream nào phù hợp.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredRooms.map((room) => {
-                    const isLive = room.status === 'LIVE';
-                    return (
-                      <tr key={room.id} className="transition hover:bg-gray-50 dark:hover:bg-gray-800/40">
-                        {/* Restaurant & Title */}
-                        <td className="py-4 pl-6 pr-3">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src={room.restaurantImage}
-                              alt={room.restaurantName}
-                              className="h-10 w-10 rounded-xl object-cover shadow-sm"
-                            />
-                            <div className="min-w-0">
-                              <p className="font-bold text-gray-900 dark:text-white">{room.restaurantName}</p>
-                              <p className="max-w-xs truncate text-xs text-gray-500 dark:text-gray-400">{room.title}</p>
-                              {room.warning && (
-                                <span className="mt-1 inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                  <span className="material-symbols-outlined text-[12px]">warning</span>
-                                  {room.warning}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Pinned Dish */}
-                        <td className="px-3 py-4">
-                          <div className="flex items-center gap-2">
-                            <img
-                              src={room.pinnedItem.image}
-                              alt={room.pinnedItem.name}
-                              className="h-9 w-9 rounded-lg object-cover"
-                            />
-                            <div>
-                              <p className="max-w-[140px] truncate font-semibold text-gray-800 dark:text-gray-200">
-                                {room.pinnedItem.name}
-                              </p>
-                              <p className="text-xs font-bold text-primary">
-                                {room.pinnedItem.livePrice > 0
-                                  ? `${room.pinnedItem.livePrice.toLocaleString('vi-VN')}đ`
-                                  : '-'}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Status & Time */}
-                        <td className="px-3 py-4">
-                          <div>
-                            {isLive ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-black text-red-700 dark:bg-red-950 dark:text-red-400">
-                                <span className="h-1.5 w-1.5 rounded-full bg-red-600 animate-ping" />
-                                LIVE
-                              </span>
-                            ) : room.status === 'SCHEDULED' || room.status === 'CREATED' ? (
-                              <span className="rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-bold text-yellow-800 dark:bg-yellow-950 dark:text-yellow-400">
-                                {room.status === 'CREATED' ? 'SẴN SÀNG' : 'LÊN LỊCH'}
-                              </span>
-                            ) : (
-                              <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                ĐÃ KẾT THÚC
-                              </span>
-                            )}
-                            <p className="mt-1 text-[11px] text-gray-400">Bắt đầu: {room.startedAt}</p>
-                          </div>
-                        </td>
-
-                        {/* Viewers & Orders */}
-                        <td className="px-3 py-4">
-                          <div className="space-y-0.5">
-                            <p className="font-bold text-gray-900 dark:text-white">
-                              {room.viewers.toLocaleString()} 👁
-                            </p>
-                            <p className="text-[11px] text-gray-500">{room.orders} đơn chốt</p>
-                          </div>
-                        </td>
-
-                        {/* Revenue */}
-                        <td className="px-3 py-4">
-                          <span className="font-black text-emerald-600">
-                            {room.revenue.toLocaleString('vi-VN')}đ
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-4 pl-3 pr-6 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              id={`btn-monitor-${room.id}`}
-                              data-testid={`btn-monitor-${room.id}`}
-                              type="button"
-                              onClick={() => setMonitoredRoom(room)}
-                              className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-1.5 font-bold text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition"
-                            >
-                              <span className="material-symbols-outlined text-sm">visibility</span>
-                              Giám sát
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setWarningModalRoom(room);
-                                setWarningText(room.warning || '');
-                              }}
-                              className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 font-bold text-amber-700 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400 transition"
-                              title="Gửi cảnh báo kiểm duyệt"
-                            >
-                              <span className="material-symbols-outlined text-sm">warning</span>
-                              Cảnh báo
-                            </button>
-
-                            {isLive && (
-                              <button
-                                type="button"
-                                disabled={stoppingId === room.id}
-                                onClick={() => void handleForceEnd(room)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-red-600 px-2.5 py-1.5 font-bold text-white shadow-sm hover:bg-red-700 transition disabled:opacity-50"
-                                title="Cưỡng chế dừng phiên live"
-                              >
-                                <span className="material-symbols-outlined text-sm">gavel</span>
-                                {stoppingId === room.id ? 'Đang dừng…' : 'Dừng live'}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Live Monitor Modal */}
-        {monitoredRoom && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-            <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-surface-dark">
-              {/* Modal Header */}
-              <div className="flex items-center justify-between border-b px-6 py-4 dark:border-gray-800">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-3 w-3 rounded-full bg-red-500 animate-ping" />
-                  <div>
-                    <h3 className="font-bold text-gray-900 dark:text-white">
-                      Màn hình Giám sát Trực tiếp: {monitoredRoom.restaurantName}
-                    </h3>
-                    <p className="text-xs text-gray-500">{monitoredRoom.title}</p>
-                  </div>
+        <div className="live-list">
+          <div className="live-list-heading"><h2>Phiên phát sóng</h2><span role="status">{filteredRooms.length} kết quả</span></div>
+          {filteredRooms.length === 0 ? (
+            <div className="live-empty">
+              <span className="material-symbols-outlined" aria-hidden="true">search_off</span>
+              <p>Không tìm thấy phòng livestream nào phù hợp.</p>
+              <button className="live-button" onClick={() => { setFilter('ALL'); setSearchQuery(''); }}>Xóa bộ lọc</button>
+            </div>
+          ) : filteredRooms.map((room) => (
+            <article key={room.id} className="live-room" aria-label={room.restaurantName}>
+              <div className="live-room-identity">
+                <img src={room.restaurantImage} alt="" width="48" height="48" />
+                <div><h3>{room.restaurantName}</h3><p>{room.title}</p>
+                  <div className="live-room-status"><span className={`live-status live-status-${room.status.toLowerCase()}`}>{statusLabel(room)}</span><span>{room.status === 'SCHEDULED' ? 'Dự kiến' : 'Mốc giờ mẫu'} {room.startedAt}</span></div>
                 </div>
-                <button
-                  id="btn-close-monitor-modal"
-                  type="button"
-                  onClick={() => setMonitoredRoom(null)}
-                  className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                >
-                  <span className="material-symbols-outlined">close</span>
-                </button>
               </div>
-
-              {/* Modal Body */}
-              <div className="grid flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-3">
-                {/* Simulated Live Stream Video Box (2 cols) */}
-                <div className="relative flex min-h-[380px] flex-col justify-between bg-black p-4 text-white lg:col-span-2">
-                  {/* Video overlays */}
-                  <div className="flex items-center justify-between">
-                    <span className="rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider">
-                      {monitoredRoom.status}
-                    </span>
-                    <span className="rounded-full bg-black/60 px-3 py-1 text-xs font-semibold backdrop-blur">
-                      Channel: agora_{monitoredRoom.id.slice(0, 8)} | 1080p @ 60fps
-                    </span>
-                  </div>
-
-                  {/* Pinned dish in video */}
-                  <div className="my-auto max-w-xs rounded-xl bg-black/70 p-3 backdrop-blur border border-white/20">
-                    <span className="text-[10px] font-bold text-primary uppercase">Món đang ghim bán:</span>
-                    <p className="text-xs font-bold text-white">{monitoredRoom.pinnedItem.name}</p>
-                    <p className="text-xs font-black text-primary">
-                      {monitoredRoom.pinnedItem.livePrice.toLocaleString('vi-VN')}đ
-                    </p>
-                  </div>
-
-                  {/* Video HUD info */}
-                  <div className="flex items-center justify-between border-t border-white/20 pt-3 text-xs">
-                    <span>Mắt xem: <b>{monitoredRoom.viewers.toLocaleString()}</b></span>
-                    <span>Lượt tim: <b>{monitoredRoom.hearts}</b></span>
-                    <span>Đơn chốt: <b>{monitoredRoom.orders}</b></span>
-                  </div>
+              <div className="live-pinned">
+                <span className="live-label">Món đang ghim</span>
+                <strong>{room.pinnedItem.name}</strong>
+                <span className="live-price">{room.pinnedItem.livePrice > 0 ? money(room.pinnedItem.livePrice) : '—'}</span>
+              </div>
+              <dl className="live-room-metrics">
+                <div><dt>{room.status === 'LIVE' ? 'Mắt xem' : 'Lượt xem mẫu'}</dt><dd>{room.viewers.toLocaleString('vi-VN')}</dd></div>
+                <div><dt>Đơn mẫu</dt><dd>{room.orders}</dd></div>
+                <div><dt>Doanh số mẫu</dt><dd>{money(room.revenue)}</dd></div>
+              </dl>
+              <div className="live-room-actions">
+                <button className="live-button live-button-primary" id={`btn-monitor-${room.id}`} data-testid={`btn-monitor-${room.id}`} onClick={() => setMonitoredRoom(room)}>Giám sát</button>
+                <button className="live-button" onClick={() => openWarning(room)}>Cảnh báo</button>
+                {room.status === 'LIVE' && <button className="live-button live-button-danger" disabled={stoppingId !== null} onClick={() => void handleForceEnd(room)}>{stoppingId === room.id ? 'Đang dừng…' : 'Dừng live'}</button>}
+              </div>
+              {room.warning && <p className="live-room-warning"><span className="material-symbols-outlined" aria-hidden="true">warning</span>{room.warning}</p>}
+            </article>
+          ))}
+        </div>
+        <p className="live-footnote">Số liệu và thao tác cảnh báo, gỡ món đang được mô phỏng. Chưa kết nối video hoặc xác minh trạng thái Agora.</p>
+        {monitoredRoom && (
+          <div className="live-overlay">
+            <div ref={monitorRef} role="dialog" aria-modal="true" aria-labelledby="live-monitor-title" tabIndex={-1} className="live-dialog" inert={Boolean(warningModalRoom)}>
+              <header className="live-dialog-header">
+                <div><h2 id="live-monitor-title">Giám sát: {monitoredRoom.restaurantName}</h2><p>{monitoredRoom.title}</p></div>
+                <button className="live-close" id="btn-close-monitor-modal" aria-label="Đóng giám sát" onClick={() => setMonitoredRoom(null)}><span className="material-symbols-outlined" aria-hidden="true">close</span></button>
+              </header>
+              <div className="live-monitor-body">
+                <div className="live-monitor-stage">
+                  <div className="live-stage-top"><span className={`live-status live-status-${monitoredRoom.status.toLowerCase()}`}>{statusLabel(monitoredRoom)}</span><span>Mô phỏng</span></div>
+                  <div className="live-video-placeholder"><span className="material-symbols-outlined" aria-hidden="true">videocam_off</span><h3>Chưa kết nối video trực tiếp</h3><p>Khung giám sát mẫu · {monitoredRoom.streamProvider}</p></div>
+                  <div className="live-stage-product"><span className="live-label">Món đang ghim</span><strong>{monitoredRoom.pinnedItem.name}</strong><span>{monitoredRoom.pinnedItem.livePrice > 0 ? money(monitoredRoom.pinnedItem.livePrice) : '—'}</span></div>
                 </div>
-
-                {/* Right Moderation Side Panel */}
-                <div className="flex flex-col justify-between border-l p-5 dark:border-gray-800">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-bold text-gray-900 dark:text-white">Kiểm duyệt luồng</h4>
-                      <p className="mt-1 text-xs text-gray-500">Thông số kỹ thuật & hành động cưỡng chế.</p>
-                    </div>
-
-                    <div className="space-y-2 rounded-xl bg-gray-50 p-3 text-xs dark:bg-gray-800/60">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Stream Provider:</span>
-                        <span className="font-bold text-gray-900 dark:text-white">{monitoredRoom.streamProvider}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Thời gian bắt đầu:</span>
-                        <span className="font-bold text-gray-900 dark:text-white">{monitoredRoom.startedAt}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Doanh số live:</span>
-                        <span className="font-bold text-emerald-600">
-                          {monitoredRoom.revenue.toLocaleString('vi-VN')}đ
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Moderation actions inside monitor */}
-                    <div className="space-y-2">
-                      <button
-                        type="button"
-                        onClick={() => handleUnpinDish(monitoredRoom)}
-                        className="w-full rounded-xl border border-amber-300 bg-amber-50 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 transition dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-                      >
-                        Gỡ món ghim vi phạm
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setWarningModalRoom(monitoredRoom);
-                          setWarningText(monitoredRoom.warning || '');
-                        }}
-                        className="w-full rounded-xl border border-gray-300 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition dark:border-gray-700 dark:text-gray-300"
-                      >
-                        Gửi cảnh báo đến Host
-                      </button>
-
-                      {monitoredRoom.status === 'LIVE' && (
-                        <button
-                          type="button"
-                          onClick={() => void handleForceEnd(monitoredRoom)}
-                          className="w-full rounded-xl bg-red-600 py-2.5 text-xs font-bold text-white shadow hover:bg-red-700 transition"
-                        >
-                          Dừng phát sóng khẩn cấp
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <p className="mt-4 text-[10px] text-gray-400">
-                    Mọi can thiệp cưỡng chế đều được lưu vết kiểm toán (Audit Trail) trên hệ thống.
-                  </p>
-                </div>
+                <aside className="live-inspector">
+                  <h3>Kiểm duyệt luồng</h3>
+                  <dl><div><dt>Lượt xem mẫu</dt><dd>{monitoredRoom.viewers.toLocaleString('vi-VN')}</dd></div><div><dt>Đơn mẫu</dt><dd>{monitoredRoom.orders}</dd></div><div><dt>Doanh số mẫu</dt><dd>{money(monitoredRoom.revenue)}</dd></div></dl>
+                  {monitoredRoom.warning && <p className="live-room-warning">{monitoredRoom.warning}</p>}
+                  <button className="live-button" onClick={() => handleUnpinDish(monitoredRoom)}>Gỡ món ghim vi phạm</button>
+                  <button className="live-button" onClick={() => openWarning(monitoredRoom)}>Gửi cảnh báo đến Host</button>
+                  {monitoredRoom.status === 'LIVE' && <button className="live-button live-button-danger" disabled={stoppingId !== null} onClick={() => void handleForceEnd(monitoredRoom)}>{stoppingId === monitoredRoom.id ? 'Đang dừng…' : 'Dừng phát sóng khẩn cấp'}</button>}
+                  <p className="live-footnote">Cảnh báo và gỡ món chỉ thay đổi dữ liệu hiển thị; chưa gửi tới Host hoặc ghi audit.</p>
+                </aside>
               </div>
             </div>
           </div>
         )}
-
-        {/* Send Warning Modal */}
         {warningModalRoom && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-surface-dark">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                Gửi cảnh báo kiểm duyệt tới {warningModalRoom.restaurantName}
-              </h3>
-              <p className="mt-1 text-xs text-gray-500">
-                Tin nhắn cảnh báo sẽ hiển thị trực tiếp vào màn hình Studio phát sóng của chủ quán.
-              </p>
-
-              <form onSubmit={handleSendWarning} className="mt-4 space-y-3">
-                <textarea
-                  rows={3}
-                  required
-                  value={warningText}
-                  onChange={(e) => setWarningText(e.target.value)}
-                  placeholder="Nhập lý do cảnh báo (ví dụ: Hình ảnh món chưa đảm bảo quy định, thông tin giảm giá không chính xác)..."
-                  className="w-full rounded-xl border border-gray-300 p-3 text-xs outline-none focus:border-primary dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                />
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setWarningModalRoom(null)}
-                    className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow hover:bg-amber-700"
-                  >
-                    Gửi cảnh báo
-                  </button>
-                </div>
+          <div className="live-overlay">
+            <div ref={warningRef} role="dialog" aria-modal="true" aria-labelledby="live-warning-title" tabIndex={-1} className="live-dialog live-warning-dialog">
+              <header className="live-dialog-header"><div><h2 id="live-warning-title">Cảnh báo kiểm duyệt</h2><p>{warningModalRoom.restaurantName}</p></div><button className="live-close" aria-label="Đóng cảnh báo" onClick={() => setWarningModalRoom(null)}><span className="material-symbols-outlined" aria-hidden="true">close</span></button></header>
+              <form className="live-warning-form" onSubmit={handleSendWarning}>
+                <label htmlFor="live-warning-message">Lý do cảnh báo</label>
+                <textarea id="live-warning-message" rows={4} required value={warningText} onChange={(event) => setWarningText(event.target.value)} placeholder="Mô tả nội dung cần điều chỉnh…" />
+                <p className="live-footnote">Cảnh báo mô phỏng, chưa gửi tới Host.</p>
+                <div className="live-form-actions"><button type="button" className="live-button" onClick={() => setWarningModalRoom(null)}>Hủy</button><button type="submit" className="live-button live-button-primary" disabled={!warningText.trim()}>Gửi cảnh báo</button></div>
               </form>
             </div>
           </div>
         )}
-      </div>
+      </section>
     </AdminLayout>
   );
 }

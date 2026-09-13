@@ -1,10 +1,12 @@
 import { useEffect, useRef } from 'react';
 
 /** Keyboard containment for the portal's existing conditional dialogs. */
-export function useDialogFocus(open: boolean, onClose: () => void) {
+export function useDialogFocus(open: boolean, onClose: () => void, suspended = false) {
   const ref = useRef<HTMLDivElement>(null);
   const closeRef = useRef(onClose);
+  const suspendedRef = useRef(suspended);
   useEffect(() => { closeRef.current = onClose; }, [onClose]);
+  useEffect(() => { suspendedRef.current = suspended; }, [suspended]);
   useEffect(() => {
     const dialog = ref.current;
     if (!open || !dialog) return;
@@ -12,6 +14,7 @@ export function useDialogFocus(open: boolean, onClose: () => void) {
     const focusable = () => Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]')).filter((node) => node.getClientRects().length > 0);
     (focusable()[0] ?? dialog).focus();
     const onKeyDown = (event: KeyboardEvent) => {
+      if (suspendedRef.current) return;
       if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); }
       if (event.key !== 'Tab') return;
       const items = focusable();

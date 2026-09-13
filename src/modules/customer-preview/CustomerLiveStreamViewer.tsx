@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { catalog, type Item, type Restaurant } from './model';
+import './customerLiveStream.css';
 
 export interface LiveStreamDetail {
   id: string;
@@ -107,6 +108,12 @@ interface FloatingHeart {
 
 const HEART_COLORS = ['#ee4d2d', '#ff5722', '#e91e63', '#9c27b0', '#ff9800', '#ffeb3b'];
 
+const createFloatingHeart = (customX?: number): FloatingHeart => ({
+  id: Date.now() + Math.random(),
+  x: customX ?? Math.floor(Math.random() * 60) + 20,
+  color: HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)],
+});
+
 interface CustomerLiveStreamViewerProps {
   streamId?: string;
   onClose: () => void;
@@ -173,11 +180,7 @@ export default function CustomerLiveStreamViewer({
   // Spawn floating heart
   const triggerHeart = (customX?: number) => {
     setHeartsCount((prev) => prev + 1);
-    const newHeart: FloatingHeart = {
-      id: Date.now() + Math.random(),
-      x: customX ?? Math.floor(Math.random() * 60) + 20,
-      color: HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)],
-    };
+    const newHeart = createFloatingHeart(customX);
     setFloatingHearts((prev) => [...prev.slice(-15), newHeart]);
     setTimeout(() => {
       setFloatingHearts((prev) => prev.filter((h) => h.id !== newHeart.id));
