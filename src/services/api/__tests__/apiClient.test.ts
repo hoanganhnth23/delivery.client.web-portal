@@ -8,6 +8,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createApiClient,
   getSessionLoginPath,
+  handleError,
+  type ApiClientError,
   type ApiSessionStore,
   type RefreshRequest,
 } from '../apiClient';
@@ -77,6 +79,33 @@ function refreshResponse(accessToken = 'new-access-token'): AxiosResponse {
 }
 
 describe('createApiClient session boundary', () => {
+  it('preserves a machine-readable livestream error without parsing its message', () => {
+    const originalError = {
+      response: response({ headers: new AxiosHeaders() } as InternalAxiosRequestConfig, 404, {
+        status: 0,
+        message: 'Nội dung hiển thị có thể thay đổi',
+        data: null,
+        error: {
+          code: 'ROOM_NOT_FOUND',
+          details: { livestreamId: '00000000-0000-4000-8000-000000000001' },
+        },
+      }),
+    };
+
+    try {
+      handleError(originalError);
+      throw new Error('handleError must throw');
+    } catch (error) {
+      const apiError = error as ApiClientError;
+      expect(apiError.status).toBe(404);
+      expect(apiError.code).toBe('ROOM_NOT_FOUND');
+      expect(apiError.details).toEqual({
+        livestreamId: '00000000-0000-4000-8000-000000000001',
+      });
+      expect(apiError.message).toBe('Nội dung hiển thị có thể thay đổi');
+    }
+  });
+
   it('keeps expired-session redirects inside the active portal', () => {
     expect(getSessionLoginPath('/admin/orders')).toBe('/admin/login');
     expect(getSessionLoginPath('/restaurant/menu')).toBe('/login');
