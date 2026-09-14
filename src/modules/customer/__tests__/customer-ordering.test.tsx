@@ -143,6 +143,20 @@ describe('customer ordering journey', () => {
     expect(await screen.findByRole('heading', { name: 'Chi tiết đơn hàng' })).toBeInTheDocument();
   });
 
+  it('forwards livestream context to checkout preview and order creation', async () => {
+    const user = userEvent.setup();
+    const dependencies = customerDependencies();
+    const livestreamId = '00000000-0000-4000-8000-000000000001';
+    writeCustomerCart({ livestreamId, restaurantId: 201, restaurantName: 'Bếp test', items: [{ menuItemId: 301, restaurantId: 201, restaurantName: 'Bếp test', menuItemName: 'Cơm live', price: 42000, quantity: 1 }] });
+    renderApp({ route: ROUTES.CUSTOMER_CHECKOUT, dependencies });
+    const button = await screen.findByRole('button', { name: 'Đặt đơn COD' });
+    await waitFor(() => expect(button).toBeEnabled());
+    expect(dependencies.order.checkoutPreview).toHaveBeenCalledWith(expect.objectContaining({ livestreamId }));
+    await user.click(button);
+    await waitFor(() => expect(dependencies.order.createCustomerOrder).toHaveBeenCalled());
+    expect(dependencies.order.createCustomerOrder).toHaveBeenCalledWith(expect.objectContaining({ livestreamId }), expect.any(String));
+  });
+
   it('reuses the same idempotency key when the backend reports an in-progress request', async () => {
     const user = userEvent.setup();
     const inProgress = Object.assign(new Error('Đang xử lý'), { code: 'IDEMPOTENCY_IN_PROGRESS' });

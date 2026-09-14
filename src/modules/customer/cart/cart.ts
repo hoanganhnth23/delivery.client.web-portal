@@ -14,6 +14,7 @@ export interface CustomerCartItem {
 }
 
 export interface CustomerCart {
+  livestreamId?: string;
   restaurantId: number;
   restaurantName: string;
   items: CustomerCartItem[];
@@ -27,6 +28,7 @@ export interface AddToCartResult {
 
 const isPositiveInteger = (value: unknown): value is number =>
   typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+const livestreamUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const isCartItem = (value: unknown): value is CustomerCartItem => {
   if (typeof value !== 'object' || value === null) return false;
@@ -47,6 +49,7 @@ const isCart = (value: unknown): value is CustomerCart => {
   if (typeof value !== 'object' || value === null) return false;
   const cart = value as Partial<CustomerCart>;
   return isPositiveInteger(cart.restaurantId) &&
+    (cart.livestreamId === undefined || (typeof cart.livestreamId === 'string' && livestreamUuid.test(cart.livestreamId))) &&
     typeof cart.restaurantName === 'string' &&
     Array.isArray(cart.items) &&
     cart.items.length > 0 &&
@@ -115,8 +118,19 @@ export const addMenuItemToCart = (
   return {
     changed: true,
     requiresRestaurantConfirmation: false,
-    cart: { ...next, items },
+    cart: { ...next, livestreamId: undefined, items },
   };
+};
+
+export const addLivestreamItemToCart = (
+  current: CustomerCart | null,
+  restaurant: Pick<Restaurant, 'id' | 'name'>,
+  menuItem: Pick<MenuItem, 'id' | 'restaurantId' | 'name' | 'price' | 'image'>,
+  livestreamId: string,
+): AddToCartResult => {
+  if (!livestreamUuid.test(livestreamId)) return { changed: false, requiresRestaurantConfirmation: false, cart: current };
+  const result = addMenuItemToCart(current, restaurant, menuItem);
+  return result.changed && result.cart ? { ...result, cart: { ...result.cart, livestreamId } } : result;
 };
 
 export const updateCartItemQuantity = (

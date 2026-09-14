@@ -7,10 +7,12 @@ import { useOptionalPortalPreview } from '@/components/navigation/usePortalPrevi
 
 import type { LivestreamProduct } from '@/services/api/livestreamService';
 import type { LivestreamViewer } from '@/services/media/agoraViewer';
+import AdminLivestreamStudio from '../components/AdminLivestreamStudio';
 
 export interface AdminLivestreamRoom {
   products?: LivestreamProduct[];
   id: string;
+  sellerId: number;
   restaurantId: number;
   restaurantName: string;
   restaurantImage: string;
@@ -34,6 +36,7 @@ export interface AdminLivestreamRoom {
 const INITIAL_PLATFORM_ROOMS: AdminLivestreamRoom[] = [
   {
     id: '00000000-0000-4000-8000-000000000001',
+    sellerId: 9001,
     restaurantId: 35,
     restaurantName: 'Quán Test HÀ ĐÔNG',
     restaurantImage: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&auto=format&fit=crop&q=80',
@@ -54,6 +57,7 @@ const INITIAL_PLATFORM_ROOMS: AdminLivestreamRoom[] = [
   },
   {
     id: '00000000-0000-4000-8000-000000000002',
+    sellerId: 9001,
     restaurantId: 2,
     restaurantName: 'Trà Sữa Xiang Cha',
     restaurantImage: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=200&auto=format&fit=crop&q=80',
@@ -74,6 +78,7 @@ const INITIAL_PLATFORM_ROOMS: AdminLivestreamRoom[] = [
   },
   {
     id: '00000000-0000-4000-8000-000000000003',
+    sellerId: 9001,
     restaurantId: 3,
     restaurantName: 'Gà Nướng Muối Ớt Cay',
     restaurantImage: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=200&auto=format&fit=crop&q=80',
@@ -95,6 +100,7 @@ const INITIAL_PLATFORM_ROOMS: AdminLivestreamRoom[] = [
   },
   {
     id: '00000000-0000-4000-8000-000000000004',
+    sellerId: 9001,
     restaurantId: 4,
     restaurantName: 'Phở Thìn Lò Đúc Phố Cổ',
     restaurantImage: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=200&auto=format&fit=crop&q=80',
@@ -115,6 +121,7 @@ const INITIAL_PLATFORM_ROOMS: AdminLivestreamRoom[] = [
   },
   {
     id: '00000000-0000-4000-8000-000000000005',
+    sellerId: 9001,
     restaurantId: 5,
     restaurantName: 'Bún Đậu Mắm Tôm Phố Mới',
     restaurantImage: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200&auto=format&fit=crop&q=80',
@@ -157,6 +164,7 @@ export default function AdminLivestreamPage() {
   const [monitorMediaError, setMonitorMediaError] = useState<string | null>(null);
   const [monitorMediaConnected, setMonitorMediaConnected] = useState(false);
   const [monitorMediaRevision, setMonitorMediaRevision] = useState(0);
+  const [viewMode, setViewMode] = useState<'monitor' | 'studio'>('monitor');
 
   const [targetProductId, setTargetProductId] = useState<number | null>(null);
   const monitorRef = useDialogFocus(Boolean(monitoredRoom), () => setMonitoredRoom(null), Boolean(warningModalRoom));
@@ -185,7 +193,7 @@ export default function AdminLivestreamPage() {
         if (cancelled) return;
         setTotalPages(result.totalPages);
         setRooms(result.content.map((stream) => ({
-          id: stream.id, restaurantId: stream.restaurantId, products: stream.pinnedProducts,
+          id: stream.id, sellerId: stream.sellerId, restaurantId: stream.restaurantId, products: stream.pinnedProducts,
           restaurantName: stream.pinnedProducts.find((p) => p.restaurantName)?.restaurantName ?? `Nhà hàng #${stream.restaurantId}`,
           restaurantImage: '', title: stream.title, status: stream.status, streamProvider: 'AGORA',
           startedAt: stream.startedAt ?? '—', viewers: stream.viewCount, orders: 0, revenue: 0, hearts: '—',
@@ -357,8 +365,16 @@ export default function AdminLivestreamPage() {
             <h1>Quản lý & Giám sát Livestream</h1>
             <p>Theo dõi phiên phát sóng và xử lý nội dung cần chú ý.</p>
           </div>
-          <span className="live-demo">{preview ? 'Dữ liệu mô phỏng' : 'Dữ liệu API · lọc trong trang'}</span>
+          <div className="live-heading-actions">
+            <div className="live-view-tabs" role="tablist" aria-label="Chế độ livestream">
+              <button type="button" role="tab" aria-selected={viewMode === 'monitor'} onClick={() => setViewMode('monitor')}>Giám sát</button>
+              <button type="button" role="tab" aria-selected={viewMode === 'studio'} onClick={() => setViewMode('studio')}>Host studio</button>
+            </div>
+            <span className="live-demo">{preview ? 'Dữ liệu mô phỏng' : 'Dữ liệu API · lọc trong trang'}</span>
+          </div>
         </header>
+        {viewMode === 'studio' && <AdminLivestreamStudio />}
+        {viewMode === 'monitor' && <>
         <dl className="live-summary">
           <div><dt>Đang phát</dt><dd>{stats.liveCount}<small>phòng</small></dd></div>
           <div><dt>{preview ? 'Mắt xem mẫu' : 'Lượt xem tích lũy (trang)'}</dt><dd>{stats.totalViewers.toLocaleString('vi-VN')}</dd></div>
@@ -498,6 +514,7 @@ export default function AdminLivestreamPage() {
             </div>
           </div>
         )}
+        </>}
       </section>
     </AdminLayout>
   );

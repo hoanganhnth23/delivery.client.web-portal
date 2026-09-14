@@ -3,6 +3,11 @@
 .live-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 24px; }
 .live-heading h1 { font-size: 24px; line-height: 1.3; font-weight: 750; margin: 0; }
 .live-heading p, .live-dialog-header p { color: #64748b; font-size: 14px; margin-top: 8px; overflow-wrap: anywhere; }
+.live-heading-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; }
+.live-view-tabs { display: inline-flex; border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden; background: white; }
+.live-view-tabs button { min-height: 44px; padding: 10px 12px; border: 0; border-right: 1px solid #e5e7eb; background: transparent; color: #475569; font-size: 13px; font-weight: 650; }
+.live-view-tabs button:last-child { border-right: 0; }
+.live-view-tabs button[aria-selected=true] { color: #9a3412; background: #fff7ed; }
 .live-demo { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; border-radius: 6px; padding: 6px 10px; font-size: 12px; white-space: nowrap; }
 .live-summary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border: 1px solid #e5e7eb; border-radius: 8px; background: white; margin-bottom: 24px; }
 .live-summary > div { padding: 16px; min-width: 0; }
@@ -105,3 +110,33 @@
 .dark .live-workspace .live-warning-form textarea { background: #0f172a; color: white; }
 .dark .live-workspace .live-filters button[aria-pressed=true] { color: #fed7aa; border-color: #fb923c; background: #431407; }
 .portal-preview-phone .live-overlay { left: 50%; right: auto; width: min(430px, 100%); transform: translateX(-50%); }
+.live-studio { margin-bottom: 24px; container: studio / inline-size; }
+.live-studio-header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.live-studio-header h2 { font-size: 18px; font-weight: 750; }
+.live-studio-header p { margin-top: 6px; color: #64748b; font-size: 13px; max-width: 720px; }
+.live-studio-header label, .live-studio-panel > label { display: grid; gap: 6px; color: #475569; font-size: 12px; font-weight: 650; }
+.live-studio select, .live-studio input { min-height: 44px; border: 1px solid #cbd5e1; border-radius: 6px; background: white; color: #1f2937; padding: 10px 12px; font-size: 14px; }
+.live-studio-create { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 16px; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: white; }
+.live-studio-create label { display: grid; flex: 1; min-width: min(100%, 280px); gap: 6px; color: #475569; font-size: 12px; font-weight: 650; }
+.live-studio-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(280px, .7fr); gap: 16px; }
+.live-studio-stage, .live-studio-panel { min-width: 0; border: 1px solid #e5e7eb; border-radius: 8px; background: white; padding: 16px; }
+.live-studio-stage { position: relative; overflow: hidden; background: #0f172a; color: #f8fafc; }
+.live-studio-video { position: relative; min-height: 360px; border-radius: 6px; background: radial-gradient(ellipse at center, #334155 0%, #020617 100%); overflow: hidden; }
+.live-studio-video-state { position: absolute; inset: 16px 16px 74px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-radius: 6px; background: #020617eF; color: #cbd5e1; text-align: center; padding: 24px; }
+.live-studio-video-state .material-symbols-outlined { font-size: 48px; }
+.live-studio-controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.live-studio-panel { display: flex; flex-direction: column; gap: 12px; }
+.live-studio-panel h3 { font-size: 15px; font-weight: 750; margin-top: 4px; }
+.live-studio-note { border-left: 2px solid #f59e0b; background: #fffbeb; color: #92400e; padding: 10px 12px; font-size: 12px; line-height: 1.5; }
+.live-studio-menu { display: grid; gap: 10px; }
+.live-studio-menu-row { display: grid; grid-template-columns: minmax(0, 1fr) 100px auto; gap: 8px; align-items: end; padding: 10px 0; border-top: 1px solid #e5e7eb; }
+.live-studio-menu-row > div { display: grid; gap: 4px; min-width: 0; }
+.live-studio-menu-row strong { font-size: 13px; overflow-wrap: anywhere; }
+.live-studio-menu-row span { color: #64748b; font-size: 12px; }
+.live-studio-menu-row label { display: grid; gap: 4px; color: #64748b; font-size: 11px; }
+.live-studio-menu-row input { min-height: 40px; padding: 8px; }
+.live-studio-menu-row button { min-height: 40px; }
+@container studio (max-width: 760px) { .live-studio-grid { grid-template-columns: minmax(0, 1fr); } }
+@container studio (max-width: 520px) { .live-studio-menu-row { grid-template-columns: minmax(0, 1fr) minmax(100px, .6fr); } .live-studio-menu-row button { grid-column: 1 / -1; width: 100%; } .live-studio-video { min-height: 240px; } }
+.dark .live-studio select, .dark .live-studio input, .dark .live-studio-create, .dark .live-studio-stage, .dark .live-studio-panel { background: #1e293b; border-color: #475569; color: #e2e8f0; }
+.dark .live-studio-header p, .dark .live-studio-header label, .dark .live-studio-panel > label, .dark .live-studio-menu-row span, .dark .live-studio-menu-row label { color: #cbd5e1; }

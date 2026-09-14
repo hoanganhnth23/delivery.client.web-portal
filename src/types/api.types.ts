@@ -188,6 +188,7 @@ export interface CheckoutPreview {
 }
 
 export interface CheckoutPreviewRequest {
+  livestreamId?: string;
   restaurantId: number;
   deliveryLat: number;
   deliveryLng: number;
@@ -197,6 +198,7 @@ export interface CheckoutPreviewRequest {
 }
 
 export interface CreateCustomerOrderRequest {
+  livestreamId?: string;
   quoteId: string;
   restaurantId: number;
   deliveryAddress: string;

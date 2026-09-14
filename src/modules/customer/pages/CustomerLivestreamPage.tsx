@@ -5,10 +5,12 @@ import { ROUTES } from '@/utils/constants';
 import type { Livestream } from '@/services/api/livestreamService';
 import { CustomerShell } from '../components/CustomerShell';
 import type { LivestreamViewer } from '@/services/media/agoraViewer';
+import { useCustomerCart } from '../cart/useCustomerCart';
 
 export default function CustomerLivestreamPage() {
   const { livestreamId } = useParams();
   const { livestreamHost, livestreamMedia } = useAppDependencies();
+  const { addFromLivestream } = useCustomerCart();
   const [rooms, setRooms] = useState<Livestream[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +20,7 @@ export default function CustomerLivestreamPage() {
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [mediaConnected, setMediaConnected] = useState(false);
   const [mediaRevision, setMediaRevision] = useState(0);
+  const [cartMessage, setCartMessage] = useState<string | null>(null);
   const room = rooms[0];
   useEffect(() => {
     let cancelled = false;
@@ -99,9 +102,19 @@ export default function CustomerLivestreamPage() {
         {room.pinnedProducts.map((product) => <li key={product.productId} className="flex flex-wrap items-center justify-between gap-3 p-4">
           <span>{product.productName ?? `Món #${product.productId}`}</span>
           <strong>{product.priceAtLive.toLocaleString('vi-VN')}đ</strong>
+          <button className="min-h-11 rounded bg-primary px-4 font-semibold text-white" onClick={() => {
+            const result = addFromLivestream(
+              { id: room.restaurantId, name: product.restaurantName ?? `Nhà hàng #${room.restaurantId}` },
+              { id: product.productId, restaurantId: room.restaurantId, name: product.productName ?? `Món #${product.productId}`, price: product.priceAtLive, image: product.productImage ?? '' },
+              room.id,
+            );
+            setCartMessage(result.requiresRestaurantConfirmation ? 'Giỏ đang có món từ nhà hàng khác. Hãy hoàn tất hoặc xóa giỏ trước.' : result.changed ? 'Đã thêm món live vào giỏ.' : 'Không thể thêm món live vào giỏ.');
+          }}>Thêm vào giỏ</button>
           <Link className="inline-flex min-h-11 items-center text-primary" to={`${ROUTES.CUSTOMER_RESTAURANTS}/${room.restaurantId}`}>Xem thực đơn</Link>
         </li>)}
       </ul>
+      {cartMessage && <p role="status" className="text-sm text-gray-700">{cartMessage}</p>}
+      <Link className="inline-flex min-h-11 items-center font-semibold text-primary" to={ROUTES.CUSTOMER_CART}>Mở giỏ hàng</Link>
     </section>}
   </CustomerShell>;
 }

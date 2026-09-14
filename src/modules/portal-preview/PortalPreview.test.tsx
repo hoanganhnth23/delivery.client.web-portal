@@ -31,9 +31,9 @@ describe('production portal preview', () => {
     renderPreview('/preview/restaurant/dashboard?view=phone');
 
     expect(await screen.findByRole('heading', { name: 'Tổng quan' })).toBeInTheDocument();
-    expect(screen.getAllByText('Quán Test HÀ ĐÔNG').length).toBeGreaterThan(0);
-    expect(screen.getByText('12 Trần Phú, Hà Đông, Hà Nội')).toBeInTheDocument();
-    expect(screen.getByText(/Đang mở cửa/)).toHaveTextContent('0901234567');
+    expect((await screen.findAllByText('Quán Test HÀ ĐÔNG')).length).toBeGreaterThan(0);
+    expect(await screen.findByText('12 Trần Phú, Hà Đông, Hà Nội')).toBeInTheDocument();
+    expect(await screen.findByText(/Đang mở cửa/)).toHaveTextContent('0901234567');
   });
 
   it('keeps real portal links inside the preview and preserves phone mode', async () => {
@@ -59,7 +59,7 @@ describe('production portal preview', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mở cổng nhà hàng Phở Lý Quốc Sư - 25 Phủ Doãn' }));
 
     expect(await screen.findByRole('heading', { name: 'Tổng quan' })).toBeInTheDocument();
-    expect(screen.getAllByText('Phở Lý Quốc Sư - 25 Phủ Doãn').length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Phở Lý Quốc Sư - 25 Phủ Doãn')).length).toBeGreaterThan(0);
     const orderLinks = screen.getAllByRole('link', { name: /Đơn hàng/ });
     expect(orderLinks.some((link) => link.getAttribute('href') === '/preview/restaurant/orders?view=phone')).toBe(true);
   });

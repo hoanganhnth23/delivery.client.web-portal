@@ -380,7 +380,9 @@ export function createPortalPreviewDependencies(
   const availableRestaurants = previewRestaurantList();
   let currentRestaurant = previewRestaurantForId(selectedRestaurantId);
   let restaurants = kind === 'admin' ? availableRestaurants : [currentRestaurant];
-  let menuItems = previewMenuItems(currentRestaurant.id);
+  let menuItems = kind === 'admin'
+    ? availableRestaurants.flatMap((restaurant) => previewMenuItems(restaurant.id))
+    : previewMenuItems(currentRestaurant.id);
   let restaurantOrders = RESTAURANT_PREVIEW_DATA.orders.map(previewOrder);
   let allAdminOrders = adminOrders();
   let ratings = adminRatings();
@@ -415,7 +417,7 @@ export function createPortalPreviewDependencies(
   ];
   let liveStreams: Livestream[] = [{
     id: '00000000-0000-4000-8000-000000000001',
-    sellerId: PREVIEW_USER_IDS.owner,
+    sellerId: kind === 'admin' ? PREVIEW_USER_IDS.admin : PREVIEW_USER_IDS.owner,
     restaurantId: PREVIEW_RESTAURANT_ID,
     title: 'Bếp Hà Đông hôm nay',
     description: null,
@@ -726,7 +728,7 @@ export function createPortalPreviewDependencies(
     create: async (request: CreateLivestreamRequest) => {
       const stream: Livestream = {
         id: `00000000-0000-4000-8000-${String(liveStreams.length + 2).padStart(12, '0')}`,
-        sellerId: PREVIEW_USER_IDS.owner,
+        sellerId: kind === 'admin' ? PREVIEW_USER_IDS.admin : PREVIEW_USER_IDS.owner,
         restaurantId: request.restaurantId,
         title: request.title,
         description: request.description ?? null,
@@ -752,7 +754,7 @@ export function createPortalPreviewDependencies(
         channelName: stream.channelName,
         status: 'LIVE',
         token: 'preview-host-token',
-        uid: PREVIEW_USER_IDS.owner,
+        uid: kind === 'admin' ? PREVIEW_USER_IDS.admin : PREVIEW_USER_IDS.owner,
         role: 'HOST',
         tokenExpiresAt: PREVIEW_DATE,
         title: stream.title,

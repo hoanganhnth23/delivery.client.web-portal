@@ -8,6 +8,7 @@ import { USER_ROLES } from '@/utils/constants';
 import type { Livestream } from '@/services/api/livestreamService';
 import type { LivestreamMediaPort } from '@/services/media/livestreamMedia';
 import type { ViewerSession } from '@/services/media/agoraViewer';
+import { readCustomerCart } from '../cart/cart';
 
 const room: Livestream = {
   id: '00000000-0000-4000-8000-000000000001', restaurantId: 42, sellerId: 7,
@@ -95,4 +96,13 @@ it('joins viewer media with a validated server token renewal callback', async ()
     uid: session.uid,
     role: 'VIEWER',
   });
+});
+
+it('adds a pinned product with livestream context for authoritative checkout', async () => {
+  window.localStorage.clear();
+  const user = userEvent.setup();
+  const pin = { id: 11, livestreamId: room.id, productId: 501, productName: 'Món live', productImage: null, restaurantId: room.restaurantId, restaurantName: 'Bếp thật', priceAtLive: 42000, isPinned: true, createdAt: room.createdAt, pinnedAt: room.startedAt };
+  renderApp({ route: `/customer/livestreams/${room.id}`, dependencies: deps(createLivestreamHostFake({ getById: vi.fn(async () => ({ ...room, pinnedProducts: [pin] })) })) });
+  await user.click(await screen.findByRole('button', { name: 'Thêm vào giỏ' }));
+  expect(readCustomerCart()).toEqual(expect.objectContaining({ livestreamId: room.id, restaurantId: room.restaurantId }));
 });

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { MenuItem, Restaurant } from '@/types/api.types';
 import {
   addMenuItemToCart,
+  addLivestreamItemToCart,
   removeCartItem,
   readCustomerCart,
   updateCartItemNotes,
@@ -41,6 +42,12 @@ export const useCustomerCart = () => {
     if (cart) persist(updateCartItemQuantity(cart, menuItemId, quantity));
   }, [cart, persist]);
 
+  const addFromLivestream = useCallback((restaurant: Pick<Restaurant, 'id' | 'name'>, item: Pick<MenuItem, 'id' | 'restaurantId' | 'name' | 'price' | 'image'>, livestreamId: string) => {
+    const result = addLivestreamItemToCart(cart, restaurant, item, livestreamId);
+    if (result.changed) persist(result.cart);
+    return result;
+  }, [cart, persist]);
+
   const updateNotes = useCallback((menuItemId: number, notes: string) => {
     if (cart) persist(updateCartItemNotes(cart, menuItemId, notes));
   }, [cart, persist]);
@@ -51,5 +58,5 @@ export const useCustomerCart = () => {
 
   const clear = useCallback(() => persist(null), [persist]);
 
-  return { cart, add, updateQuantity, updateNotes, remove, clear, refresh };
+  return { cart, add, addFromLivestream, updateQuantity, updateNotes, remove, clear, refresh };
 };

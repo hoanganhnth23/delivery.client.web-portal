@@ -57,4 +57,19 @@ describe('livestream responsive workspace', () => {
     expect(await within(monitor).findByText('Đã kết thúc')).toBeInTheDocument();
     expect(within(monitor).queryByRole('button', { name: 'Dừng phát sóng khẩn cấp' })).not.toBeInTheDocument();
   });
+
+  it('exercises Admin host create/start and multiple live prices in preview', async () => {
+    const user = setup();
+    await user.click(await screen.findByRole('tab', { name: 'Host studio' }));
+    await user.type(screen.getByLabelText('Tiêu đề host livestream'), 'Preview host session');
+    await user.click(screen.getByRole('button', { name: 'Tạo phiên Agora' }));
+    await user.click(await screen.findByRole('button', { name: 'Bắt đầu phát' }));
+    expect(await screen.findByRole('button', { name: 'Kết thúc phát' })).toBeInTheDocument();
+    const inputs = await screen.findAllByLabelText(/Giá live/);
+    await user.type(inputs[0], '42000');
+    await user.click(screen.getAllByRole('button', { name: /^Ghim$/ })[0]);
+    await user.type(inputs[1], '35000');
+    await user.click(screen.getAllByRole('button', { name: /^Ghim$/ })[0]);
+    expect(screen.getAllByRole('button', { name: /^Bỏ ghim$/ })).toHaveLength(2);
+  });
 });

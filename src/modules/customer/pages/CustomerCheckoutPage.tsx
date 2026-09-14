@@ -139,6 +139,7 @@ const CustomerCheckoutPage = () => {
       setPreviewLoading(true);
       setError(null);
       const next = await orderService.checkoutPreview({
+        ...(cart.livestreamId ? { livestreamId: cart.livestreamId } : {}),
         restaurantId: cart.restaurantId,
         deliveryLat: selectedAddress.latitude!,
         deliveryLng: selectedAddress.longitude!,
@@ -199,6 +200,7 @@ const CustomerCheckoutPage = () => {
     }
 
     const request = {
+      ...(cart.livestreamId ? { livestreamId: cart.livestreamId } : {}),
       quoteId: preview.quoteId,
       restaurantId: cart.restaurantId,
       deliveryAddress: formatAddress(selectedAddress),
