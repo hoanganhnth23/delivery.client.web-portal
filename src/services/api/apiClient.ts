@@ -1,30 +1,18 @@
-import axios, {
-  AxiosError,
-  type AxiosInstance,
-  type AxiosResponse,
-  type InternalAxiosRequestConfig,
-} from 'axios';
+import axios, { AxiosError, type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { TokenStorage } from '@/services/storage/localStorage';
-import {
-  API_BASE_URL,
-  HTTP_STATUS,
-  RESPONSE_CODES,
-  ROUTES,
-} from '@/utils/constants';
-import { API_ENDPOINTS } from './endpoints';
+import { csrfToken, refreshWebSession } from './webSessionClient';
+import { API_BASE_URL, HTTP_STATUS, RESPONSE_CODES, ROUTES } from '@/utils/constants';
 
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean;
+  _bffProtected?: boolean;
 }
 
 interface BaseResponseEnvelope<T = unknown> {
   status: 0 | 1;
   message: string | null;
   data: T;
-  error?: {
-    code?: string;
-    details?: unknown;
-  } | null;
+  error?: { code?: string; details?: unknown } | null;
 }
 
 export interface ApiClientError extends Error {
@@ -34,27 +22,10 @@ export interface ApiClientError extends Error {
   originalError: unknown;
 }
 
-interface RefreshTokens {
-  accessToken: string;
-  refreshToken: string;
-}
-
-export interface ApiSessionStore {
-  clearAll(): void;
-  getAccessToken(): string | null;
-  getRefreshToken(): string | null;
-  setAccessToken(token: string): void;
-  setRefreshToken(token: string): void;
-}
-
-export type RefreshRequest = (
-  url: string,
-  refreshToken: string,
-) => Promise<AxiosResponse>;
+export type RefreshRequest = () => Promise<AxiosResponse>;
 
 export interface CreateApiClientOptions {
   baseUrl: string;
-  sessionStore: ApiSessionStore;
   refreshRequest?: RefreshRequest;
   onSessionExpired?: () => void;
   timeoutMs?: number;
@@ -64,193 +35,105 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
 const parseBaseResponse = <T>(payload: unknown): BaseResponseEnvelope<T> => {
-  if (
-    !isRecord(payload) ||
-    (payload.status !== RESPONSE_CODES.SUCCESS && payload.status !== RESPONSE_CODES.ERROR) ||
-    !Object.prototype.hasOwnProperty.call(payload, 'data') ||
-    !Object.prototype.hasOwnProperty.call(payload, 'message') ||
-    (payload.message !== null && typeof payload.message !== 'string')
-  ) {
+  if (!isRecord(payload) ||
+      (payload.status !== RESPONSE_CODES.SUCCESS && payload.status !== RESPONSE_CODES.ERROR) ||
+      !Object.prototype.hasOwnProperty.call(payload, 'data') ||
+      !Object.prototype.hasOwnProperty.call(payload, 'message') ||
+      (payload.message !== null && typeof payload.message !== 'string')) {
     throw new Error('Backend response does not match the canonical BaseResponse contract');
   }
-
   return payload as unknown as BaseResponseEnvelope<T>;
 };
 
-const getAuthorizationHeader = (
-  config: ExtendedAxiosRequestConfig,
-): string | undefined => {
-  const value = config.headers?.get?.('Authorization') ?? config.headers?.Authorization;
-  return typeof value === 'string' ? value : undefined;
-};
-
-export function shouldAttemptWebTokenRefresh(
-  status: number | undefined,
-  request: ExtendedAxiosRequestConfig | undefined,
-): request is ExtendedAxiosRequestConfig {
-  return status === HTTP_STATUS.UNAUTHORIZED &&
-    Boolean(request) &&
-    !request?._retry &&
-    getAuthorizationHeader(request as ExtendedAxiosRequestConfig)?.startsWith('Bearer ') === true &&
-    !request?.url?.includes('/api/auth/login') &&
-    !request?.url?.includes('/api/auth/refresh-token') &&
-    !request?.url?.includes('/api/auth/logout');
-}
-
 export const handleResponse = <T = unknown>(response: AxiosResponse): T => {
   const envelope = parseBaseResponse<T>(response.data);
-  if (envelope.status !== RESPONSE_CODES.SUCCESS) {
-    throw new Error(envelope.message || 'API Error');
-  }
+  if (envelope.status !== RESPONSE_CODES.SUCCESS) throw new Error(envelope.message || 'API Error');
   return envelope.data;
 };
 
-const defaultRefreshRequest = (
-  timeoutMs: number,
-): RefreshRequest => (url, refreshToken) => axios.post(
-  url,
-  { refreshToken },
-  {
-    headers: { 'Content-Type': 'application/json' },
-    timeout: timeoutMs,
-  },
-);
+const PUBLIC_AUTH_PATHS = [
+  '/api/auth/register', '/api/auth/registrations/', '/api/auth/forgot-password',
+  '/api/auth/reset-password', '/api/auth/email-verification/request',
+  '/api/auth/email-verification/confirm', '/api/users/registrations',
+];
 
-export function createApiClient({
-  baseUrl,
-  sessionStore,
-  refreshRequest,
-  onSessionExpired,
-  timeoutMs = 30_000,
-}: CreateApiClientOptions): AxiosInstance {
+export const isPublicBrowserRequest = (method: string | undefined, url: string): boolean => {
+  const verb = (method ?? 'get').toLowerCase();
+  if (PUBLIC_AUTH_PATHS.some(path => url === path || url.startsWith(path))) return true;
+  if (verb !== 'get') return false;
+  return url === '/api/restaurants' || /^\/api\/restaurants\/(?:[0-9]+|page|search)(?:[/?]|$)/.test(url)
+    || /^\/api\/menu-items\/restaurant\/[0-9]+(?:\/available)?(?:\/page)?(?:[/?]|$)/.test(url)
+    || url.startsWith('/api/search/');
+};
+
+export const shouldAttemptWebSessionRefresh = (
+  status: number | undefined,
+  request: ExtendedAxiosRequestConfig | undefined,
+): request is ExtendedAxiosRequestConfig => status === HTTP_STATUS.UNAUTHORIZED
+  && Boolean(request?._bffProtected) && !request?._retry;
+
+export function createApiClient({ baseUrl, refreshRequest, onSessionExpired, timeoutMs = 30_000 }:
+CreateApiClientOptions): AxiosInstance {
   const client = axios.create({
-    baseURL: baseUrl,
-    headers: { 'Content-Type': 'application/json' },
-    timeout: timeoutMs,
+    baseURL: baseUrl, withCredentials: true,
+    headers: { 'Content-Type': 'application/json' }, timeout: timeoutMs,
   });
-  const requestRefresh = refreshRequest ?? defaultRefreshRequest(timeoutMs);
-  let isRefreshing = false;
-  let sessionInvalidated = false;
-  let lastAccessToken = sessionStore.getAccessToken();
-  let failedQueue: Array<{
-    resolve: (value: string) => void;
-    reject: (reason?: unknown) => void;
-  }> = [];
-
-  const processQueue = (error: unknown, token: string | null = null) => {
-    for (const pending of failedQueue) {
-      if (error) pending.reject(error);
-      else pending.resolve(token!);
-    }
-    failedQueue = [];
-  };
+  const requestRefresh = refreshRequest ?? (async () => {
+    const data = await refreshWebSession();
+    return { data } as AxiosResponse;
+  });
+  let refreshInFlight: Promise<AxiosResponse> | null = null;
+  let expirationReported = false;
 
   const expireSession = () => {
-    if (sessionInvalidated) return;
-    sessionInvalidated = true;
-    sessionStore.clearAll();
-    lastAccessToken = null;
+    if (expirationReported) return;
+    expirationReported = true;
+    TokenStorage.clearAll();
     onSessionExpired?.();
   };
 
-  client.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-      const token = sessionStore.getAccessToken();
-      if (token) {
-        if (token !== lastAccessToken) {
-          sessionInvalidated = false;
-        }
-        lastAccessToken = token;
-        config.headers.Authorization = `Bearer ${token}`;
+  client.interceptors.request.use((raw) => {
+    const config = raw as ExtendedAxiosRequestConfig;
+    const url = config.url ?? '';
+    if (url.startsWith('/api/') && !isPublicBrowserRequest(config.method, url)) {
+      config.url = `/bff${url}`;
+      config._bffProtected = true;
+      const method = (config.method ?? 'get').toLowerCase();
+      if (!['get', 'head', 'options'].includes(method)) {
+        config.headers.set('X-CSRF-Token', csrfToken() ?? '');
       }
-      return config;
-    },
-    (error: AxiosError) => Promise.reject(error),
-  );
+    }
+    config.headers.delete('Authorization');
+    return config;
+  });
 
   client.interceptors.response.use(
-    (response: AxiosResponse) => {
-      try {
-        const envelope = parseBaseResponse(response.data);
-        if (envelope.status === RESPONSE_CODES.SUCCESS) return response;
-
-        const error = new Error(envelope.message || 'API Error') as Error & {
-          response: AxiosResponse;
-        };
-        error.response = response;
-        return Promise.reject(error);
-      } catch (contractError) {
-        if (contractError instanceof Error && 'response' in contractError) {
-          return Promise.reject(contractError);
-        }
-
-        const error = new Error(
-          contractError instanceof Error
-            ? contractError.message
-            : 'Invalid backend response',
-        ) as Error & { response: AxiosResponse };
-        error.response = response;
-        return Promise.reject(error);
-      }
+    (response) => {
+      const envelope = parseBaseResponse(response.data);
+      if (envelope.status === RESPONSE_CODES.SUCCESS) return response;
+      const error = new Error(envelope.message || 'API Error') as Error & { response: AxiosResponse };
+      error.response = response;
+      return Promise.reject(error);
     },
     async (error: AxiosError) => {
-      const originalRequest = error.config as ExtendedAxiosRequestConfig | undefined;
-      if (error.response?.status === HTTP_STATUS.UNAUTHORIZED && originalRequest?._retry) {
+      const original = error.config as ExtendedAxiosRequestConfig | undefined;
+      if (error.response?.status === HTTP_STATUS.UNAUTHORIZED && original?._retry) {
         expireSession();
         return Promise.reject(error);
       }
-      if (!shouldAttemptWebTokenRefresh(error.response?.status, originalRequest)) {
-        return Promise.reject(error);
-      }
-
-      originalRequest._retry = true;
-      if (isRefreshing) {
-        return new Promise<string>((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return client(originalRequest);
-        });
-      }
-
-      isRefreshing = true;
-
+      if (!shouldAttemptWebSessionRefresh(error.response?.status, original)) return Promise.reject(error);
+      original._retry = true;
       try {
-        const refreshToken = sessionStore.getRefreshToken();
-        if (!refreshToken) throw new Error('No refresh token available');
-
-        const response = await requestRefresh(
-          `${baseUrl}${API_ENDPOINTS.AUTH.REFRESH_TOKEN}`,
-          refreshToken,
-        );
-        const tokens = handleResponse<RefreshTokens>(response);
-        if (typeof tokens.accessToken !== 'string' || tokens.accessToken.trim() === '') {
-          throw new Error('Refresh response is missing a valid access token');
-        }
-        if (typeof tokens.refreshToken !== 'string' || tokens.refreshToken.trim() === '') {
-          throw new Error('Refresh response is missing a valid refresh token');
-        }
-
-        // Persist the rotated refresh token first. A crash between writes leaves
-        // a usable family successor rather than a consumed refresh token.
-        sessionStore.setRefreshToken(tokens.refreshToken);
-        sessionStore.setAccessToken(tokens.accessToken);
-        lastAccessToken = tokens.accessToken;
-        sessionInvalidated = false;
-        processQueue(null, tokens.accessToken);
-
-        originalRequest.headers.Authorization = `Bearer ${tokens.accessToken}`;
-        return client(originalRequest);
+        if (!refreshInFlight) refreshInFlight = requestRefresh().finally(() => { refreshInFlight = null; });
+        await refreshInFlight;
+        expirationReported = false;
+        return client(original);
       } catch (refreshError) {
-        processQueue(refreshError, null);
         expireSession();
         return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
       }
     },
   );
-
   return client;
 }
 
@@ -259,30 +142,22 @@ export const handleError = (error: unknown): never => {
   let errorStatus = 0;
   let errorCode: string | undefined;
   let errorDetails: unknown;
-
-  const response = axios.isAxiosError(error)
-    ? error.response
+  const response = axios.isAxiosError(error) ? error.response
     : (error as { response?: AxiosResponse } | null)?.response;
-
   if (response) {
-      errorStatus = response.status;
-      const payload = response.data as {
-        message?: string | null;
-        error?: { code?: string; details?: unknown } | null;
-      } | undefined;
-      errorMessage = payload?.message || (error instanceof Error ? error.message : errorMessage);
-      errorCode = payload?.error?.code;
-      errorDetails = payload?.error?.details;
+    errorStatus = response.status;
+    const payload = response.data as {
+      message?: string | null;
+      error?: { code?: string; message?: string; details?: unknown } | null;
+    } | undefined;
+    errorMessage = payload?.message || payload?.error?.message
+      || (error instanceof Error ? error.message : errorMessage);
+    errorCode = payload?.error?.code;
+    errorDetails = payload?.error?.details;
   } else if (axios.isAxiosError(error)) {
-    if (error.request) {
-      errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối.';
-    } else {
-      errorMessage = error.message || errorMessage;
-    }
-  } else if (error instanceof Error) {
-    errorMessage = error.message;
-  }
-
+    errorMessage = error.request ? 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối.'
+      : error.message || errorMessage;
+  } else if (error instanceof Error) errorMessage = error.message;
   const mapped = new Error(errorMessage) as ApiClientError;
   mapped.status = errorStatus;
   mapped.code = errorCode;
@@ -291,20 +166,17 @@ export const handleError = (error: unknown): never => {
   throw mapped;
 };
 
-export const getSessionLoginPath = (pathname: string): string =>
-  pathname.startsWith('/admin')
-    ? ROUTES.ADMIN_LOGIN
-    : pathname.startsWith('/customer/') || pathname === ROUTES.CUSTOMER_CHECKOUT
-      ? ROUTES.CUSTOMER_LOGIN
-      : ROUTES.LOGIN;
+export const getSessionLoginPath = (pathname: string): string => pathname.startsWith('/admin')
+  ? ROUTES.ADMIN_LOGIN
+  : pathname.startsWith('/customer/') || pathname === ROUTES.CUSTOMER_CHECKOUT
+    ? ROUTES.CUSTOMER_LOGIN : ROUTES.LOGIN;
+
+TokenStorage.clearLegacyCredentials();
 
 const apiClient = createApiClient({
   baseUrl: API_BASE_URL,
-  sessionStore: TokenStorage,
   onSessionExpired: () => {
-    if (typeof window !== 'undefined') {
-      window.location.href = getSessionLoginPath(window.location.pathname);
-    }
+    if (typeof window !== 'undefined') window.location.href = getSessionLoginPath(window.location.pathname);
   },
 });
 

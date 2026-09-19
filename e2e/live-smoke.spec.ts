@@ -20,11 +20,23 @@ test.describe('real Gateway disposable sandbox smoke', () => {
     await page.goto(`/customer/login?returnTo=${encodeURIComponent(`/restaurants/${restaurantId}`)}`);
     await page.getByLabel('Email').fill(customerEmail!);
     await page.locator('input[type="password"]').fill(password);
-    const loginResponse = apiResponse(page, '/api/auth/login', 'POST');
+    const loginResponse = apiResponse(page, '/bff/session/login', 'POST');
     await page.getByRole('button', { name: 'Đăng nhập' }).click();
     await expect((await loginResponse).status()).toBe(200);
     await expect(page).toHaveURL(new RegExp(`/restaurants/${restaurantId}$`));
     await expect(page.getByText('Cơm gà')).toBeVisible();
+  });
+
+  test('invalid customer credentials stay on login with an unauthorized response', async ({ page }) => {
+    test.skip(!customerEmail, 'Seed credentials are missing');
+    await page.goto('/customer/login');
+    await page.getByLabel('Email').fill(customerEmail!);
+    await page.locator('input[type="password"]').fill(`${password}-invalid`);
+    const loginResponse = apiResponse(page, '/bff/session/login', 'POST');
+    await page.getByRole('button', { name: 'Đăng nhập' }).click();
+    await expect((await loginResponse).status()).toBe(401);
+    await expect(page).toHaveURL(/\/customer\/login$/);
+    await expect(page.getByRole('alert')).toHaveText('Invalid email or password');
   });
 
   test('restaurant owner can authenticate and reach the owner portal', async ({ page }) => {
@@ -32,7 +44,7 @@ test.describe('real Gateway disposable sandbox smoke', () => {
     await page.goto('/login');
     await page.getByLabel('Email').fill(ownerEmail!);
     await page.locator('input[type="password"]').fill(password);
-    const loginResponse = apiResponse(page, '/api/auth/login', 'POST');
+    const loginResponse = apiResponse(page, '/bff/session/login', 'POST');
     await page.getByRole('button', { name: 'Đăng nhập' }).click();
     await expect((await loginResponse).status()).toBe(200);
     await expect(page).toHaveURL(/\/restaurant\/dashboard$/);
@@ -44,7 +56,7 @@ test.describe('real Gateway disposable sandbox smoke', () => {
     await page.goto('/admin/login');
     await page.getByLabel('Email').fill(adminEmail!);
     await page.locator('input[type="password"]').fill(password);
-    const loginResponse = apiResponse(page, '/api/auth/login', 'POST');
+    const loginResponse = apiResponse(page, '/bff/session/login', 'POST');
     await page.getByRole('button', { name: 'Đăng nhập admin' }).click();
     await expect((await loginResponse).status()).toBe(200);
     await expect(page).toHaveURL(/\/admin\/dashboard$/);

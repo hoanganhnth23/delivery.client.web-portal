@@ -29,17 +29,15 @@ export function createAuthFake(
 ): AuthServicePort {
   const user = buildUser();
   const getProfile = overrides.getProfile ?? vi.fn(async () => user);
+  const hasStoredSession = overrides.hasStoredSession ?? vi.fn(() => false);
+  const isAuthenticated = overrides.isAuthenticated ?? vi.fn(() => false);
   return {
     getCurrentUser: vi.fn(() => null),
     getProfile,
     hasRole: vi.fn(() => false),
-    hasStoredSession: vi.fn(() => false),
-    isAuthenticated: vi.fn(() => false),
-    login: vi.fn(async () => ({
-      accessToken: 'access.test.token',
-      refreshToken: 'refresh.test.token',
-      user,
-    })),
+    hasStoredSession,
+    isAuthenticated,
+    login: vi.fn(async () => ({ user })),
     registerCustomer: vi.fn(async () => ({
       principalId: user.id,
       profileCreated: true,
@@ -54,7 +52,10 @@ export function createAuthFake(
     requestEmailVerification: vi.fn(async () => undefined),
     confirmEmailVerification: vi.fn(async () => undefined),
     logout: vi.fn(async () => undefined),
-    restoreSession: vi.fn(async () => getProfile()),
+    restoreSession: vi.fn(async () => {
+      if (!hasStoredSession() && !isAuthenticated()) throw new Error('Web session is not active');
+      return getProfile();
+    }),
     ...overrides,
   };
 }

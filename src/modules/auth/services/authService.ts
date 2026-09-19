@@ -6,8 +6,13 @@
 import apiClient, { handleResponse, handleError } from '@/services/api/apiClient';
 import { API_ENDPOINTS } from '@/services/api/endpoints';
 import { TokenStorage } from '@/services/storage/localStorage';
-import { DEVICE_TYPES, USER_ROLES, type UserRole } from '@/utils/constants';
+import { USER_ROLES, type UserRole } from '@/utils/constants';
 import type { User } from '@/types/api.types';
+import {
+  loginWebSession,
+  logoutWebSession,
+  readWebSession,
+} from '@/services/api/webSessionClient';
 
 // ============================================
 // LOCAL TYPES (chỉ dùng trong authService)
@@ -19,23 +24,8 @@ interface LoginRequest {
   role?: string; // SHOP_OWNER, ADMIN, etc.
 }
 
-interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  authId: number;
-  email: string;
-  role: UserRole;
-}
-
 interface LoginResult {
-  accessToken: string;
-  refreshToken: string;
   user: User;
-}
-
-interface RefreshTokenResponse {
-  accessToken: string;
-  refreshToken: string;
 }
 
 interface UserProfileResponse {
@@ -100,71 +90,31 @@ const requireNonBlankString = (value: unknown, field: string): string => {
   return value;
 };
 
-const parseAuthResponse = (value: AuthResponse, expectedRole?: string): AuthResponse => {
-  const accessToken = requireNonBlankString(value?.accessToken, 'access token');
-  const refreshToken = requireNonBlankString(value?.refreshToken, 'refresh token');
-  const email = requireNonBlankString(value?.email, 'email');
-  if (!Number.isSafeInteger(value?.authId) || value.authId <= 0) {
-    throw new Error('Backend response is missing a valid auth id');
-  }
-  if (!isUserRole(value?.role)) {
-    throw new Error('Backend response contains an unsupported role');
-  }
-  if (expectedRole && value.role !== expectedRole) {
-    throw new Error('Authenticated role does not match the requested portal role');
-  }
-
-  return { ...value, accessToken, refreshToken, email, role: value.role };
-};
-
 export const authService = {
   /**
    * Đăng nhập
    * Backend request: { email, password, role, deviceType, deviceId }
-   * Backend response: { accessToken, refreshToken, expiresIn }
+   * BFF response contains only safe session identity; bearer tokens stay server-side.
    */
   async login(credentials: LoginRequest & { deviceType?: string; deviceId?: string }): Promise<LoginResult> {
     try {
-      // Generate unique device ID if not provided
-      const deviceId = credentials.deviceId || this.getOrCreateDeviceId();
+      const expectedRole = credentials.role || USER_ROLES.RESTAURANT_OWNER;
+      const session = await loginWebSession(credentials.email, credentials.password, expectedRole);
+      if (!session.authenticated || !Number.isSafeInteger(session.principalId) ||
+          session.principalId! <= 0 || !session.email || !isUserRole(session.role) ||
+          session.role !== expectedRole) {
+        throw new Error('BFF returned an invalid authenticated session');
+      }
 
-      const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, {
-        email: credentials.email,
-        password: credentials.password,
-        role: credentials.role || USER_ROLES.RESTAURANT_OWNER, // Role phải được truyền từ login page
-        deviceType: credentials.deviceType || DEVICE_TYPES.WEB,
-        deviceId: deviceId,
-      });
-
-      // Backend trả về: { status: 1, data: { accessToken, refreshToken, authId, email, role } }
-      const responseData = parseAuthResponse(
-        handleResponse<AuthResponse>(response),
-        credentials.role || USER_ROLES.RESTAURANT_OWNER,
-      );
-      
-      // Destructure từ response data
-      const { accessToken, refreshToken, authId, email, role } = responseData;
-
-      // Lưu tokens vào localStorage
-      TokenStorage.setAccessToken(accessToken);
-      TokenStorage.setRefreshToken(refreshToken);
-
-      // Decode JWT để lấy user info (hoặc dùng info từ response)
       const userInfo: User = {
-        id: authId,
-        authId,
-        email: email,
-        name: email.split('@')[0], // Temporary name từ email
-        role,
+        id: session.principalId!,
+        authId: session.principalId!,
+        email: session.email,
+        name: session.email.split('@')[0],
+        role: session.role,
       };
-      
       TokenStorage.setUserInfo(userInfo);
-
-      return {
-        accessToken,
-        refreshToken,
-        user: userInfo,
-      };
+      return { user: userInfo };
     } catch (error) {
       throw handleError(error);
     }
@@ -251,15 +201,11 @@ export const authService = {
 
   /**
    * Đăng xuất
-   * Backend request: { refreshToken }
+   * BFF revokes the server-side session and refresh token.
    */
   async logout() {
     try {
-      const refreshToken = TokenStorage.getRefreshToken();
-
-      if (refreshToken) {
-        await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT, { refreshToken });
-      }
+      await logoutWebSession();
     } catch {
       // Local session cleanup in finally is authoritative for logout.
     } finally {
@@ -269,41 +215,8 @@ export const authService = {
   },
 
   /**
-   * Refresh access token
-   * Backend request: { refreshToken }
-   * Backend response: { accessToken, refreshToken, expiresIn }
-   */
-  async refreshToken(): Promise<string> {
-    try {
-      const refreshToken = TokenStorage.getRefreshToken();
-
-      if (!refreshToken) {
-        throw new Error('No refresh token available');
-      }
-
-      const response = await apiClient.post(API_ENDPOINTS.AUTH.REFRESH_TOKEN, {
-        refreshToken,
-      });
-
-      const refreshData = handleResponse<RefreshTokenResponse>(response);
-      const accessToken = requireNonBlankString(refreshData?.accessToken, 'access token');
-      const newRefreshToken = requireNonBlankString(refreshData?.refreshToken, 'refresh token');
-
-      // Cập nhật tokens
-      TokenStorage.setRefreshToken(newRefreshToken);
-      TokenStorage.setAccessToken(accessToken);
-
-      return accessToken;
-    } catch (error) {
-      // Refresh token thất bại -> clear storage
-      TokenStorage.clearAll();
-      throw handleError(error);
-    }
-  },
-
-  /**
    * Lấy profile của user hiện tại từ backend
-   * Endpoint: GET /api/users (với accessToken trong header)
+   * Endpoint: GET /api/users through the authenticated BFF.
    */
   async getProfile(): Promise<User> {
     try {
@@ -349,69 +262,28 @@ export const authService = {
    * access token has expired but the rotated refresh token is still valid.
    */
   async restoreSession(): Promise<User> {
-    if (!TokenStorage.getAccessToken() && TokenStorage.getRefreshToken()) {
-      await this.refreshToken();
+    const session = await readWebSession();
+    if (!session.authenticated || !session.email || !isUserRole(session.role)
+        || !Number.isSafeInteger(session.principalId) || session.principalId! <= 0) {
+      TokenStorage.clearAll();
+      throw new Error('Web session is not active');
     }
+    TokenStorage.setUserInfo({
+      id: session.principalId!, authId: session.principalId!, email: session.email,
+      name: session.email.split('@')[0], role: session.role,
+    });
     return this.getProfile();
-  },
-
-  /**
-   * Decode JWT token để lấy user info
-   * JWT payload format:
-   * {
-   *   sub: "email",
-   *   userId: 123,
-   *   role: "RESTAURANT_OWNER",
-   *   iat: timestamp,
-   *   exp: timestamp
-   * }
-   */
-  decodeToken(token: string): Record<string, unknown> | null {
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-
-      const payload = JSON.parse(jsonPayload);
-
-      return {
-        email: payload.sub,
-        userId: payload.userId,
-        role: payload.role,
-        iat: payload.iat,
-        exp: payload.exp,
-      };
-    } catch {
-      return null;
-    }
   },
 
   /**
    * Kiểm tra user đã login chưa
    */
   isAuthenticated(): boolean {
-    const token = TokenStorage.getAccessToken();
-    if (!token) return false;
-
-    // Kiểm tra token có hết hạn chưa bằng cách decode
-    try {
-      const decoded = this.decodeToken(token);
-      if (!decoded || !decoded.exp) return false;
-
-      const now = Math.floor(Date.now() / 1000);
-      return (decoded.exp as number) > now;
-    } catch {
-      return false;
-    }
+    return TokenStorage.getUserInfo() !== null;
   },
 
   hasStoredSession(): boolean {
-    return Boolean(TokenStorage.getAccessToken() || TokenStorage.getRefreshToken());
+    return TokenStorage.getUserInfo() !== null;
   },
 
   /**

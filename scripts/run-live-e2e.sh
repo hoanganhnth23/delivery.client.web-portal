@@ -32,6 +32,15 @@ cleanup() {
   if [[ "$exit_code" -ne 0 && -f "$RUNTIME_LOG" ]]; then
     mkdir -p "$(dirname "$DIAGNOSTIC_LOG")"
     cp "$RUNTIME_LOG" "$DIAGNOSTIC_LOG"
+    # The startup transcript alone cannot explain a browser-time BFF failure.
+    # Keep only the affected services' bounded logs, before teardown removes the
+    # isolated containers. This artifact remains owner-readable only.
+    if [[ -n "${COMPOSE_FILE:-}" && -n "${COMPOSE_PROJECT_NAME:-}" ]]; then
+      {
+        echo '=== browser-time web-bff and gateway diagnostics ==='
+        docker compose logs --no-color --tail=250 web-bff-service api-gateway auth-service
+      } >> "$DIAGNOSTIC_LOG" 2>&1 || true
+    fi
     chmod 600 "$DIAGNOSTIC_LOG"
     printf 'Retained live runtime diagnostics: %s\n' "$DIAGNOSTIC_LOG" >&2
   fi
@@ -50,8 +59,10 @@ SANDBOX_RETAIN_ON_FAILURE="$RETAIN_ON_FAILURE" \
 SANDBOX_INCLUDE_SIMULATOR=false \
 SANDBOX_SKIP_SCENARIOS=true \
 SANDBOX_SKIP_SHIPPER=true \
+SEED_SKIP_OUTSIDER=true \
+PASS="$PASSWORD" \
 RUNTIME_INFRA_SERVICES="postgres redis kafka" \
-RUNTIME_APP_SERVICES="user-service restaurant-service order-service" \
+RUNTIME_APP_SERVICES="user-service restaurant-service order-service web-bff-service" \
 RUNTIME_INCLUDE_OBSERVABILITY=false \
   bash scripts/sandbox-up.sh
 [[ -f "$STATE_FILE" ]] || { echo "Sandbox did not produce state: $STATE_FILE" >&2; exit 1; }
@@ -67,6 +78,7 @@ export KAFKA_VOLUME_NAME="$(state_value SANDBOX_KAFKA_VOLUME_NAME)"
 export SANDBOX_SIMULATOR_API_TOKEN="$(state_value SANDBOX_SIMULATOR_API_TOKEN)"
 export INTERNAL_SECRET_FILE="$(state_value INTERNAL_SECRET_FILE)"
 export DB_PASSWORD_FILE="$(state_value DB_PASSWORD_FILE)"
+export WEB_BFF_ENCRYPTION_KEY_FILE="$(state_value WEB_BFF_ENCRYPTION_KEY_FILE)"
 export JWT_PRIVATE_KEY_FILE="$(state_value JWT_PRIVATE_KEY_FILE)"
 export JWT_PUBLIC_KEY_FILE="$(state_value JWT_PUBLIC_KEY_FILE)"
 export GRAFANA_ADMIN_PASSWORD="$(state_value GRAFANA_ADMIN_PASSWORD)"
@@ -82,8 +94,8 @@ unset SANDBOX_SIMULATOR_API_TOKEN GRAFANA_ADMIN_PASSWORD
 readonly GATEWAY_BASE_URL="$(state_value SANDBOX_GATEWAY_BASE_URL)"
 readonly SEED_FILE="$SANDBOX_STATE_DIR/seed.json"
 readonly RESTAURANT_ID="$(jq -er '.restaurantId' "$SEED_FILE")"
-readonly CUSTOMER_EMAIL="customer+$RUN_ID@test.dev"
-readonly OWNER_EMAIL="owner+$RUN_ID@test.dev"
+readonly CUSTOMER_EMAIL="$(jq -er '.customerEmail' "$SEED_FILE")"
+readonly OWNER_EMAIL="$(jq -er '.ownerEmail' "$SEED_FILE")"
 
 cd "$WEB_DIR"
 VITE_API_BASE_URL="$GATEWAY_BASE_URL" \

@@ -1,275 +1,98 @@
-import {
-  AxiosError,
-  AxiosHeaders,
-  type AxiosResponse,
-  type InternalAxiosRequestConfig,
-} from 'axios';
+import { AxiosError, AxiosHeaders, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  createApiClient,
-  getSessionLoginPath,
-  handleError,
-  type ApiClientError,
-  type ApiSessionStore,
-  type RefreshRequest,
+  createApiClient, getSessionLoginPath, handleError, isPublicBrowserRequest,
+  type ApiClientError, type RefreshRequest,
 } from '../apiClient';
 
-function createSessionStore({
-  accessToken = 'old-access-token',
-  refreshToken = 'refresh-token',
-}: {
-  accessToken?: string | null;
-  refreshToken?: string | null;
-} = {}) {
-  let access = accessToken;
-  let refresh = refreshToken;
-  const store: ApiSessionStore = {
-    clearAll: vi.fn(() => {
-      access = null;
-      refresh = null;
-    }),
-    getAccessToken: vi.fn(() => access),
-    getRefreshToken: vi.fn(() => refresh),
-    setAccessToken: vi.fn((token: string) => {
-      access = token;
-    }),
-    setRefreshToken: vi.fn((token: string) => {
-      refresh = token;
-    }),
-  };
-  return store;
-}
+const response = (config: InternalAxiosRequestConfig, status: number, data: unknown): AxiosResponse => ({
+  config, data, headers: {}, status, statusText: String(status),
+});
 
-function response(
-  config: InternalAxiosRequestConfig,
-  status: number,
-  data: unknown,
-): AxiosResponse {
-  return {
-    config,
-    data,
-    headers: {},
-    status,
-    statusText: String(status),
-  };
-}
+const unauthorized = (config: InternalAxiosRequestConfig): AxiosError => new AxiosError(
+  'Unauthorized', AxiosError.ERR_BAD_REQUEST, config, undefined,
+  response(config, 401, { status: 0, message: 'Unauthorized', data: null }),
+);
 
-function unauthorized(config: InternalAxiosRequestConfig): AxiosError {
-  return new AxiosError(
-    'Unauthorized',
-    AxiosError.ERR_BAD_REQUEST,
-    config,
-    undefined,
-    response(config, 401, { status: 0, message: 'Unauthorized', data: null }),
-  );
-}
-
-function refreshResponse(accessToken = 'new-access-token'): AxiosResponse {
-  const config = {
-    headers: new AxiosHeaders(),
-  } as InternalAxiosRequestConfig;
-  return response(config, 200, {
-    status: 1,
-    message: 'Success',
-    data: {
-      accessToken,
-      refreshToken: 'rotated-refresh-token',
-    },
-  });
-}
-
-describe('createApiClient session boundary', () => {
-  it('preserves a machine-readable livestream error without parsing its message', () => {
-    const originalError = {
-      response: response({ headers: new AxiosHeaders() } as InternalAxiosRequestConfig, 404, {
-        status: 0,
-        message: 'Nội dung hiển thị có thể thay đổi',
-        data: null,
-        error: {
-          code: 'ROOM_NOT_FOUND',
-          details: { livestreamId: '00000000-0000-4000-8000-000000000001' },
-        },
-      }),
-    };
-
+describe('BFF API client boundary', () => {
+  it('preserves typed backend errors', () => {
+    const original = { response: response({ headers: new AxiosHeaders() } as InternalAxiosRequestConfig, 404, {
+      status: 0, message: 'Không tìm thấy', data: null,
+      error: { code: 'ROOM_NOT_FOUND', details: { id: 'room' } },
+    }) };
     try {
-      handleError(originalError);
-      throw new Error('handleError must throw');
+      handleError(original);
+      throw new Error('must throw');
     } catch (error) {
       const apiError = error as ApiClientError;
       expect(apiError.status).toBe(404);
       expect(apiError.code).toBe('ROOM_NOT_FOUND');
-      expect(apiError.details).toEqual({
-        livestreamId: '00000000-0000-4000-8000-000000000001',
-      });
-      expect(apiError.message).toBe('Nội dung hiển thị có thể thay đổi');
+      expect(apiError.details).toEqual({ id: 'room' });
     }
   });
 
-  it('keeps expired-session redirects inside the active portal', () => {
+  it('keeps redirects in the active portal and classifies only explicit public routes', () => {
     expect(getSessionLoginPath('/admin/orders')).toBe('/admin/login');
     expect(getSessionLoginPath('/restaurant/menu')).toBe('/login');
+    expect(isPublicBrowserRequest('post', '/api/auth/register')).toBe(true);
+    expect(isPublicBrowserRequest('get', '/api/restaurants/42')).toBe(true);
+    expect(isPublicBrowserRequest('post', '/api/orders')).toBe(false);
   });
 
-  it('refreshes once, rotates both tokens and retries with the new bearer', async () => {
-    const sessionStore = createSessionStore();
-    const refreshRequest = vi.fn<RefreshRequest>(async () => refreshResponse());
-    const client = createApiClient({
-      baseUrl: 'http://gateway.test',
-      sessionStore,
-      refreshRequest,
-    });
-    const authorizationHeaders: string[] = [];
+  it('rewrites protected traffic, strips browser bearer, sends cookies and adds CSRF to mutations', async () => {
+    document.cookie = 'XSRF-TOKEN=csrf-value; Path=/';
+    const client = createApiClient({ baseUrl: 'http://gateway.test' });
+    expect(client.defaults.withCredentials).toBe(true);
     client.defaults.adapter = async (config) => {
-      const authorization = config.headers.get('Authorization')?.toString() ?? '';
-      authorizationHeaders.push(authorization);
-      if (authorization === 'Bearer old-access-token') throw unauthorized(config);
-      return response(config, 200, {
-        status: 1,
-        message: 'Success',
-        data: { id: 101 },
-      });
+      expect(config.url).toBe('/bff/api/orders');
+      expect(config.headers.get('Authorization')).toBeUndefined();
+      expect(config.headers.get('X-CSRF-Token')).toBe('csrf-value');
+      return response(config, 200, { status: 1, message: 'ok', data: { id: 1 } });
     };
-
-    const result = await client.get('/api/users');
-
-    expect(result.data.data).toEqual({ id: 101 });
-    expect(refreshRequest).toHaveBeenCalledWith(
-      'http://gateway.test/api/auth/refresh-token',
-      'refresh-token',
-    );
-    expect(sessionStore.setAccessToken).toHaveBeenCalledWith('new-access-token');
-    expect(sessionStore.setRefreshToken).toHaveBeenCalledWith('rotated-refresh-token');
-    expect(vi.mocked(sessionStore.setRefreshToken).mock.invocationCallOrder[0])
-      .toBeLessThan(vi.mocked(sessionStore.setAccessToken).mock.invocationCallOrder[0]);
-    expect(authorizationHeaders).toEqual([
-      'Bearer old-access-token',
-      'Bearer new-access-token',
-    ]);
+    const result = await client.post('/api/orders', {}, { headers: { Authorization: 'Bearer attacker' } });
+    expect(result.data.data.id).toBe(1);
   });
 
-  it('shares one refresh request across concurrent 401 responses', async () => {
-    const sessionStore = createSessionStore();
-    let releaseRefresh!: (value: AxiosResponse) => void;
-    const refreshRequest = vi.fn<RefreshRequest>(() => new Promise((resolve) => {
-      releaseRefresh = resolve;
-    }));
-    const client = createApiClient({
-      baseUrl: 'http://gateway.test',
-      sessionStore,
-      refreshRequest,
-    });
+  it('does not route public catalog or registration through the authenticated BFF', async () => {
+    const client = createApiClient({ baseUrl: 'http://gateway.test' });
+    const seen: string[] = [];
     client.defaults.adapter = async (config) => {
-      if (config.headers.get('Authorization') === 'Bearer old-access-token') {
-        throw unauthorized(config);
-      }
-      return response(config, 200, {
-        status: 1,
-        message: 'Success',
-        data: config.url,
-      });
+      seen.push(config.url ?? '');
+      return response(config, 200, { status: 1, message: 'ok', data: [] });
     };
+    await client.get('/api/restaurants');
+    await client.post('/api/auth/register', {});
+    expect(seen).toEqual(['/api/restaurants', '/api/auth/register']);
+  });
 
-    const userRequest = client.get('/api/users');
-    const orderRequest = client.get('/api/orders/all');
+  it('shares one cookie-session refresh and retries all concurrent protected requests', async () => {
+    let release!: (value: AxiosResponse) => void;
+    const refreshRequest = vi.fn<RefreshRequest>(() => new Promise(resolve => { release = resolve; }));
+    const client = createApiClient({ baseUrl: 'http://gateway.test', refreshRequest });
+    client.defaults.adapter = async (config) => {
+      if (!(config as InternalAxiosRequestConfig & { _retry?: boolean })._retry) throw unauthorized(config);
+      return response(config, 200, { status: 1, message: 'ok', data: config.url });
+    };
+    const first = client.get('/api/users');
+    const second = client.get('/api/orders/all');
     await vi.waitFor(() => expect(refreshRequest).toHaveBeenCalledOnce());
-    releaseRefresh(refreshResponse());
-
-    const [userResponse, orderResponse] = await Promise.all([
-      userRequest,
-      orderRequest,
-    ]);
-    expect(userResponse.data.data).toBe('/api/users');
-    expect(orderResponse.data.data).toBe('/api/orders/all');
+    release(response({ headers: new AxiosHeaders() } as InternalAxiosRequestConfig, 200, {}));
+    const values = await Promise.all([first, second]);
+    expect(values.map(value => value.data.data)).toEqual(['/bff/api/users', '/bff/api/orders/all']);
     expect(refreshRequest).toHaveBeenCalledOnce();
   });
 
-  it('terminates every queued request after one rejected retry', async () => {
-    const sessionStore = createSessionStore();
+  it('never refreshes public 401 and expires a repeatedly rejected BFF session once', async () => {
+    const refreshRequest = vi.fn<RefreshRequest>(async () => response(
+      { headers: new AxiosHeaders() } as InternalAxiosRequestConfig, 200, {},
+    ));
     const onSessionExpired = vi.fn();
-    let releaseRefresh!: (value: AxiosResponse) => void;
-    const refreshRequest = vi.fn<RefreshRequest>(() => new Promise((resolve) => {
-      releaseRefresh = resolve;
-    }));
-    const client = createApiClient({
-      baseUrl: 'http://gateway.test',
-      sessionStore,
-      refreshRequest,
-      onSessionExpired,
-    });
-    client.defaults.adapter = async (config) => {
-      throw unauthorized(config);
-    };
-
-    const userRequest = client.get('/api/users');
-    const orderRequest = client.get('/api/orders/all');
-    await vi.waitFor(() => expect(refreshRequest).toHaveBeenCalledOnce());
-    releaseRefresh(refreshResponse());
-
-    const results = await Promise.allSettled([userRequest, orderRequest]);
-    expect(results).toEqual([
-      expect.objectContaining({ status: 'rejected' }),
-      expect.objectContaining({ status: 'rejected' }),
-    ]);
-    expect(refreshRequest).toHaveBeenCalledOnce();
-    expect(sessionStore.clearAll).toHaveBeenCalledOnce();
-    expect(onSessionExpired).toHaveBeenCalledOnce();
-  });
-
-  it('clears and reports an expired session when refresh cannot start', async () => {
-    const sessionStore = createSessionStore({ refreshToken: null });
-    const onSessionExpired = vi.fn();
-    const refreshRequest = vi.fn<RefreshRequest>();
-    const client = createApiClient({
-      baseUrl: 'http://gateway.test',
-      sessionStore,
-      refreshRequest,
-      onSessionExpired,
-    });
-    client.defaults.adapter = async (config) => {
-      throw unauthorized(config);
-    };
-
-    await expect(client.get('/api/users')).rejects.toThrow('No refresh token available');
+    const client = createApiClient({ baseUrl: 'http://gateway.test', refreshRequest, onSessionExpired });
+    client.defaults.adapter = async config => { throw unauthorized(config); };
+    await expect(client.post('/api/auth/register')).rejects.toBeInstanceOf(AxiosError);
     expect(refreshRequest).not.toHaveBeenCalled();
-    expect(sessionStore.clearAll).toHaveBeenCalledOnce();
-    expect(onSessionExpired).toHaveBeenCalledOnce();
-  });
-
-  it('clears and reports one expired session when a rotated access token is rejected', async () => {
-    const sessionStore = createSessionStore();
-    const onSessionExpired = vi.fn();
-    const refreshRequest = vi.fn<RefreshRequest>(async () => refreshResponse());
-    const client = createApiClient({
-      baseUrl: 'http://gateway.test',
-      sessionStore,
-      refreshRequest,
-      onSessionExpired,
-    });
-    client.defaults.adapter = async (config) => {
-      throw unauthorized(config);
-    };
-
     await expect(client.get('/api/users')).rejects.toBeInstanceOf(AxiosError);
     expect(refreshRequest).toHaveBeenCalledOnce();
-    expect(sessionStore.clearAll).toHaveBeenCalledOnce();
     expect(onSessionExpired).toHaveBeenCalledOnce();
-  });
-
-  it('never refreshes bootstrap authentication requests', async () => {
-    const sessionStore = createSessionStore();
-    const refreshRequest = vi.fn<RefreshRequest>();
-    const client = createApiClient({
-      baseUrl: 'http://gateway.test',
-      sessionStore,
-      refreshRequest,
-    });
-    client.defaults.adapter = async (config) => {
-      throw unauthorized(config);
-    };
-
-    await expect(client.post('/api/auth/login')).rejects.toBeInstanceOf(AxiosError);
-    expect(refreshRequest).not.toHaveBeenCalled();
-    expect(sessionStore.clearAll).not.toHaveBeenCalled();
   });
 });

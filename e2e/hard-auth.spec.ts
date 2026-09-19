@@ -2,8 +2,25 @@ import { expect, test } from '@playwright/test';
 import { gotoRole, MockGateway } from './fixtures';
 
 test.describe('hard auth, session and role cases', () => {
+  test('CASE-AUTH-BFF-001 [P0] restores across reload through BFF and purges legacy bearer keys', async ({ page }) => {
+    const backend = await gotoRole(page, 'ADMIN', '/admin/dashboard', { strict: true });
+    await expect(page.getByRole('heading', { name: 'Quản trị hệ thống' })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Quản trị hệ thống' })).toBeVisible();
+
+    expect(backend.requestsFor('/bff/session')).toHaveLength(2);
+    expect(backend.requestsFor('/api/users').every(
+      request => request.browserPath === '/bff/api/users',
+    )).toBe(true);
+    await expect(page.evaluate(() => ({
+      accessToken: localStorage.getItem('accessToken'),
+      refreshToken: localStorage.getItem('refreshToken'),
+    }))).resolves.toEqual({ accessToken: null, refreshToken: null });
+    backend.assertNoUnexpectedRequests();
+  });
+
   test('CASE-AUTH-001 [P0] AUTH-01 blocks empty owner credentials before API', async ({ page }) => {
-    const backend = await gotoRole(page, 'SHOP_OWNER', '/login', { strict: true });
+    const backend = await gotoRole(page, 'SHOP_OWNER', '/login', { strict: true, authenticated: false });
     await page.getByRole('button', { name: 'Đăng nhập' }).click();
     await expect(page.getByText('Email is required')).toBeVisible();
     await expect(page.getByText('Password is required')).toBeVisible();
@@ -12,7 +29,7 @@ test.describe('hard auth, session and role cases', () => {
   });
 
   test('CASE-AUTH-002 [P0] AUTH-01 keeps owner login visible after 401', async ({ page }) => {
-    const backend = new MockGateway({ role: 'SHOP_OWNER', strict: true });
+    const backend = new MockGateway({ role: 'SHOP_OWNER', strict: true, authenticated: false });
     await backend.install(page);
     backend.failNext('/api/auth/login', { status: 401, message: 'Sai tài khoản hoặc mật khẩu' });
     await page.goto('/login');
@@ -26,7 +43,7 @@ test.describe('hard auth, session and role cases', () => {
   });
 
   test('CASE-AUTH-003 [P0] AUTH-02 keeps admin login visible after 500', async ({ page }) => {
-    const backend = new MockGateway({ role: 'ADMIN', strict: true });
+    const backend = new MockGateway({ role: 'ADMIN', strict: true, authenticated: false });
     await backend.install(page);
     backend.failNext('/api/auth/login', { status: 500, message: 'Auth service unavailable' });
     await page.goto('/admin/login');
@@ -39,18 +56,27 @@ test.describe('hard auth, session and role cases', () => {
   });
 
   test('CASE-AUTH-004 [P0] AUTH-01 exposes owner restaurant retry after failure', async ({ page }) => {
-    const backend = new MockGateway({ role: 'SHOP_OWNER', strict: true });
+    const backend = new MockGateway({ role: 'SHOP_OWNER', strict: true, authenticated: false });
     await backend.install(page);
     await page.addInitScript(() => localStorage.removeItem('currentRestaurantId'));
-    backend.failNext('/api/restaurants/my-restaurants', { status: 503, message: 'Restaurant service unavailable' });
+    backend.failUntilCleared('/api/restaurants/my-restaurants', {
+      status: 503,
+      message: 'Restaurant service unavailable',
+    });
     await page.goto('/login');
     await page.getByLabel('Email').fill('owner@e2e.test');
     await page.locator('input[type="password"]').fill('Password123!');
     await page.getByRole('button', { name: 'Đăng nhập' }).click();
     await expect(page.getByText(/Restaurant service unavailable|Lấy danh sách nhà hàng thất bại|Không thể tải nhà hàng/)).toBeVisible();
+    backend.clearFailure('/api/restaurants/my-restaurants');
     await page.getByRole('button', { name: 'Thử tải lại nhà hàng' }).click();
     await expect(page).toHaveURL(/\/restaurant\/dashboard$/);
-    expect(backend.requestsFor('/api/restaurants/my-restaurants')).toHaveLength(2);
+    expect(backend.requestsFor('/api/restaurants/my-restaurants').length).toBeGreaterThanOrEqual(2);
+    expect(backend.lastRequest('/api/auth/login')?.browserPath).toBe('/bff/session/login');
+    await expect(page.evaluate(() => ({
+      accessToken: localStorage.getItem('accessToken'),
+      refreshToken: localStorage.getItem('refreshToken'),
+    }))).resolves.toEqual({ accessToken: null, refreshToken: null });
     backend.assertNoUnexpectedRequests();
   });
 
@@ -126,6 +152,9 @@ test.describe('hard auth, session and role cases', () => {
     await page.getByRole('button', { name: 'Đăng xuất' }).click();
     await expect(page).toHaveURL(/\/admin\/login$/);
     await expect(page.getByRole('heading', { name: 'Đăng nhập quản trị' })).toBeVisible();
+    const logout = backend.lastRequest('/api/auth/logout');
+    expect(logout?.browserPath).toBe('/bff/session/logout');
+    expect(logout?.headers['x-csrf-token']).toBe('e2e-csrf');
     backend.assertNoUnexpectedRequests();
   });
 });

@@ -7,36 +7,10 @@ import { STORAGE_KEYS } from '@/utils/constants';
 import type { User } from '@/types/api.types';
 
 export const TokenStorage = {
-  /**
-   * Lưu access token
-   */
-  setAccessToken(token: string): void {
-    if (token) {
-      localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token);
-    }
-  },
-
-  /**
-   * Lấy access token
-   */
-  getAccessToken(): string | null {
-    return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-  },
-
-  /**
-   * Lưu refresh token
-   */
-  setRefreshToken(token: string): void {
-    if (token) {
-      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token);
-    }
-  },
-
-  /**
-   * Lấy refresh token
-   */
-  getRefreshToken(): string | null {
-    return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+  /** Remove credentials written by pre-BFF releases; they are never imported. */
+  clearLegacyCredentials(): void {
+    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
   },
 
   /**
@@ -76,8 +50,7 @@ export const TokenStorage = {
    * Xóa tất cả tokens và user info (khi logout)
    */
   clearAll(): void {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+    this.clearLegacyCredentials();
     localStorage.removeItem(STORAGE_KEYS.USER_INFO);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_RESTAURANT_ID);
   },
@@ -86,7 +59,7 @@ export const TokenStorage = {
    * Kiểm tra có token hay không
    */
   hasToken(): boolean {
-    return !!this.getAccessToken();
+    return this.getUserInfo() !== null;
   },
 
   /**

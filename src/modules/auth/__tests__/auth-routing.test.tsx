@@ -64,8 +64,6 @@ describe('authentication and role routing journey', () => {
     const owner = buildUser();
     const auth = createAuthFake({
       login: vi.fn(async () => ({
-        accessToken: 'owner.access.token',
-        refreshToken: 'owner.refresh.token',
         user: owner,
       })),
       getProfile: vi.fn(async () => owner),
@@ -76,7 +74,7 @@ describe('authentication and role routing journey', () => {
       dependencies: createTestDependencies({ auth, restaurant }),
     });
 
-    await user.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+    await user.click(await screen.findByRole('button', { name: 'Đăng nhập' }));
     expect(screen.getByText('Email is required')).toBeInTheDocument();
     expect(screen.getByText('Password is required')).toBeInTheDocument();
     expect(auth.login).not.toHaveBeenCalled();
@@ -128,8 +126,6 @@ describe('authentication and role routing journey', () => {
     });
     const auth = createAuthFake({
       login: vi.fn(async () => ({
-        accessToken: 'admin.access.token',
-        refreshToken: 'admin.refresh.token',
         user: admin,
       })),
       getProfile: vi.fn(async () => admin),

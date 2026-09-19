@@ -22,8 +22,6 @@ interface LoginResult {
   success: boolean;
   data?: {
     user: User;
-    accessToken: string;
-    refreshToken: string;
   };
   message?: string;
 }
@@ -64,12 +62,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const restoreSession = useCallback(async () => {
     setLoading(true);
     setError(null);
-
-    if (!auth.hasStoredSession() && !auth.isAuthenticated()) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
 
     try {
       const freshUser = await auth.restoreSession();
@@ -112,7 +104,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       // 1. Đăng nhập - Lưu tokens vào localStorage
-      const result = await auth.login(credentials);
+      await auth.login(credentials);
       
       // 2. Get profile để lấy thông tin user đầy đủ từ backend
       const freshUser = await auth.getProfile();
@@ -123,8 +115,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         success: true, 
         data: {
           user: freshUser, // Trả về user data đầy đủ
-          accessToken: result.accessToken,
-          refreshToken: result.refreshToken,
         }
       };
     } catch (err) {

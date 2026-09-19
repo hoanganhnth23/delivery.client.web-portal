@@ -4,6 +4,7 @@ export type PortalRole = 'USER' | 'SHOP_OWNER' | 'ADMIN';
 
 export type MockOptions = {
   role?: PortalRole;
+  authenticated?: boolean;
   voucherEnabled?: boolean;
   strict?: boolean;
   orderStatus?: string;
@@ -127,21 +128,38 @@ export class MockGateway {
   role: PortalRole;
   readonly voucherEnabled: boolean;
   readonly strict: boolean;
-  readonly requests: Array<{ method: string; path: string; body: string; headers: Record<string, string> }> = [];
+  readonly requests: Array<{
+    method: string;
+    path: string;
+    browserPath: string;
+    body: string;
+    headers: Record<string, string>;
+  }> = [];
   readonly unexpectedRequests: Array<{ method: string; path: string }> = [];
   private failures = new Map<string, MockResponse>();
+  private persistentFailures = new Map<string, MockResponse>();
   private responseQueues = new Map<string, MockResponse[]>();
   private currentOrder = { ...order };
+  private sessionActive = true;
 
   constructor(options: MockOptions = {}) {
     this.role = options.role ?? 'USER';
     this.voucherEnabled = options.voucherEnabled ?? false;
     this.strict = options.strict ?? false;
+    this.sessionActive = options.authenticated ?? true;
     this.currentOrder = { ...order, status: options.orderStatus ?? order.status };
   }
 
   failNext(path: string, failure: MockResponse = { status: 500, message: 'E2E forced failure' }) {
     this.failures.set(path, failure);
+  }
+
+  failUntilCleared(path: string, failure: MockResponse = { status: 500, message: 'E2E forced failure' }) {
+    this.persistentFailures.set(path, failure);
+  }
+
+  clearFailure(path: string) {
+    this.persistentFailures.delete(path);
   }
 
   queue(path: string, ...responses: MockResponse[]) {
@@ -202,10 +220,13 @@ export class MockGateway {
     });
     await page.route('**/*', (route) => {
       const pathname = new URL(route.request().url()).pathname;
-      if (pathname.startsWith('/api/')) return this.handle(route);
+      if (pathname.startsWith('/api/') || pathname.startsWith('/bff/')) return this.handle(route);
       return route.continue();
     });
     await page.addInitScript(({ role }) => {
+      document.cookie = 'XSRF-TOKEN=e2e-csrf; path=/; SameSite=Lax';
+      // Deliberately seed the retired keys: application startup must purge,
+      // never import, browser bearer credentials from an older release.
       localStorage.setItem('accessToken', 'e2e-access-token');
       localStorage.setItem('refreshToken', 'e2e-refresh-token');
       localStorage.setItem('userInfo', JSON.stringify({
@@ -221,9 +242,18 @@ export class MockGateway {
   async handle(route: Route) {
     const request = route.request();
     const url = new URL(request.url());
-    const path = url.pathname;
+    const browserPath = url.pathname;
+    const path = browserPath.startsWith('/bff/api/')
+      ? browserPath.slice('/bff'.length)
+      : browserPath === '/bff/session/login'
+        ? '/api/auth/login'
+        : browserPath === '/bff/session/refresh'
+          ? '/api/auth/refresh-token'
+          : browserPath === '/bff/session/logout'
+            ? '/api/auth/logout'
+            : browserPath;
     const body = request.postData() ?? '';
-    this.requests.push({ method: request.method(), path, body, headers: request.headers() });
+    this.requests.push({ method: request.method(), path, browserPath, body, headers: request.headers() });
 
     const queued = this.responseQueues.get(path);
     if (queued?.length) {
@@ -238,15 +268,30 @@ export class MockGateway {
       return this.applyResponse(route, failure);
     }
 
+    const persistentFailure = this.persistentFailures.get(path);
+    if (persistentFailure) return this.applyResponse(route, persistentFailure);
+
+    if (browserPath === '/bff/session' && request.method() === 'GET') {
+      return route.fulfill({ json: this.sessionView() });
+    }
+
     if (path === '/api/auth/login' && request.method() === 'POST') {
       const payload = JSON.parse(body || '{}') as { role?: PortalRole };
       this.role = payload.role ?? 'USER';
-      return route.fulfill({ json: ok({ accessToken: 'e2e-access-token', refreshToken: 'e2e-refresh-token', authId: userFor(this.role).id, email: userFor(this.role).email, role: this.role }) });
+      this.sessionActive = true;
+      return route.fulfill({ json: this.sessionView(true) });
+    }
+    if (path === '/api/auth/refresh-token') {
+      if (!this.sessionActive) return route.fulfill({ status: 401, json: { message: 'Session expired' } });
+      return route.fulfill({ json: this.sessionView() });
+    }
+    if (path === '/api/auth/logout') {
+      this.sessionActive = false;
+      return route.fulfill({ status: 204, body: '' });
     }
 
     let data: unknown = null;
     if (path === '/api/users' && request.method() === 'GET') data = userFor(this.role);
-    else if (path === '/api/auth/refresh-token') data = { accessToken: 'e2e-access-rotated', refreshToken: 'e2e-refresh-rotated' };
     else if (path === '/api/restaurants' && request.method() === 'GET') data = [restaurant];
     else if (path === '/api/restaurants/search' && request.method() === 'GET') data = [restaurant];
     else if (/^\/api\/restaurants\/\d+$/.test(path) && request.method() === 'GET') data = restaurant;
@@ -299,6 +344,25 @@ export class MockGateway {
     }
 
     return route.fulfill({ json: ok(data) });
+  }
+
+  private sessionView(includeCsrfToken = false) {
+    const user = userFor(this.role);
+    return this.sessionActive ? {
+      authenticated: true,
+      principalId: user.id,
+      email: user.email,
+      role: user.role,
+      sessionVersion: 1,
+      csrfToken: includeCsrfToken ? 'e2e-csrf' : null,
+    } : {
+      authenticated: false,
+      principalId: null,
+      email: null,
+      role: null,
+      sessionVersion: 0,
+      csrfToken: null,
+    };
   }
 }
 
