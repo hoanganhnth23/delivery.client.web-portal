@@ -156,7 +156,7 @@ describe('public system handbook flow explorer', () => {
     renderApp({ route: '/system-overview/docs' });
 
     expect(await screen.findByRole('heading', { name: 'Tài liệu hệ thống' }, { timeout: 3000 })).toBeInTheDocument();
-    expect(screen.getByText(/76 tài liệu/)).toBeInTheDocument();
+    expect(screen.getByText(/77 tài liệu/)).toBeInTheDocument();
     expect(within(screen.getByRole('navigation', { name: 'Mục lục handbook' })).getByRole('button', { name: /Tài liệu.*Markdown canonical corpus/ })).toHaveAttribute('aria-current', 'page');
 
     const search = screen.getByRole('textbox', { name: 'Tìm tài liệu' });

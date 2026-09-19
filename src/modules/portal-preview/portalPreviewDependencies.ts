@@ -441,11 +441,7 @@ export function createPortalPreviewDependencies(
     hasRole: (allowedRoles) => (Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles]).includes(user.role),
     hasStoredSession: () => true,
     isAuthenticated: () => true,
-    login: async () => ({
-      accessToken: '',
-      refreshToken: '',
-      user: clone(user),
-    }),
+    login: async () => ({ user: clone(user) }),
     registerCustomer: async () => ({ principalId: user.id, profileCreated: true }),
     getRegistrationStatus: async () => ({
       principalId: user.id,

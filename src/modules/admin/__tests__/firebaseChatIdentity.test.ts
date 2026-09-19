@@ -15,12 +15,11 @@ describe('Firebase support chat identity', () => {
     expect(resolveAdminPrincipalId(admin, null)).toBe('7001');
   });
 
-  it('recovers the stable auth id from an existing access token', () => {
+  it('does not inspect a legacy browser bearer when stable auth id is absent', () => {
     const payload = btoa(JSON.stringify({ principal_id: 7001 }));
     const token = `header.${payload}.signature`;
 
-    expect(
-      resolveAdminPrincipalId({ ...admin, authId: undefined }, token),
-    ).toBe('7001');
+    expect(() => resolveAdminPrincipalId({ ...admin, authId: undefined }, token))
+      .toThrow('Phiên ADMIN thiếu auth id ổn định');
   });
 });

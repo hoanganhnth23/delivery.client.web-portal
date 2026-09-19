@@ -66,7 +66,7 @@ const getChatFirestore = () => getFirestore(getFirebaseApp());
 // authority for the actual sender identity.
 export const resolveAdminPrincipalId = (
   user: User | null,
-  accessToken: string | null,
+  _legacyAccessToken?: string | null,
 ): string => {
   if (!user || user.role !== USER_ROLES.ADMIN) {
     throw new Error('Phiên ADMIN không hợp lệ cho chat CSKH');
@@ -80,37 +80,11 @@ export const resolveAdminPrincipalId = (
     return String(user.authId);
   }
 
-  // Existing browser sessions may predate the authId field. Decoding this
-  // non-authoritative claim only restores the expected UID; the backend
-  // custom-token response must still match it before Firebase sign-in.
-  const tokenPrincipalId = readPrincipalIdClaim(accessToken);
-  if (tokenPrincipalId) return tokenPrincipalId;
-
   throw new Error('Phiên ADMIN thiếu auth id ổn định cho chat CSKH');
 };
 
 const currentAdminPrincipalId = (): string =>
-  resolveAdminPrincipalId(
-    TokenStorage.getUserInfo(),
-    TokenStorage.getAccessToken(),
-  );
-
-const readPrincipalIdClaim = (accessToken: string | null): string | null => {
-  if (!accessToken) return null;
-  const encodedPayload = accessToken.split('.')[1];
-  if (!encodedPayload) return null;
-
-  try {
-    const normalized = encodedPayload
-      .replace(/-/g, '+')
-      .replace(/_/g, '/')
-      .padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');
-    const payload = JSON.parse(atob(normalized)) as { principal_id?: unknown };
-    return toPrincipalId(payload.principal_id) || null;
-  } catch {
-    return null;
-  }
-};
+  resolveAdminPrincipalId(TokenStorage.getUserInfo());
 
 const toPrincipalId = (value: unknown): string => {
   if (typeof value === 'string' && value.trim()) return value.trim();
