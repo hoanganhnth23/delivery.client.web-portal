@@ -14,6 +14,26 @@ vi.mock('@/services/api/apiClient', () => ({
 }));
 
 describe('menuService', () => {
+  it('uses the ownership-checked management route for a selected restaurant', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { data: [] } } as never);
+    await getMyMenuItems(35);
+    expect(apiClient.get).toHaveBeenLastCalledWith('/api/menu-items/my-menu-items?restaurantId=35');
+  });
+
+  it('uses AVAILABLE catalogue for customer reads', async () => {
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: { data: [] } } as never);
+    await getMenuItemsByRestaurant(35);
+    expect(apiClient.get).toHaveBeenLastCalledWith('/api/menu-items/restaurant/35/available');
+  });
+
+  it('propagates forbidden management reads without falling back to public data', async () => {
+    vi.mocked(apiClient.get).mockClear();
+    const forbidden = { response: { status: 403 } };
+    vi.mocked(apiClient.get).mockRejectedValueOnce(forbidden);
+    await expect(getMyMenuItems(35)).rejects.toBe(forbidden);
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+  });
+
   it('successfully parses my-menu-items with Jackson array timestamps from backend', async () => {
     const rawBackendResponse = {
       data: {
