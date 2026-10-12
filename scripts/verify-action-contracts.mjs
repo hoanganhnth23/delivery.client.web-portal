@@ -63,7 +63,7 @@ const assertNoFiles = (relativeDir, label) => {
   }
 };
 
-const assertTreeClean = (relativeDir, forbiddenPatterns, label) => {
+const assertTreeClean = (relativeDir, forbiddenPatterns, label, allowedFiles = new Map()) => {
   const absoluteDir = path.join(root, relativeDir);
   if (!fs.existsSync(absoluteDir)) return;
 
@@ -86,6 +86,7 @@ const assertTreeClean = (relativeDir, forbiddenPatterns, label) => {
       const relativePath = path.relative(root, absolute);
       const source = fs.readFileSync(absolute, 'utf8');
       for (const pattern of forbiddenPatterns) {
+        if (allowedFiles.get(pattern)?.has(relativePath.split(path.sep).join('/'))) continue;
         if (pattern.test(source)) {
           failures.push(`${label}: ${relativePath} contains forbidden ${pattern}`);
         }
@@ -318,7 +319,9 @@ assertContains('src/modules/admin/pages/AdminFlashSalePage.tsx', [
 assertContains('src/services/api/adminService.ts', [
   'apiClient.put(API_ENDPOINTS.RESTAURANT.ADMIN_UPDATE_RATING_STATUS(ratingId), null',
   'params: { status }',
-  'apiClient.post(API_ENDPOINTS.PROMOTION.CREATE_PLATFORM, data)',
+  // Payload is the request with start/end normalized to UTC (voucherLocalToUtc).
+  'apiClient.post(API_ENDPOINTS.PROMOTION.CREATE_PLATFORM, {',
+  'voucherLocalToUtc(data.startTime)',
   'apiClient.delete(API_ENDPOINTS.PROMOTION.DELETE(id))',
 ], 'admin service action contract');
 
@@ -345,7 +348,6 @@ assertNotContains('src/modules/admin/pages/AdminShippersPage.tsx', [
 
 // Hidden/unsupported MVP graphs must stay unreachable from web.
 for (const removedPath of [
-  'src/config/firebase.ts',
   'src/types/chat.types.ts',
   'src/modules/restaurant/pages/SettlementPage.tsx',
   'src/modules/restaurant/services/settlementService.ts',
@@ -368,14 +370,32 @@ assertNotContains('src/App.tsx', [
   'ChatProvider',
 ], 'visible route cleanup');
 
+// Customer <-> ADMIN support chat is the one explicitly scoped Firebase
+// capability (docs/action-contract-matrix.md ADMIN-21 and exclusions; README).
+// Firebase stays forbidden everywhere else in web source.
+const FIREBASE_PATTERN = /firebase/i;
+const SCOPED_SUPPORT_CHAT_FIREBASE_FILES = new Set([
+  'src/config/firebase.ts',
+  'src/vite-env.d.ts',
+  'src/app/dependencies.tsx',
+  'src/services/api/endpoints.ts',
+  'src/modules/admin/services/firebaseChatService.ts',
+  'src/modules/admin/pages/AdminChatPage.tsx',
+  'src/modules/admin/__tests__/admin-chat.test.tsx',
+  'src/modules/admin/__tests__/firebaseChatIdentity.test.ts',
+  'src/modules/admin/__tests__/firebaseChatService.test.ts',
+  'src/modules/support-preview/previewSupportChat.ts',
+  'src/modules/support-preview/previewSupportChat.test.ts',
+]);
+
 assertTreeClean('src', [
-  /firebase/i,
+  FIREBASE_PATTERN,
   /sockjs/i,
   /stomp/i,
   /['"`]\/api\/api/,
   /localhost:(?!8079)\d{4}/,
   /127\.0\.0\.1:(?!8079)\d{4}/,
-], 'web transport and hidden graph scan');
+], 'web transport and hidden graph scan', new Map([[FIREBASE_PATTERN, SCOPED_SUPPORT_CHAT_FIREBASE_FILES]]));
 
 if (failures.length > 0) {
   console.error(`Web action contract verification failed with ${failures.length} issue(s):`);

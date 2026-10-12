@@ -2104,7 +2104,7 @@
 }
 
 /* Support chat preview: a mobile-first conversation surface shared with the
- * portal fixture, without coupling the mock to Firebase. */
+ * portal fixture, without coupling the mock to the realtime chat backend. */
 .sf-support-chat {
   min-height: 100%;
   display: flex;

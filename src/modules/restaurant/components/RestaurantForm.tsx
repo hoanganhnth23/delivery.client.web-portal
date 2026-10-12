@@ -88,6 +88,9 @@ const RestaurantForm = ({ restaurant = null, onSuccess, onCancel }: RestaurantFo
       });
       setErrors({});
     }
+    // Re-seed the form only when a different restaurant is loaded; depending on
+    // the whole object would wipe in-progress edits on every parent re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurant?.id]);
 
   const handleFixtureImport = (fixture: JsonFixtureRecord) => {

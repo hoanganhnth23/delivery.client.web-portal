@@ -18,7 +18,8 @@ import AccountPage from "./AccountPage";
 import AccountProfilePage from "./AccountProfilePage";
 import AccountSettingsPage from "./AccountSettingsPage";
 import type { PreviewTheme } from "./AccountSettingsPage";
-import CustomerLiveStreamViewer, { LIVE_STREAMS_DATA } from "./CustomerLiveStreamViewer";
+import CustomerLiveStreamViewer from "./CustomerLiveStreamViewer";
+import { LIVE_STREAMS_DATA } from "./liveStreamsData";
 import SupportChatPage from "./SupportChatPage";
 import { resetPreviewSupportChat } from "../support-preview/previewSupportChat";
 
