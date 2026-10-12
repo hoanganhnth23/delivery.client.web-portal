@@ -21,7 +21,7 @@ test.describe('authentication and public surfaces', () => {
   });
 
   test('AUTH-03, AUTH-04 guarded route redirects unauthenticated user to login', async ({ page }) => {
-    const backend = new MockGateway();
+    const backend = new MockGateway({ authenticated: false });
     await backend.install(page);
     await page.addInitScript(() => localStorage.clear());
     await page.goto('/admin/orders');

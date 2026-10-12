@@ -303,6 +303,7 @@ export class MockGateway {
     else if (path === '/api/addresses/users/501/addresses' && request.method() === 'GET') data = [address];
     else if (path === '/api/addresses/users/501/addresses' && request.method() === 'POST') data = address;
     else if (/^\/api\/addresses\/\d+$/.test(path) && request.method() === 'PUT') data = address;
+    else if (/^\/api\/addresses\/\d+$/.test(path) && request.method() === 'DELETE') data = null;
     else if (/^\/api\/addresses\/\d+\/default$/.test(path)) data = address;
     else if (path === '/api/orders/checkout-preview' && request.method() === 'POST') data = { quoteId: '00000000-0000-4000-8000-000000000001', expiresAt: '2026-08-24T08:00:00Z', restaurantId: 201, restaurantName: restaurant.name, items: [{ menuItemId: 301, menuItemName: menuItem.name, unitPrice: menuItem.price, quantity: 1, lineTotal: menuItem.price }], subtotal: menuItem.price, shippingFee: 15_000, discountAmount: 0, totalPrice: 65_000, priceChanges: [], unavailableItemIds: [] };
     else if (path === '/api/orders' && request.method() === 'POST') data = this.currentOrder;
