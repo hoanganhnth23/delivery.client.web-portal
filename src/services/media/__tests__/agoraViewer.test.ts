@@ -86,3 +86,38 @@ it('subscribes once per event and stops tracks on unpublish', async () => {
   expect(user.videoTrack.stop).toHaveBeenCalled();
   await viewer.stop();
 });
+
+it('plays audio publications and reports subscription failures', async () => {
+  const onError = vi.fn();
+  const viewer = createAgoraViewer('a'.repeat(32), document.createElement('div'), onError);
+  await viewer.start(session);
+  const user = { uid: 8, audioTrack: { play: vi.fn(), stop: vi.fn() }, videoTrack: { stop: vi.fn() } };
+  sdk.subscribe.mockRejectedValueOnce(new Error('subscribe failed'));
+  const published = sdk.on.mock.calls.find(([event]) => event === 'user-published')?.[1];
+  published(user, 'audio');
+  await vi.waitFor(() => expect(onError).toHaveBeenCalledWith('Không thể phát livestream. Vui lòng kết nối lại.'));
+  sdk.subscribe.mockResolvedValueOnce(undefined);
+  published(user, 'audio');
+  await vi.waitFor(() => expect(user.audioTrack.play).toHaveBeenCalled());
+  const expired = sdk.on.mock.calls.find(([event]) => event === 'token-privilege-did-expire')?.[1];
+  expired();
+  expect(onError).toHaveBeenCalledWith('Phiên xem hết hạn. Vui lòng kết nối lại.');
+  await viewer.stop();
+});
+
+it('reports renewal failure and tolerates missing renewal token', async () => {
+  const onError = vi.fn();
+  const viewer = createAgoraViewer('a'.repeat(32), document.createElement('div'), onError);
+  await viewer.start(session);
+  const expiring = sdk.on.mock.calls.find(([event]) => event === 'token-privilege-will-expire')?.[1];
+  expiring();
+  await vi.waitFor(() => expect(onError).toHaveBeenCalledWith('Không thể gia hạn phiên xem. Vui lòng kết nối lại.'));
+  await viewer.stop();
+  const missing = createAgoraViewer('a'.repeat(32), document.createElement('div'), onError);
+  await missing.start(session);
+  const renewalCalls = sdk.on.mock.calls.filter(([event]) => event === 'token-privilege-will-expire');
+  const missingExpiring = renewalCalls[renewalCalls.length - 1]?.[1];
+  missingExpiring();
+  await vi.waitFor(() => expect(onError).toHaveBeenCalled());
+  await missing.stop();
+});

@@ -118,3 +118,29 @@ it('does not request devices after disposal during lazy SDK loading', async () =
   expect(agora.createMicrophoneAndCameraTracks).not.toHaveBeenCalled();
   expect(sdk.join).not.toHaveBeenCalled();
 });
+
+it('rejects controls before startup and reports renewal failures', async () => {
+  const onError = vi.fn();
+  const publisher = createAgoraPublisher('a'.repeat(32), document.createElement('div'), onError);
+  await expect(publisher.setMicrophoneEnabled(false)).rejects.toThrow('Micro chưa sẵn sàng');
+  await expect(publisher.setCameraEnabled(false)).rejects.toThrow('Camera chưa sẵn sàng');
+  await publisher.start(session);
+  const expiring = sdk.on.mock.calls.find(([event]) => event === 'token-privilege-will-expire')?.[1];
+  expiring();
+  await vi.waitFor(() => expect(onError).toHaveBeenCalledWith('Không thể gia hạn phiên phát. Vui lòng kết nối lại.'));
+  await publisher.stop();
+});
+
+it('maps join, device, and publication failures', async () => {
+  sdk.join.mockRejectedValueOnce(new Error('join failed'));
+  const joinFailure = createAgoraPublisher('a'.repeat(32), document.createElement('div'), vi.fn());
+  await expect(joinFailure.start(session)).rejects.toThrow('Không thể kết nối camera và micro');
+  sdk.join.mockResolvedValue(7);
+  agora.createMicrophoneAndCameraTracks.mockRejectedValueOnce(new Error('device failed'));
+  const deviceFailure = createAgoraPublisher('a'.repeat(32), document.createElement('div'), vi.fn());
+  await expect(deviceFailure.start(session)).rejects.toThrow('Không thể kết nối camera và micro');
+  agora.createMicrophoneAndCameraTracks.mockResolvedValue([audioTrack, videoTrack]);
+  sdk.publish.mockRejectedValueOnce(new Error('publish failed'));
+  const publishFailure = createAgoraPublisher('a'.repeat(32), document.createElement('div'), vi.fn());
+  await expect(publishFailure.start(session)).rejects.toThrow('Không thể kết nối camera và micro');
+});
