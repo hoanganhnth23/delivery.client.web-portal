@@ -2,13 +2,16 @@ import { expect, test } from '@playwright/test';
 import { gotoRole, MockGateway } from './fixtures';
 
 const fillAddress = async (page: import('@playwright/test').Page, latitude: string, longitude: string) => {
-  await page.getByLabel('Nhãn').fill('Biên giới');
-  await page.getByLabel('Tên người nhận').fill('Boundary Customer');
+  const addButton = page.getByRole('button', { name: 'Thêm địa chỉ mới' });
+  await addButton.waitFor({ state: 'visible' });
+  await addButton.click();
+  await page.getByRole('button', { name: 'Khác', exact: true }).click();
+  await page.getByLabel('Họ và tên người nhận').fill('Boundary Customer');
   await page.getByLabel('Số điện thoại').fill('0900000002');
-  await page.getByLabel('Số nhà, tên đường').fill('2 Đường Biên');
-  await page.getByLabel('Phường/Xã').fill('Bến Nghé');
-  await page.getByLabel('Quận/Huyện').fill('Quận 1');
-  await page.getByLabel('Tỉnh/Thành phố').fill('TP.HCM');
+  await page.getByLabel('Số nhà, tên đường, toà nhà').fill('2 Đường Biên');
+  await page.getByLabel('Phường / Xã').fill('Bến Nghé');
+  await page.getByLabel('Quận / Huyện').fill('Quận 1');
+  await page.getByLabel('Tỉnh / Thành phố').fill('TP.HCM');
   const coordinates = page.locator('input[type="number"]');
   await coordinates.nth(0).fill(latitude);
   await coordinates.nth(1).fill(longitude);
@@ -22,7 +25,7 @@ test.describe('Wave 4 state and local-boundary cases', () => {
       localStorage.setItem('delivery.customer-cart.v1', '{"items":[{"quantity":0}]}');
     });
     await page.goto('/customer/checkout');
-    await expect(page.getByText('Giỏ hàng đang trống.')).toBeVisible();
+    await expect(page.getByText('Chưa có món trong giỏ')).toBeVisible();
     expect(backend.requestsFor('/api/orders/checkout-preview')).toHaveLength(0);
     expect(await page.evaluate(() => localStorage.getItem('delivery.customer-cart.v1'))).toBeNull();
     backend.assertNoUnexpectedRequests();
@@ -44,8 +47,8 @@ test.describe('Wave 4 state and local-boundary cases', () => {
   test('CASE-CUSTOMER-044 [P1] coordinate lower boundary is accepted and submitted', async ({ page }) => {
     const backend = await gotoRole(page, 'USER', '/customer/addresses', { strict: true });
     await fillAddress(page, '8', '102');
-    await page.getByRole('button', { name: 'Lưu địa chỉ' }).click();
-    await expect(page.getByRole('status')).toHaveText('Đã lưu địa chỉ');
+    await page.getByRole('button', { name: 'Hoàn tất & Thêm mới' }).click();
+    await expect(page.getByRole('status')).toHaveText('Đã thêm địa chỉ mới thành công');
     const createRequest = backend.requestsFor('/api/addresses/users/501/addresses')
       .find((request) => request.method === 'POST');
     expect(createRequest?.body).toContain('"latitude":8');

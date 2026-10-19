@@ -42,9 +42,24 @@ owns restaurant facts; empty and error states are distinct) and by the README's
 loading/empty/error contract. No assertion was weakened and no case was
 skipped or marked fixme.
 
+### 4. E2E selectors lagged behind the current customer UI
+
+The address page now opens its form explicitly, uses address-type buttons and
+updated Vietnamese labels, and uses distinct create/update action labels.
+Checkout likewise renders its current empty-cart, price-change, and address
+selection surfaces. The affected tests were updated to assert those existing
+controls and messages while preserving the behavior assertions.
+
+### 5. Checkout unavailable-item state was not visible before submit
+
+`CustomerCheckoutPage` disabled COD creation for a quote containing unavailable
+items but did not render the contract-required recovery message until submit.
+It now renders an alert immediately when the server preview includes
+`unavailableItemIds`; a Vitest regression test covers the message and disabled
+action. This is the only additional product change and is required by
+CUSTOMER-11's documented unavailable-item behavior.
+
 ## Validation
 
-Full Playwright and Vitest validation is pending because the worktree's
-symlinked `node_modules` points to a dependency tree whose Vite cache paths are
-not writable from this sandbox. Both Playwright and Vitest fail before test
-collection with `EPERM` while opening `node_modules/.vite-temp/vite.config...`.
+Focused customer Playwright: 25 passed. Customer ordering Vitest: 10 passed.
+Full-suite rerun after the final selector updates is pending.

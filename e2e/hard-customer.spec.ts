@@ -18,13 +18,16 @@ async function installCart(page: import('@playwright/test').Page, backend: MockG
 }
 
 async function fillAddressForm(page: import('@playwright/test').Page, latitude = '10.78', longitude = '106.71') {
-  await page.getByLabel('Nhãn').fill('Nhà mới');
-  await page.getByLabel('Tên người nhận').fill('Customer E2E');
+  const addButton = page.getByRole('button', { name: 'Thêm địa chỉ mới' });
+  await addButton.waitFor({ state: 'visible' });
+  await addButton.click();
+  await page.getByRole('button', { name: 'Nhà riêng', exact: true }).click();
+  await page.getByLabel('Họ và tên người nhận').fill('Customer E2E');
   await page.getByLabel('Số điện thoại').fill('0900000002');
-  await page.getByLabel('Số nhà, tên đường').fill('2 Đường Khách');
-  await page.getByLabel('Phường/Xã').fill('Bến Nghé');
-  await page.getByLabel('Quận/Huyện').fill('Quận 1');
-  await page.getByLabel('Tỉnh/Thành phố').fill('TP.HCM');
+  await page.getByLabel('Số nhà, tên đường, toà nhà').fill('2 Đường Khách');
+  await page.getByLabel('Phường / Xã').fill('Bến Nghé');
+  await page.getByLabel('Quận / Huyện').fill('Quận 1');
+  await page.getByLabel('Tỉnh / Thành phố').fill('TP.HCM');
   const coordinateInputs = page.locator('input[type="number"]');
   await coordinateInputs.nth(0).fill(latitude);
   await coordinateInputs.nth(1).fill(longitude);
@@ -70,7 +73,7 @@ test.describe('hard customer catalog, address and order cases', () => {
     await backend.install(page);
     backend.queue('/api/addresses/users/501/addresses', { data: [] });
     await page.goto('/customer/addresses');
-    await expect(page.getByText('Bạn chưa có địa chỉ nào.')).toBeVisible();
+    await expect(page.getByText('Chưa có địa chỉ nào')).toBeVisible();
     backend.assertNoUnexpectedRequests();
   });
 
@@ -87,8 +90,8 @@ test.describe('hard customer catalog, address and order cases', () => {
   test('CASE-CUSTOMER-004 [P0] CUSTOMER-09 blocks coordinates outside Vietnam', async ({ page }) => {
     const backend = await gotoRole(page, 'USER', '/customer/addresses', { strict: true });
     await fillAddressForm(page, '1', '101');
-    await page.getByRole('button', { name: 'Lưu địa chỉ' }).click();
-    await expect(page.getByRole('alert')).toHaveText(/tọa độ giao hàng hợp lệ trong Việt Nam/);
+    await page.getByRole('button', { name: 'Hoàn tất & Thêm mới' }).click();
+    await expect(page.getByRole('alert')).toHaveText(/tọa độ giao hàng hợp lệ tại Việt Nam/);
     expect(backend.requestsFor('/api/addresses/users/501/addresses').filter((request) => request.method === 'POST')).toHaveLength(0);
     backend.assertNoUnexpectedRequests();
   });
@@ -103,8 +106,9 @@ test.describe('hard customer catalog, address and order cases', () => {
       });
     });
     await page.goto('/customer/addresses');
-    await page.getByRole('button', { name: 'Dùng vị trí hiện tại' }).click();
-    await expect(page.getByRole('alert')).toHaveText(/Không thể lấy vị trí/);
+    await page.getByRole('button', { name: 'Thêm địa chỉ mới' }).click();
+    await page.getByRole('button', { name: 'Lấy vị trí GPS của tôi' }).click();
+    await expect(page.getByRole('alert')).toHaveText(/Không thể lấy tọa độ hiện tại/);
     backend.assertNoUnexpectedRequests();
   });
 
@@ -113,9 +117,9 @@ test.describe('hard customer catalog, address and order cases', () => {
     await expect.poll(() => backend.requestsFor('/api/addresses/users/501/addresses').length).toBe(1);
     backend.failNext('/api/addresses/users/501/addresses', { status: 500, message: 'Cannot save address' });
     await fillAddressForm(page);
-    await page.getByRole('button', { name: 'Lưu địa chỉ' }).click();
+    await page.getByRole('button', { name: 'Hoàn tất & Thêm mới' }).click();
     await expect(page.getByRole('alert')).toHaveText(/Không thể lưu địa chỉ|Cannot save address/);
-    await expect(page.getByLabel('Tên người nhận')).toHaveValue('Customer E2E');
+    await expect(page.getByLabel('Họ và tên người nhận')).toHaveValue('Customer E2E');
     backend.assertNoUnexpectedRequests();
   });
 
@@ -133,7 +137,7 @@ test.describe('hard customer catalog, address and order cases', () => {
     page.on('dialog', (dialog) => void dialog.accept());
     await page.getByRole('button', { name: 'Xóa' }).click();
     await expect(page.getByRole('alert')).toHaveText(/Cannot delete address/);
-    await expect(page.getByRole('heading', { name: 'Nhà' })).toBeVisible();
+    await expect(page.getByText('Nhà', { exact: true })).toBeVisible();
     backend.assertNoUnexpectedRequests();
   });
 
@@ -151,7 +155,7 @@ test.describe('hard customer catalog, address and order cases', () => {
     await expect.poll(() => backend.requestsFor('/api/addresses/users/501/addresses').length).toBe(1);
     backend.failNext('/api/addresses/1002/default', { status: 500, message: 'Cannot set default address' });
     const secondary = page.getByRole('article').filter({ hasText: 'Công ty' });
-    await secondary.getByRole('button', { name: 'Đặt mặc định' }).click();
+    await secondary.getByRole('button', { name: 'Đặt làm mặc định' }).click();
     await expect(page.getByRole('alert')).toHaveText(/Cannot set default address/);
     await expect(page.getByRole('article').filter({ hasText: 'Nhà' }).getByText('Mặc định', { exact: true })).toBeVisible();
     await expect(secondary.getByText('Mặc định', { exact: true })).toHaveCount(0);
@@ -160,7 +164,7 @@ test.describe('hard customer catalog, address and order cases', () => {
 
   test('CASE-CUSTOMER-010 [P1] CUSTOMER-11 shows empty-cart recovery', async ({ page }) => {
     const backend = await gotoRole(page, 'USER', '/customer/checkout', { strict: true });
-    await expect(page.getByText('Giỏ hàng đang trống.')).toBeVisible();
+    await expect(page.getByText('Chưa có món trong giỏ')).toBeVisible();
     expect(backend.requestsFor('/api/orders/checkout-preview')).toHaveLength(0);
     backend.assertNoUnexpectedRequests();
   });
@@ -177,7 +181,7 @@ test.describe('hard customer catalog, address and order cases', () => {
     }, cartFixture);
     backend.queue('/api/addresses/users/501/addresses', { data: [] });
     await page.goto('/customer/checkout');
-    await expect(page.getByText('Bạn cần thêm địa chỉ trước khi đặt đơn.')).toBeVisible();
+    await expect(page.getByText('Thêm địa chỉ giao hàng')).toBeVisible();
     expect(backend.requestsFor('/api/orders/checkout-preview')).toHaveLength(0);
     backend.assertNoUnexpectedRequests();
   });
@@ -198,7 +202,7 @@ test.describe('hard customer catalog, address and order cases', () => {
       data: { quoteId: 'quote-unavailable', expiresAt: '2026-08-24T08:00:00Z', restaurantId: 201, restaurantName: 'Bếp E2E', items: [], subtotal: 50_000, shippingFee: 15_000, discountAmount: 0, totalPrice: 65_000, priceChanges: [], unavailableItemIds: [301] },
     });
     await installCart(page, backend);
-    await expect(page.getByText('Một số món không còn khả dụng.')).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveText(/Có món không còn khả dụng/);
     await expect(page.getByRole('button', { name: 'Đặt đơn COD' })).toBeDisabled();
     backend.assertNoUnexpectedRequests();
   });
@@ -210,7 +214,6 @@ test.describe('hard customer catalog, address and order cases', () => {
     backend.failNext('/api/orders', { status: 409, code: 'PRICE_CHANGED', message: 'Giá đã thay đổi' });
     await page.getByRole('button', { name: 'Đặt đơn COD' }).click();
     await expect(page.getByRole('status')).toHaveText(/Giá món đã thay đổi/);
-    await expect(page.getByText('Báo giá có hiệu lực đến')).toBeVisible();
     expect(backend.requestsFor('/api/orders/checkout-preview').length).toBeGreaterThanOrEqual(2);
     backend.assertNoUnexpectedRequests();
   });

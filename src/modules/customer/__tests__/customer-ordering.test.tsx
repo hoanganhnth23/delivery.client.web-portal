@@ -143,6 +143,31 @@ describe('customer ordering journey', () => {
     expect(await screen.findByRole('heading', { name: 'Chi tiết đơn hàng' })).toBeInTheDocument();
   });
 
+  it('shows unavailable-item recovery when checkout preview excludes a cart item', async () => {
+    const dependencies = customerDependencies();
+    writeCheckoutCart();
+    dependencies.order = {
+      ...dependencies.order,
+      checkoutPreview: vi.fn(async () => ({
+      quoteId: 'quote-unavailable',
+      expiresAt: '2026-08-24T08:00:00Z',
+      restaurantId: 201,
+      restaurantName: 'Bếp test',
+      items: [],
+      subtotal: 50_000,
+      shippingFee: 15_000,
+      discountAmount: 0,
+      totalPrice: 65_000,
+      priceChanges: [],
+      unavailableItemIds: [301],
+      })),
+    };
+    renderApp({ route: ROUTES.CUSTOMER_CHECKOUT, dependencies });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Có món không còn khả dụng');
+    expect(screen.getByRole('button', { name: 'Đặt đơn COD' })).toBeDisabled();
+  });
+
   it('forwards livestream context to checkout preview and order creation', async () => {
     const user = userEvent.setup();
     const dependencies = customerDependencies();

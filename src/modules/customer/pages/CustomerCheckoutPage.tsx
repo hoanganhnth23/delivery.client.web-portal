@@ -511,6 +511,11 @@ const CustomerCheckoutPage = () => {
               {error}
             </div>
           )}
+          {preview && preview.unavailableItemIds.length > 0 && !error && (
+            <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              Có món không còn khả dụng. Vui lòng quay lại giỏ hàng để cập nhật.
+            </div>
+          )}
           {notice && (
             <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
               {notice}
