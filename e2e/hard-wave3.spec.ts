@@ -121,7 +121,7 @@ test.describe('Wave 3A auth, contract and responsive cases', () => {
   test('CASE-CROSS-013 [P1] customer home remains usable on mobile viewport', async ({ page }) => {
     const backend = await gotoRole(page, 'USER', '/', { strict: true });
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByRole('heading', { name: 'Nhà hàng gần bạn' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Quán ngon dành cho bạn' })).toBeVisible();
     await expect(page.getByLabel('Tìm nhà hàng')).toBeVisible();
     await expect(page.getByText('Bếp E2E')).toBeVisible();
     backend.assertNoUnexpectedRequests();
@@ -142,39 +142,41 @@ test.describe('Wave 3A auth, contract and responsive cases', () => {
 test.describe('Wave 3A customer, checkout and order boundaries', () => {
   test('CASE-CUSTOMER-034 [P1] address 422 keeps fields for correction', async ({ page }) => {
     const backend = await gotoRole(page, 'USER', '/customer/addresses', { strict: true });
+    await page.getByRole('button', { name: 'Thêm địa chỉ mới' }).click();
     await expect.poll(() => backend.requestsFor('/api/addresses/users/501/addresses').length).toBe(1);
     backend.failNext('/api/addresses/users/501/addresses', { status: 422, message: 'Address validation failed' });
-    await page.getByLabel('Tên người nhận').fill('Needs correction');
+    await page.getByLabel('Họ và tên người nhận').fill('Needs correction');
     await page.getByLabel('Số điện thoại').fill('0900000002');
-    await page.getByLabel('Số nhà, tên đường').fill('2 Đường Khách');
-    await page.getByLabel('Phường/Xã').fill('Bến Nghé');
-    await page.getByLabel('Quận/Huyện').fill('Quận 1');
-    await page.getByLabel('Tỉnh/Thành phố').fill('TP.HCM');
+    await page.getByLabel('Số nhà, tên đường, toà nhà').fill('2 Đường Khách');
+    await page.getByLabel('Phường / Xã').fill('Bến Nghé');
+    await page.getByLabel('Quận / Huyện').fill('Quận 1');
+    await page.getByLabel('Tỉnh / Thành phố').fill('TP.HCM');
     const coordinates = page.locator('input[type="number"]');
     await coordinates.nth(0).fill('10.78');
     await coordinates.nth(1).fill('106.71');
-    await page.getByRole('button', { name: 'Lưu địa chỉ' }).click();
+    await page.getByRole('button', { name: 'Hoàn tất & Thêm mới' }).click();
     await expect(page.getByRole('alert')).toHaveText(/Address validation failed/);
-    await expect(page.getByLabel('Tên người nhận')).toHaveValue('Needs correction');
+    await expect(page.getByLabel('Họ và tên người nhận')).toHaveValue('Needs correction');
     backend.assertNoUnexpectedRequests();
   });
 
   test('CASE-CUSTOMER-035 [P1] address transport abort keeps form usable', async ({ page }) => {
     const backend = await gotoRole(page, 'USER', '/customer/addresses', { strict: true });
+    await page.getByRole('button', { name: 'Thêm địa chỉ mới' }).click();
     await expect.poll(() => backend.requestsFor('/api/addresses/users/501/addresses').length).toBe(1);
     backend.abortNext('/api/addresses/users/501/addresses');
-    await page.getByLabel('Tên người nhận').fill('Abort recovery');
+    await page.getByLabel('Họ và tên người nhận').fill('Abort recovery');
     await page.getByLabel('Số điện thoại').fill('0900000002');
-    await page.getByLabel('Số nhà, tên đường').fill('2 Đường Khách');
-    await page.getByLabel('Phường/Xã').fill('Bến Nghé');
-    await page.getByLabel('Quận/Huyện').fill('Quận 1');
-    await page.getByLabel('Tỉnh/Thành phố').fill('TP.HCM');
+    await page.getByLabel('Số nhà, tên đường, toà nhà').fill('2 Đường Khách');
+    await page.getByLabel('Phường / Xã').fill('Bến Nghé');
+    await page.getByLabel('Quận / Huyện').fill('Quận 1');
+    await page.getByLabel('Tỉnh / Thành phố').fill('TP.HCM');
     const coordinates = page.locator('input[type="number"]');
     await coordinates.nth(0).fill('10.78');
     await coordinates.nth(1).fill('106.71');
-    await page.getByRole('button', { name: 'Lưu địa chỉ' }).click();
+    await page.getByRole('button', { name: 'Hoàn tất & Thêm mới' }).click();
     await expect(page.getByRole('alert')).toBeVisible();
-    await expect(page.getByLabel('Tên người nhận')).toHaveValue('Abort recovery');
+    await expect(page.getByLabel('Họ và tên người nhận')).toHaveValue('Abort recovery');
     backend.assertNoUnexpectedRequests();
   });
 
@@ -193,8 +195,11 @@ test.describe('Wave 3A customer, checkout and order boundaries', () => {
     backend.queue('/api/addresses/users/501/addresses', { data: [address, second] });
     await installCart(page, backend);
     await expect(page.getByRole('button', { name: 'Đặt đơn COD' })).toBeEnabled();
-    const secondRadio = page.locator('input[name="checkout-address"]').nth(1);
-    await secondRadio.check();
+    await page.getByRole('button', { name: 'Chọn hoặc đổi địa chỉ giao hàng' }).click();
+    // Click the address row containing 'Công ty' — div onClick selects the
+    // address and closes the modal in one shot; using radio.check() races with
+    // the parent onClick unmounting the radio before Playwright can verify it.
+    await page.getByRole('dialog').getByText('Công ty').click();
     await expect.poll(() => backend.requestsFor('/api/orders/checkout-preview').length).toBe(2);
     expect(backend.lastRequest('/api/orders/checkout-preview')?.body).toContain('21.0285');
     backend.assertNoUnexpectedRequests();
@@ -248,14 +253,14 @@ test.describe('Wave 3A customer, checkout and order boundaries', () => {
 test.describe('Wave 3A terminal order, owner and admin cases', () => {
   test('CASE-ORDER-011 [P1] shipper-not-found order shows recovery message without cancel', async ({ page }) => {
     const backend = await gotoRole(page, 'USER', '/customer/orders/401', { strict: true, orderStatus: 'SHIPPER_NOT_FOUND' });
-    await expect(page.getByText('Hiện chưa tìm được shipper cho đơn này.')).toBeVisible();
+    await expect(page.getByText('Chưa tìm được tài xế')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Hủy đơn hàng' })).toHaveCount(0);
     backend.assertNoUnexpectedRequests();
   });
 
   test('CASE-ORDER-012 [P1] cancelled order has no cancellation control', async ({ page }) => {
     const backend = await gotoRole(page, 'USER', '/customer/orders/401', { strict: true, orderStatus: 'CANCELLED' });
-    await expect(page.getByText('Đã hủy')).toBeVisible();
+    await expect(page.getByText('Đã hủy đơn hàng')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Hủy đơn hàng' })).toHaveCount(0);
     backend.assertNoUnexpectedRequests();
   });
@@ -295,9 +300,10 @@ test.describe('Wave 3A terminal order, owner and admin cases', () => {
   test('CASE-OWNER-017 [P1] review GET 500 exposes retry', async ({ page }) => {
     const backend = new MockGateway({ role: 'SHOP_OWNER', strict: true });
     await backend.install(page);
-    backend.failNext('/api/restaurants/201/ratings', { status: 500, message: 'Reviews unavailable' });
+    backend.failUntilCleared('/api/restaurants/201/ratings', { status: 500, message: 'Reviews unavailable' });
     await page.goto('/restaurant/reviews');
     await expect(page.getByRole('alert')).toHaveText(/Không thể tải danh sách đánh giá/);
+    backend.clearFailure('/api/restaurants/201/ratings');
     await page.getByRole('button', { name: 'Thử lại' }).click();
     await expect(page.getByText(/Rất ngon|Chưa có/).first()).toBeVisible();
     backend.assertNoUnexpectedRequests();

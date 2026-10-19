@@ -21,7 +21,7 @@ test.describe('authentication and public surfaces', () => {
   });
 
   test('AUTH-03, AUTH-04 guarded route redirects unauthenticated user to login', async ({ page }) => {
-    const backend = new MockGateway();
+    const backend = new MockGateway({ authenticated: false });
     await backend.install(page);
     await page.addInitScript(() => localStorage.clear());
     await page.goto('/admin/orders');
@@ -49,7 +49,7 @@ test.describe('authentication and public surfaces', () => {
 
   test('CUSTOMER-01 public catalog and CUSTOMER-02 search render', async ({ page }) => {
     await gotoRole(page, 'USER', '/');
-    await expect(page.getByRole('heading', { name: 'Nhà hàng gần bạn' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Quán ngon dành cho bạn' })).toBeVisible();
     await page.getByLabel('Tìm nhà hàng').fill('Bếp');
     await page.getByRole('button', { name: 'Tìm', exact: true }).click();
     await expect(page.getByText('Bếp E2E')).toBeVisible();
@@ -102,10 +102,10 @@ test.describe('customer ordering', () => {
 
   test('CUSTOMER-08, CUSTOMER-09 and CUSTOMER-10 manage addresses', async ({ page }) => {
     await gotoRole(page, 'USER', '/customer/addresses');
-    await expect(page.getByRole('heading', { name: 'Nhà' })).toBeVisible();
+    await expect(page.getByText('Nhà', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Sửa' }).click();
-    await page.getByLabel('Tên người nhận').fill('Updated Customer');
-    await page.getByRole('button', { name: 'Lưu địa chỉ' }).click();
+    await page.getByLabel('Họ và tên người nhận').fill('Updated Customer');
+    await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
     await expect(page.getByRole('status')).toBeVisible();
   });
 

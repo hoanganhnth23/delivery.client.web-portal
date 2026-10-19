@@ -15,12 +15,12 @@ const statuses = [
 ] as const;
 
 const addressFields = async (page: import('@playwright/test').Page) => {
-  await page.getByLabel('Tên người nhận').fill('Matrix customer');
+  await page.getByLabel('Họ và tên người nhận').fill('Matrix customer');
   await page.getByLabel('Số điện thoại').fill('0900000002');
-  await page.getByLabel('Số nhà, tên đường').fill('2 Đường Khách');
-  await page.getByLabel('Phường/Xã').fill('Bến Nghé');
-  await page.getByLabel('Quận/Huyện').fill('Quận 1');
-  await page.getByLabel('Tỉnh/Thành phố').fill('TP.HCM');
+  await page.getByLabel('Số nhà, tên đường, toà nhà').fill('2 Đường Khách');
+  await page.getByLabel('Phường / Xã').fill('Bến Nghé');
+  await page.getByLabel('Quận / Huyện').fill('Quận 1');
+  await page.getByLabel('Tỉnh / Thành phố').fill('TP.HCM');
   const coordinates = page.locator('input[type="number"]');
   await coordinates.nth(0).fill('10.78');
   await coordinates.nth(1).fill('106.71');
@@ -74,12 +74,13 @@ test.describe('Wave 3B address, quote and create status permutations', () => {
   for (const scenario of statuses) {
     test(`CASE-CUSTOMER-04${scenario.suffix} [P1] address create keeps form on ${scenario.status}`, async ({ page }) => {
       const backend = await gotoRole(page, 'USER', '/customer/addresses', { strict: true });
+      await page.getByRole('button', { name: 'Thêm địa chỉ mới' }).click();
       await expect.poll(() => backend.requestsFor('/api/addresses/users/501/addresses').length).toBe(1);
       backend.failNext('/api/addresses/users/501/addresses', { status: scenario.status, message: `Address ${scenario.label}` });
       await addressFields(page);
-      await page.getByRole('button', { name: 'Lưu địa chỉ' }).click();
+      await page.getByRole('button', { name: 'Hoàn tất & Thêm mới' }).click();
       await expect(page.getByRole('alert')).toHaveText(new RegExp(`Address ${scenario.label}`));
-      await expect(page.getByLabel('Tên người nhận')).toHaveValue('Matrix customer');
+      await expect(page.getByLabel('Họ và tên người nhận')).toHaveValue('Matrix customer');
       backend.assertNoUnexpectedRequests();
     });
   }

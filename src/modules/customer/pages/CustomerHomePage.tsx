@@ -6,7 +6,6 @@ import { CustomerShell } from '../components/CustomerShell';
 import { getErrorMessage } from '../utils';
 import { useResourceQuery } from '@/services/data/useResourceQuery';
 import { ROUTES } from '@/utils/constants';
-import catalogData from '../../customer-preview/catalog.json';
 
 const money = (v: number) => `${v.toLocaleString('vi-VN')}đ`;
 
@@ -28,19 +27,7 @@ const CATEGORIES = [
 ];
 
 // Curate featured dishes from catalog
-const FEATURED_DISHES: FeaturedDish[] = (catalogData as unknown as Array<{
-  id: number;
-  name: string;
-  items: Array<{ id: number; name: string; price: number; image: string }>;
-}>)
-  .flatMap((r) =>
-    r.items.slice(0, 2).map((item) => ({
-      ...item,
-      restaurantId: r.id,
-      restaurantName: r.name,
-    })),
-  )
-  .slice(0, 4);
+const FEATURED_DISHES: FeaturedDish[] = [];
 
 const CustomerHomePage = () => {
   const { restaurant } = useAppDependencies();
@@ -81,14 +68,10 @@ const CustomerHomePage = () => {
 
   const error = queryError ? getErrorMessage(queryError, 'Không thể tải danh sách nhà hàng') : null;
 
-  // Fallback to sample catalog if in local dev with empty DB and no keyword search
-  const baseRestaurants = useMemo(() => {
-    if (apiRestaurants.length > 0) return apiRestaurants;
-    if (!submittedKeyword.trim() && !loading && !error) {
-      return catalogData as unknown as Restaurant[];
-    }
-    return [];
-  }, [apiRestaurants, submittedKeyword, loading, error]);
+  // The backend is the sole source of catalog truth. An empty successful
+  // response must remain empty so the CUSTOMER-01 contract can distinguish it
+  // from a loading or failed request.
+  const baseRestaurants = apiRestaurants;
 
   // Link featured dishes to real restaurant IDs when available
   const featuredDishes = useMemo(() => {

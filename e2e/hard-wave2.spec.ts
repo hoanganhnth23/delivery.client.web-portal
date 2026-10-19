@@ -76,13 +76,16 @@ async function installCart(page: import('@playwright/test').Page, backend: MockG
 }
 
 async function fillAddress(page: import('@playwright/test').Page) {
-  await page.getByLabel('Nhãn').fill('Nhà mới');
-  await page.getByLabel('Tên người nhận').fill('Customer E2E');
+  const addButton = page.getByRole('button', { name: 'Thêm địa chỉ mới' });
+  await addButton.waitFor({ state: 'visible' });
+  await addButton.click();
+  await page.getByRole('button', { name: 'Nhà riêng', exact: true }).click();
+  await page.getByLabel('Họ và tên người nhận').fill('Customer E2E');
   await page.getByLabel('Số điện thoại').fill('0900000002');
-  await page.getByLabel('Số nhà, tên đường').fill('2 Đường Khách');
-  await page.getByLabel('Phường/Xã').fill('Bến Nghé');
-  await page.getByLabel('Quận/Huyện').fill('Quận 1');
-  await page.getByLabel('Tỉnh/Thành phố').fill('TP.HCM');
+  await page.getByLabel('Số nhà, tên đường, toà nhà').fill('2 Đường Khách');
+  await page.getByLabel('Phường / Xã').fill('Bến Nghé');
+  await page.getByLabel('Quận / Huyện').fill('Quận 1');
+  await page.getByLabel('Tỉnh / Thành phố').fill('TP.HCM');
   const coordinates = page.locator('input[type="number"]');
   await coordinates.nth(0).fill('10.78');
   await coordinates.nth(1).fill('106.71');
@@ -141,7 +144,7 @@ test.describe('Wave 2 auth and cross-portal contract cases', () => {
   });
 
   test('CASE-AUTH-015 [P0] malformed owner restaurant list keeps retry after login', async ({ page }) => {
-    const backend = new MockGateway({ role: 'SHOP_OWNER', strict: true });
+    const backend = new MockGateway({ role: 'SHOP_OWNER', strict: true, authenticated: false });
     await backend.install(page);
     await page.addInitScript(() => localStorage.removeItem('currentRestaurantId'));
     backend.malformedNext('/api/restaurants/my-restaurants');
@@ -208,7 +211,7 @@ test.describe('Wave 2 auth and cross-portal contract cases', () => {
     await page.getByRole('button', { name: 'Tìm', exact: true }).click();
     await expect(page.getByText(/Không thể kết nối đến server|Network Error|Failed to fetch/)).toBeVisible();
     await page.getByRole('button', { name: 'Thử lại' }).click();
-    await expect(page.getByText('Bếp E2E')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Bếp E2E' })).toBeVisible();
     backend.assertNoUnexpectedRequests();
   });
 
@@ -229,21 +232,21 @@ test.describe('Wave 2 customer and order cases', () => {
     await expect.poll(() => backend.requestsFor('/api/addresses/users/501/addresses').length).toBe(1);
     backend.malformedNext('/api/addresses/users/501/addresses', malformedEnvelope({ invalid: true }));
     await fillAddress(page);
-    await page.getByRole('button', { name: 'Lưu địa chỉ' }).click();
+    await page.getByRole('button', { name: 'Hoàn tất & Thêm mới' }).click();
     await expect(page.getByRole('alert')).toHaveText(/address\.id|Backend response/);
-    await expect(page.getByLabel('Tên người nhận')).toHaveValue('Customer E2E');
+    await expect(page.getByLabel('Họ và tên người nhận')).toHaveValue('Customer E2E');
     backend.assertNoUnexpectedRequests();
   });
 
   test('CASE-CUSTOMER-020 [P1] address PUT 500 preserves edit mode', async ({ page }) => {
     const backend = await gotoRole(page, 'USER', '/customer/addresses', { strict: true });
     await page.getByRole('button', { name: 'Sửa' }).click();
-    await page.getByLabel('Tên người nhận').fill('Updated after failure');
+    await page.getByLabel('Họ và tên người nhận').fill('Updated after failure');
     backend.failNext('/api/addresses/1001', { status: 500, message: 'Address update unavailable' });
-    await page.getByRole('button', { name: 'Lưu địa chỉ' }).click();
+    await page.getByRole('button', { name: 'Lưu thay đổi' }).click();
     await expect(page.getByRole('alert')).toHaveText(/Address update unavailable/);
-    await expect(page.getByRole('heading', { name: 'Sửa địa chỉ' })).toBeVisible();
-    await expect(page.getByLabel('Tên người nhận')).toHaveValue('Updated after failure');
+    await expect(page.getByRole('heading', { name: 'Chỉnh sửa địa chỉ' })).toBeVisible();
+    await expect(page.getByLabel('Họ và tên người nhận')).toHaveValue('Updated after failure');
     backend.assertNoUnexpectedRequests();
   });
 
@@ -252,7 +255,8 @@ test.describe('Wave 2 customer and order cases', () => {
     await backend.install(page);
     await page.addInitScript(() => Object.defineProperty(navigator, 'geolocation', { configurable: true, value: undefined }));
     await page.goto('/customer/addresses');
-    await page.getByRole('button', { name: 'Dùng vị trí hiện tại' }).click();
+    await page.getByRole('button', { name: 'Thêm địa chỉ mới' }).click();
+    await page.getByRole('button', { name: 'Lấy vị trí GPS của tôi' }).click();
     await expect(page.getByRole('alert')).toHaveText(/Trình duyệt không hỗ trợ/);
     backend.assertNoUnexpectedRequests();
   });
@@ -366,7 +370,7 @@ test.describe('Wave 2 customer and order cases', () => {
     await page.getByRole('button', { name: 'Xác nhận hủy' }).click();
     await expect(page.getByRole('alert')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Xác nhận hủy' })).toBeVisible();
-    await expect(page.getByText('Bếp E2E')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Bếp E2E' })).toBeVisible();
     backend.assertNoUnexpectedRequests();
   });
 

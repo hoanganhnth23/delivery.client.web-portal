@@ -100,7 +100,7 @@ test.describe('Wave 5 customer state and race boundaries', () => {
       }));
     });
     await page.goto('/customer/checkout');
-    await expect(page.getByText('Giỏ hàng đang trống.')).toBeVisible();
+    await expect(page.getByText('Chưa có món trong giỏ')).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem('delivery.customer-cart.v1'))).toBeNull();
     expect(backend.requestsFor('/api/orders/checkout-preview')).toHaveLength(0);
     backend.assertNoUnexpectedRequests();
@@ -123,11 +123,11 @@ test.describe('Wave 5 customer state and race boundaries', () => {
     backend.failNext('/api/addresses/1002/default', { status: 409, message: 'Default address changed' });
     await backend.install(page);
     await page.goto('/customer/addresses');
-    await expect(page.getByRole('button', { name: 'Đặt mặc định' })).toBeVisible();
-    await page.getByRole('button', { name: 'Đặt mặc định' }).click();
+    await expect(page.getByRole('button', { name: 'Đặt làm mặc định' })).toBeVisible();
+    await page.getByRole('button', { name: 'Đặt làm mặc định' }).click();
     await expect(page.getByRole('alert')).toHaveText(/Default address changed/);
     await expect(page.getByText('Mặc định', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Đặt mặc định' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Đặt làm mặc định' })).toBeVisible();
     backend.assertNoUnexpectedRequests();
   });
 });
