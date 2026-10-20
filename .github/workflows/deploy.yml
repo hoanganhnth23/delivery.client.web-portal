@@ -1,0 +1,71 @@
+name: Web Deploy to GitOps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_ID: lithe-paratext-506208-s5
+  GAR_LOCATION: asia-southeast1
+  REPOSITORY: delivery-repo
+  IMAGE_NAME: delivery-web
+  GITOPS_REPO: hoanganhnth/gitops-cd
+
+jobs:
+  build-and-push:
+    name: Build Web Image & Dispatch to GitOps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Web Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Dependencies & Verify Build
+        run: |
+          npm ci
+          npm run verify:ci
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.GAR_LOCATION }}-docker.pkg.dev --quiet
+
+      - name: Build & Push Web Docker Image
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE_URI="${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}"
+          docker build -t "${IMAGE_URI}:${IMAGE_TAG}" -t "${IMAGE_URI}:latest" .
+          docker push "${IMAGE_URI}:${IMAGE_TAG}"
+          docker push "${IMAGE_URI}:latest"
+
+      - name: Checkout GitOps Repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          token: ${{ secrets.GITOPS_PAT || github.token }}
+          path: gitops-repo
+
+      - name: Update Image Tag in GitOps
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd gitops-repo
+          ./scripts/update-image.sh --service delivery-web --tag "${IMAGE_TAG}" --env staging --commit
+          git push origin main
