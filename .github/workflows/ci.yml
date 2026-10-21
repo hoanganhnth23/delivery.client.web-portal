@@ -1,59 +1,36 @@
-name: Web CI
+name: Web CI Pipeline
 
 on:
-  pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+      - staging
+  pull_request:
+    branches:
+      - main
+      - staging
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  required:
-    name: required / verify
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: Lint, test, contract-check and build
-        # The standalone web repository does not contain the polyrepo-level
-        # ../docs sources consumed by the local handbook:check gate. The
-        # checked-in generated snapshot is typechecked and bundled below;
-        # full handbook source verification remains available via npm run
-        # verify from the shared workspace.
-        run: npm run verify:ci
-      - name: Coverage report
-        run: npm run test:coverage
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Mocked browser E2E and use-case coverage
-        run: npm run test:e2e:coverage
-      - name: Upload reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-reports
-          path: |
-            coverage/**
-            dist/**
-            test-results/**
-            playwright-report/**
-          if-no-files-found: warn
+  # ===========================================================================
+  # Stage 1: Test & Quality Gate (gọi qua CI tập trung)
+  # ===========================================================================
+  test:
+    name: "Stage: Test"
+    uses: hoanganhnth/cicd.centralized-pipelines/.github/workflows/verify-node.yml@main
 
-  advisory-security:
-    name: advisory / filesystem-security
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aquasecurity/trivy-action@0.33.1
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: table
-          exit-code: '0'
-          severity: HIGH,CRITICAL
+  # ===========================================================================
+  # Stage 2: Dockerize & Push Image (chỉ chạy khi push/merge vào main hoặc staging)
+  # ===========================================================================
+  dockerize:
+    name: "Stage: Dockerize & Push"
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    uses: hoanganhnth/cicd.centralized-pipelines/.github/workflows/build-node.yml@main
+    with:
+      service_name: delivery-web
+    secrets:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
