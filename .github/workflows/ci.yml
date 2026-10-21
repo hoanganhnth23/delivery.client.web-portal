@@ -20,7 +20,7 @@ jobs:
   # ===========================================================================
   test:
     name: "Stage: Test"
-    uses: hoanganhnth/cicd.centralized-pipelines/.github/workflows/verify-node.yml@main
+    uses: hoanganhnth23/delivery.devops.centralized-ci/.github/workflows/verify-node.yml@main
 
   # ===========================================================================
   # Stage 2: Dockerize & Push (chỉ chạy khi push/merge vào main hoặc staging)
@@ -30,7 +30,7 @@ jobs:
     name: "Stage: Dockerize & Push"
     needs: test
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    uses: hoanganhnth/cicd.centralized-pipelines/.github/workflows/build-node.yml@main
+    uses: hoanganhnth23/delivery.devops.centralized-ci/.github/workflows/build-node.yml@main
     with:
       image_name: "delivery-web"
       dockerfile: "./Dockerfile"
