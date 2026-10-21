@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -44,10 +44,12 @@ const catalogSource = JSON.stringify({
 
 describe('catalog import parser', () => {
   it('parses the Hanoi catalog fixture and preserves the expected volume', () => {
-    const source = readFileSync(
+    const fixtureCandidates = [
+      path.resolve(process.cwd(), 'src/test/fixtures/hanoi-catalog.json'),
       path.resolve(process.cwd(), '../data/catalog/hanoi-catalog.json'),
-      'utf8',
-    );
+    ];
+    const fixturePath = fixtureCandidates.find(existsSync) ?? fixtureCandidates[0];
+    const source = readFileSync(fixturePath, 'utf8');
 
     const plan = parseCatalogImport(source);
 

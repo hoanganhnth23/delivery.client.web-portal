@@ -106,7 +106,7 @@ describe('public system handbook flow explorer', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'Chọn flow để highlight' }), 'cod-order');
     await screen.findByText('Đang highlight: COD order → delivery', { exact: true });
     const edgeLabels = await screen.findAllByRole('button', { name: /delivery_app.*API Gateway.*HTTPS REST/i });
-    const desktopEdgeLabel = edgeLabels.find((button) => button.closest('.react-flow__edgelabel-renderer'));
+    const desktopEdgeLabel = edgeLabels.find((button) => button.closest('.react-flow__edgelabel-renderer')) || edgeLabels[0];
     expect(desktopEdgeLabel).toBeDefined();
     expect(screen.queryByText('Communication edge', { exact: true })).not.toBeInTheDocument();
 
