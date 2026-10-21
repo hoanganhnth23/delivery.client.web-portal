@@ -16,14 +16,15 @@ permissions:
 
 jobs:
   # ===========================================================================
-  # Stage 1: Test & Quality Gate (gọi qua CI tập trung)
+  # Stage 1: Test & Quality Gate (chạy trên cả PR và Push)
   # ===========================================================================
   test:
     name: "Stage: Test"
     uses: hoanganhnth/cicd.centralized-pipelines/.github/workflows/verify-node.yml@main
 
   # ===========================================================================
-  # Stage 2: Dockerize & Push Image (chỉ chạy khi push/merge vào main hoặc staging)
+  # Stage 2: Dockerize & Push (chỉ chạy khi push/merge vào main hoặc staging)
+  # Khai báo image_name, dockerfile và target platform trực tiếp tại đây
   # ===========================================================================
   dockerize:
     name: "Stage: Dockerize & Push"
@@ -31,6 +32,7 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     uses: hoanganhnth/cicd.centralized-pipelines/.github/workflows/build-node.yml@main
     with:
-      service_name: delivery-web
-    secrets:
-      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      image_name: "delivery-web"
+      dockerfile: "./Dockerfile"
+      platform: "linux/amd64"
+    secrets: inherit
