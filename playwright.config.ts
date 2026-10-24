@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test';
 const webPort = Number(process.env.E2E_WEB_PORT ?? 5173);
 const webURL = `http://127.0.0.1:${webPort}`;
 const isLive = process.env.E2E_LIVE === 'true';
+// Specs that need a real backend; mocked projects never run them.
+const liveSpecs = ['**/live-smoke.spec.ts', '**/live-order-journey.spec.ts'];
 
 export default defineConfig({
   testDir: './e2e',
@@ -27,16 +29,16 @@ export default defineConfig({
     locale: 'vi-VN',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: ['**/live-smoke.spec.ts'] },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: liveSpecs },
     ...(process.env.E2E_ALL_BROWSERS === 'true'
       ? [
-        { name: 'firefox', use: { ...devices['Desktop Firefox'] }, testIgnore: ['**/live-smoke.spec.ts'] },
-        { name: 'webkit', use: { ...devices['Desktop Safari'] }, testIgnore: ['**/live-smoke.spec.ts'] },
+        { name: 'firefox', use: { ...devices['Desktop Firefox'] }, testIgnore: liveSpecs },
+        { name: 'webkit', use: { ...devices['Desktop Safari'] }, testIgnore: liveSpecs },
       ]
       : []),
-    { name: 'mobile-chromium', use: { ...devices['Pixel 7'] }, grep: /@mobile/, testIgnore: ['**/live-smoke.spec.ts'] },
+    { name: 'mobile-chromium', use: { ...devices['Pixel 7'] }, grep: /@mobile/, testIgnore: liveSpecs },
     ...(isLive
-      ? [{ name: 'live-chromium', use: { ...devices['Desktop Chrome'] }, testMatch: '**/live-smoke.spec.ts' }]
+      ? [{ name: 'live-chromium', use: { ...devices['Desktop Chrome'] }, testMatch: liveSpecs }]
       : []),
   ],
   webServer: {
