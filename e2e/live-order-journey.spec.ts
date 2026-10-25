@@ -53,7 +53,7 @@ test.describe('live COD order journey', () => {
     await page.getByRole('button', { name: 'Đặt đơn COD' }).click();
     await expect(page).toHaveURL(/\/customer\/orders\/\d+$/, { timeout: 30_000 });
     const orderId = page.url().match(/\/customer\/orders\/(\d+)$/)![1];
-    await expect(page.getByText('Chờ nhà hàng xác nhận').first()).toBeVisible();
+    await expect(page.getByText('Chờ xác nhận').first()).toBeVisible();
 
     // 2. Owner confirms on the restaurant dashboard.
     const owner = await asRole(browser);
