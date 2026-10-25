@@ -8,6 +8,7 @@ import type { MenuItem } from '@/types/api.types';
 import { useLivestreamPublisher } from '../hooks/useLivestreamPublisher';
 import './restaurantLivestream.css';
 import { formatVnd } from '@/utils/money';
+import { livestreamLabel } from '@/utils/statusLabels';
 
 interface PinnedItem {
   id: number;
@@ -911,7 +912,7 @@ export default function RestaurantLivestreamPage() {
                                 : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
                             }`}
                           >
-                            <p>{stream.status}</p>
+                            <p>{livestreamLabel(stream.status)}</p>
                           </span>
                         </div>
 

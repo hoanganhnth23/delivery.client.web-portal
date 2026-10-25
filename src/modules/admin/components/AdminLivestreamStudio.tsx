@@ -8,6 +8,7 @@ import type {
 import type { MenuItem, Restaurant } from "@/types/api.types";
 import { useLivestreamPublisher } from "@/services/media/useLivestreamPublisher";
 import { formatVnd } from '@/utils/money';
+import { livestreamLabel } from '@/utils/statusLabels';
 
 const money = formatVnd;
 
@@ -482,7 +483,7 @@ export default function AdminLivestreamStudio() {
                 >
                   {streams.map((entry) => (
                     <option key={entry.id} value={entry.id}>
-                      {entry.title} · {entry.status}
+                      {entry.title} · {livestreamLabel(entry.status)}
                     </option>
                   ))}
                 </select>
