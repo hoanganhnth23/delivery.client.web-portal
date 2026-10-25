@@ -10,7 +10,9 @@ import { useAuth } from '@/modules/auth/hooks/useAuth';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import { useAppDependencies } from '@/app/dependencies';
+import { ORDER_STATUS_LABELS, orderStatusBadgeClass } from '@/utils/orderStatusLabels';
 import { USER_ROLES } from '@/utils/constants';
+import { formatVnd } from '@/utils/money';
 
 const RestaurantOrders = () => {
   const { delay } = useAppDependencies();
@@ -58,16 +60,16 @@ const RestaurantOrders = () => {
   // Order status options
   const statusOptions = [
     { value: 'ALL', label: 'Tất cả', color: 'gray' },
-    { value: 'PENDING', label: 'Chờ xác nhận', color: 'yellow' },
-    { value: 'CONFIRMED', label: 'Đã xác nhận', color: 'blue' },
-    { value: 'FINDING_SHIPPER', label: 'Đang tìm shipper', color: 'purple' },
-    { value: 'WAIT_SHIPPER_CONFIRM', label: 'Chờ shipper xác nhận', color: 'purple' },
-    { value: 'ASSIGNED', label: 'Đã có shipper', color: 'indigo' },
-    { value: 'PICKED_UP', label: 'Đã lấy hàng', color: 'cyan' },
-    { value: 'DELIVERING', label: 'Đang giao', color: 'orange' },
-    { value: 'DELIVERED', label: 'Đã giao', color: 'green' },
-    { value: 'SHIPPER_NOT_FOUND', label: 'Không tìm thấy shipper', color: 'red' },
-    { value: 'CANCELLED', label: 'Đã hủy', color: 'red' },
+    { value: 'PENDING', label: ORDER_STATUS_LABELS.PENDING, color: 'yellow' },
+    { value: 'CONFIRMED', label: ORDER_STATUS_LABELS.CONFIRMED, color: 'blue' },
+    { value: 'FINDING_SHIPPER', label: ORDER_STATUS_LABELS.FINDING_SHIPPER, color: 'purple' },
+    { value: 'WAIT_SHIPPER_CONFIRM', label: ORDER_STATUS_LABELS.WAIT_SHIPPER_CONFIRM, color: 'purple' },
+    { value: 'ASSIGNED', label: ORDER_STATUS_LABELS.ASSIGNED, color: 'indigo' },
+    { value: 'PICKED_UP', label: ORDER_STATUS_LABELS.PICKED_UP, color: 'cyan' },
+    { value: 'DELIVERING', label: ORDER_STATUS_LABELS.DELIVERING, color: 'orange' },
+    { value: 'DELIVERED', label: ORDER_STATUS_LABELS.DELIVERED, color: 'green' },
+    { value: 'SHIPPER_NOT_FOUND', label: ORDER_STATUS_LABELS.SHIPPER_NOT_FOUND, color: 'red' },
+    { value: 'CANCELLED', label: ORDER_STATUS_LABELS.CANCELLED, color: 'red' },
   ];
 
   // Get status label
@@ -105,12 +107,7 @@ const RestaurantOrders = () => {
   };
 
   // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(amount);
-  };
+  const formatCurrency = formatVnd;
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -217,16 +214,7 @@ const RestaurantOrders = () => {
                           <h4 className="text-lg font-bold text-gray-900 dark:text-white">
                             Đơn hàng #{order.id}
                           </h4>
-                          <span className={`
-                            px-3 py-1 rounded-full text-xs font-bold
-                            ${order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : ''}
-                            ${order.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
-                            ${['FINDING_SHIPPER', 'WAIT_SHIPPER_CONFIRM'].includes(order.status) ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
-                            ${order.status === 'ASSIGNED' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : ''}
-                            ${['PICKED_UP', 'DELIVERING'].includes(order.status) ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : ''}
-                            ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
-                            ${['SHIPPER_NOT_FOUND', 'CANCELLED'].includes(order.status) ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : ''}
-                          `}>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${orderStatusBadgeClass(order.status)}`}>
                             {getStatusLabel(order.status)}
                           </span>
                         </div>

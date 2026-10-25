@@ -253,7 +253,7 @@ test.describe('Wave 3A customer, checkout and order boundaries', () => {
 test.describe('Wave 3A terminal order, owner and admin cases', () => {
   test('CASE-ORDER-011 [P1] shipper-not-found order shows recovery message without cancel', async ({ page }) => {
     const backend = await gotoRole(page, 'USER', '/customer/orders/401', { strict: true, orderStatus: 'SHIPPER_NOT_FOUND' });
-    await expect(page.getByText('Chưa tìm được tài xế')).toBeVisible();
+    await expect(page.getByText('Không tìm được shipper')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Hủy đơn hàng' })).toHaveCount(0);
     backend.assertNoUnexpectedRequests();
   });

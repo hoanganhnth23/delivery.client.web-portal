@@ -1,9 +1,4 @@
-export const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(value);
+export { formatVnd as formatCurrency } from '@/utils/money';
 
 export const isVietnamCoordinate = (latitude?: number, longitude?: number): boolean =>
   typeof latitude === 'number' && Number.isFinite(latitude) && latitude >= 8 && latitude <= 24 &&

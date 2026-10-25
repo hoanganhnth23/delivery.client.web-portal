@@ -146,7 +146,7 @@ describe('admin read and moderation actions', () => {
     expect(screen.getByText('#402')).toBeInTheDocument();
     await user.clear(search);
 
-    await user.click(screen.getByRole('button', { name: 'DELIVERED' }));
+    await user.click(screen.getByRole('button', { name: 'Đã giao' }));
     await waitFor(() => {
       expect(fetchOrdersByStatus).toHaveBeenCalledWith('DELIVERED', 0, 20);
     });
@@ -220,7 +220,7 @@ describe('admin read and moderation actions', () => {
 
     await user.click(screen.getByTitle('Duyệt'));
     await waitFor(() => expect(updateRatingStatus).toHaveBeenCalledTimes(2));
-    expect(await screen.findAllByText('APPROVED')).not.toHaveLength(0);
+    expect(await screen.findAllByText('Đã duyệt')).not.toHaveLength(0);
     expect(screen.queryByTitle('Duyệt')).not.toBeInTheDocument();
   });
 
@@ -246,7 +246,7 @@ describe('admin read and moderation actions', () => {
     await waitFor(() => {
       expect(updateRatingStatus).toHaveBeenCalledWith(801, 'REJECTED');
     });
-    expect(await screen.findAllByText('REJECTED')).not.toHaveLength(0);
+    expect(await screen.findAllByText('Từ chối')).not.toHaveLength(0);
     expect(screen.queryByTitle('Từ chối')).not.toBeInTheDocument();
   });
 });

@@ -7,6 +7,7 @@ import {
   type FlashSaleItem,
 } from '@/services/api/flashSaleService';
 import { useAppDependencies } from '@/app/dependencies';
+import { approvalLabel, campaignLabel } from '@/utils/statusLabels';
 
 const AdminFlashSalePage = () => {
   const {
@@ -202,7 +203,7 @@ const AdminFlashSalePage = () => {
                       campaign.status === 'UPCOMING' ? 'bg-yellow-100 text-yellow-700' :
                       'bg-gray-100 text-gray-700'
                     }`}>
-                      {campaign.status}
+                      {campaignLabel(campaign.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -377,7 +378,7 @@ const AdminFlashSalePage = () => {
                             item.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
                             'bg-yellow-100 text-yellow-700'
                           }`}>
-                            {item.status}
+                            {approvalLabel(item.status)}
                           </span>
                         </td>
                         <td className="px-6 py-3">

@@ -4,7 +4,9 @@ import AdminLayout from '@/components/layouts/AdminLayout';
 import { useAppDependencies } from '@/app/dependencies';
 import type { AdminDashboard } from '@/services/api/adminService';
 import { ROUTES } from '@/utils/constants';
+import { ORDER_STATUS_LABELS } from '@/utils/orderStatusLabels';
 import { useOptionalPortalPreview } from '@/components/navigation/usePortalPreviewNavigation';
+import { formatVnd } from '@/utils/money';
 
 const actions = [
   { label: 'Đơn hàng', icon: 'receipt_long', to: ROUTES.ADMIN_ORDERS },
@@ -34,23 +36,16 @@ const emptyDashboard: AdminDashboard = {
   topRestaurants: [],
 };
 
-const currency = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND',
-  maximumFractionDigits: 0,
-});
 
 const number = new Intl.NumberFormat('vi-VN');
 
-const formatCurrency = (value: number) => currency.format(value);
+const formatCurrency = formatVnd;
 const formatNumber = (value: number) => number.format(value);
 
+// PROCESSING is an analytics bucket, not an order status.
 const statusLabel: Record<string, string> = {
-  DELIVERED: 'Đã giao',
-  CANCELLED: 'Đã hủy',
-  PENDING: 'Chờ xử lý',
+  ...ORDER_STATUS_LABELS,
   PROCESSING: 'Đang xử lý',
-  SHIPPER_NOT_FOUND: 'Không tìm thấy shipper',
 };
 
 const metricCards = (dashboard: AdminDashboard) => [

@@ -9,6 +9,7 @@ import { CustomerShell } from '../components/CustomerShell';
 import { useCustomerCart } from '../cart/useCustomerCart';
 import { formatCurrency, getErrorMessage, isVietnamCoordinate } from '../utils';
 import { ROUTES } from '@/utils/constants';
+import { voucherLayerLabel } from '@/utils/statusLabels';
 
 const ATTEMPT_STORAGE_KEY = 'delivery.customer-order-attempt.v1';
 
@@ -560,7 +561,7 @@ const CustomerCheckoutPage = () => {
               {(preview.appliedVouchers ?? []).map((voucher) => (
                 <div key={`${voucher.layer}-${voucher.voucherId}`} className="flex justify-between">
                   <span>
-                    <b>{voucher.code}</b> ({voucher.layer})
+                    <b>{voucher.code}</b> ({voucherLayerLabel(voucher.layer)})
                   </span>
                   <span>-{formatCurrency(voucher.discountAmount)}</span>
                 </div>

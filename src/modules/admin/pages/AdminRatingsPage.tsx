@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import type { AdminRating } from '@/services/api/adminService';
 import { useAppDependencies } from '@/app/dependencies';
+import { formatDateTime } from '@/utils/dateTime';
+import { approvalLabel } from '@/utils/statusLabels';
 
 const AdminRatingsPage = () => {
   const { admin: adminService, notifications } = useAppDependencies();
@@ -58,7 +60,7 @@ const AdminRatingsPage = () => {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('vi-VN');
+    return formatDateTime(dateString);
   };
 
   const filteredRatings = ratings.filter(rating => {
@@ -74,10 +76,16 @@ const AdminRatingsPage = () => {
       <div className="flex flex-col gap-4 sm:gap-6">
         {/* Header & Controls */}
         <div className="flex flex-col items-start justify-between gap-3 rounded-xl border border-border-light bg-surface-light p-3 shadow-sm dark:border-border-dark dark:bg-surface-dark sm:gap-4 sm:p-4 md:flex-row md:items-center">
-          <div className="flex overflow-x-auto w-full md:w-auto gap-2 pb-2 md:pb-0 hide-scrollbar">
+          <div
+            className="flex overflow-x-auto w-full md:w-auto gap-2 pb-2 md:pb-0 hide-scrollbar"
+            role="group"
+            aria-label="Lọc trạng thái đánh giá"
+          >
             {statusTabs.map(tab => (
               <button
                 key={tab}
+                type="button"
+                aria-pressed={statusFilter === tab}
                 onClick={() => setStatusFilter(tab)}
                 className={`min-h-10 rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors sm:px-4 ${
                   statusFilter === tab 
@@ -85,7 +93,7 @@ const AdminRatingsPage = () => {
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }`}
               >
-                {tab === 'ALL' ? 'Tất cả' : tab}
+                {tab === 'ALL' ? 'Tất cả' : approvalLabel(tab)}
               </button>
             ))}
           </div>
@@ -182,7 +190,7 @@ const AdminRatingsPage = () => {
                       </td>
                       <td className="p-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(rating.status)}`}>
-                          {rating.status}
+                          {approvalLabel(rating.status)}
                         </span>
                       </td>
                       <td className="p-4 text-right">

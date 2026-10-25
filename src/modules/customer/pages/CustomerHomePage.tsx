@@ -6,8 +6,9 @@ import { CustomerShell } from '../components/CustomerShell';
 import { getErrorMessage } from '../utils';
 import { useResourceQuery } from '@/services/data/useResourceQuery';
 import { ROUTES } from '@/utils/constants';
+import { formatVnd } from '@/utils/money';
 
-const money = (v: number) => `${v.toLocaleString('vi-VN')}đ`;
+const money = formatVnd;
 
 interface FeaturedDish {
   id: number;

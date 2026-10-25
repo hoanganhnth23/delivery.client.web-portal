@@ -4,6 +4,7 @@ import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import { useRestaurant } from '../hooks/useRestaurant';
 import type { RestaurantRating } from '../services/restaurantService';
 import { useAppDependencies } from '@/app/dependencies';
+import { formatDateTime } from '@/utils/dateTime';
 
 const RestaurantReviewsPage = () => {
   const { restaurant: restaurantService, notifications } = useAppDependencies();
@@ -32,7 +33,7 @@ const RestaurantReviewsPage = () => {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('vi-VN');
+    return formatDateTime(dateString);
   };
 
   return (

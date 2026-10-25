@@ -8,6 +8,7 @@ import { useOptionalPortalPreview } from '@/components/navigation/usePortalPrevi
 import type { LivestreamProduct } from '@/services/api/livestreamService';
 import type { LivestreamViewer } from '@/services/media/agoraViewer';
 import AdminLivestreamStudio from '../components/AdminLivestreamStudio';
+import { formatVnd } from '@/utils/money';
 
 export interface AdminLivestreamRoom {
   products?: LivestreamProduct[];
@@ -179,7 +180,7 @@ export default function AdminLivestreamPage() {
   const statusLabel = (room: AdminLivestreamRoom) => ({
     LIVE: 'Đang phát', CREATED: 'Sẵn sàng', SCHEDULED: 'Lên lịch', ENDED: 'Đã kết thúc',
   }[room.status]);
-  const money = (value: number) => value.toLocaleString('vi-VN') + 'đ';
+  const money = formatVnd;
 
   // Preview keeps deterministic fixture rooms; runtime uses the paged API.
   useEffect(() => {

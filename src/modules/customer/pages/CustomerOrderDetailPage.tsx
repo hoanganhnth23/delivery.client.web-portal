@@ -5,7 +5,9 @@ import type { Order } from '@/types/api.types';
 import { CustomerShell } from '../components/CustomerShell';
 import { formatCurrency, getErrorMessage } from '../utils';
 import { ROUTES } from '@/utils/constants';
+import { ORDER_STATUS_LABELS } from '@/utils/orderStatusLabels';
 import { statusLabels } from '../orderStatus';
+import { formatDateTime } from '@/utils/dateTime';
 
 const cancelableStatuses: Order['status'][] = ['PENDING', 'CONFIRMED', 'FINDING_SHIPPER', 'WAIT_SHIPPER_CONFIRM', 'ASSIGNED'];
 const terminalStatuses: Order['status'][] = ['DELIVERED', 'CANCELLED', 'SHIPPER_NOT_FOUND'];
@@ -23,7 +25,7 @@ const getStatusConfig = (status: Order['status'], cancelReason?: string | null):
   switch (status) {
     case 'CANCELLED':
       return {
-        title: 'Đã hủy',
+        title: ORDER_STATUS_LABELS.CANCELLED,
         subtitle: cancelReason ? `Lý do hủy: ${cancelReason}` : 'Đơn hàng đã được hủy.',
         iconName: 'cancel',
         bannerBg: 'bg-[#fff4ee] border-[#ffd7cc]',
@@ -32,7 +34,7 @@ const getStatusConfig = (status: Order['status'], cancelReason?: string | null):
       };
     case 'DELIVERED':
       return {
-        title: 'Giao hàng thành công',
+        title: ORDER_STATUS_LABELS.DELIVERED,
         subtitle: 'Cảm ơn bạn đã đặt món. Chúc bạn ngon miệng!',
         iconName: 'check_circle',
         bannerBg: 'bg-[#f0fdf4] border-[#bbf7d0]',
@@ -41,7 +43,7 @@ const getStatusConfig = (status: Order['status'], cancelReason?: string | null):
       };
     case 'DELIVERING':
       return {
-        title: 'Đang giao hàng',
+        title: ORDER_STATUS_LABELS.DELIVERING,
         subtitle: 'Tài xế đang trên đường mang món ngon đến bạn.',
         iconName: 'delivery_dining',
         bannerBg: 'bg-[#fff4ee] border-[#ffd7cc]',
@@ -50,7 +52,7 @@ const getStatusConfig = (status: Order['status'], cancelReason?: string | null):
       };
     case 'PICKED_UP':
       return {
-        title: 'Đã lấy món',
+        title: ORDER_STATUS_LABELS.PICKED_UP,
         subtitle: 'Tài xế đã nhận món từ quán và chuẩn bị di chuyển.',
         iconName: 'takeout_dining',
         bannerBg: 'bg-[#fff4ee] border-[#ffd7cc]',
@@ -59,7 +61,7 @@ const getStatusConfig = (status: Order['status'], cancelReason?: string | null):
       };
     case 'ASSIGNED':
       return {
-        title: 'Đã có tài xế',
+        title: ORDER_STATUS_LABELS.ASSIGNED,
         subtitle: 'Tài xế đang đến nhà hàng để lấy món.',
         iconName: 'two_wheeler',
         bannerBg: 'bg-[#fff4ee] border-[#ffd7cc]',
@@ -69,7 +71,7 @@ const getStatusConfig = (status: Order['status'], cancelReason?: string | null):
     case 'WAIT_SHIPPER_CONFIRM':
     case 'FINDING_SHIPPER':
       return {
-        title: 'Đang tìm tài xế',
+        title: ORDER_STATUS_LABELS[status],
         subtitle: 'Hệ thống đang điều phối tài xế gần quán nhất.',
         iconName: 'two_wheeler',
         bannerBg: 'bg-[#fff4ee] border-[#ffd7cc]',
@@ -78,7 +80,7 @@ const getStatusConfig = (status: Order['status'], cancelReason?: string | null):
       };
     case 'CONFIRMED':
       return {
-        title: 'Nhà hàng đã xác nhận',
+        title: ORDER_STATUS_LABELS.CONFIRMED,
         subtitle: 'Quán đang chuẩn bị món ngon cho bạn.',
         iconName: 'soup_kitchen',
         bannerBg: 'bg-[#fff4ee] border-[#ffd7cc]',
@@ -87,7 +89,7 @@ const getStatusConfig = (status: Order['status'], cancelReason?: string | null):
       };
     case 'PENDING':
       return {
-        title: 'Chờ nhà hàng xác nhận',
+        title: ORDER_STATUS_LABELS.PENDING,
         subtitle: 'Quán đang tiếp nhận đơn hàng của bạn.',
         iconName: 'pending_actions',
         bannerBg: 'bg-[#fff4ee] border-[#ffd7cc]',
@@ -96,7 +98,7 @@ const getStatusConfig = (status: Order['status'], cancelReason?: string | null):
       };
     case 'SHIPPER_NOT_FOUND':
       return {
-        title: 'Chưa tìm được tài xế',
+        title: ORDER_STATUS_LABELS.SHIPPER_NOT_FOUND,
         subtitle: 'Hệ thống đang tiếp tục điều phối tài xế cho đơn này.',
         iconName: 'error',
         bannerBg: 'bg-amber-50 border-amber-200',
@@ -128,7 +130,7 @@ const getTimelineSteps = (order: Order): TimelineStep[] => {
     return [
       {
         label: 'Đã đặt đơn',
-        description: new Date(order.createdAt).toLocaleString('vi-VN'),
+        description: formatDateTime(order.createdAt),
         isDone: true,
         isCurrent: false,
       },
@@ -256,7 +258,7 @@ const CustomerOrderDetailPage = () => {
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-[#777777]">
                 <span className="rounded bg-white/80 px-2.5 py-1 font-semibold border border-black/5">Đơn #{order.id}</span>
-                <span className="rounded bg-white/80 px-2.5 py-1 font-semibold border border-black/5">{new Date(order.createdAt).toLocaleString('vi-VN')}</span>
+                <span className="rounded bg-white/80 px-2.5 py-1 font-semibold border border-black/5">{formatDateTime(order.createdAt)}</span>
                 <span className="rounded bg-white/80 px-2.5 py-1 font-semibold border border-black/5">{order.restaurantName}</span>
               </div>
             </div>

@@ -85,14 +85,14 @@ test.describe('Wave 4 state and local-boundary cases', () => {
     const response = page.waitForResponse((item) => item.url().includes('/api/restaurants/admin/ratings/801/status?status=REJECTED'));
     await page.getByTitle('Từ chối').click();
     expect((await response).status()).toBe(200);
-    await expect(page.getByRole('table').getByText('REJECTED', { exact: true })).toBeVisible();
+    await expect(page.getByRole('table').getByText('Từ chối', { exact: true })).toBeVisible();
     expect(backend.requestsFor('/api/restaurants/admin/ratings/801/status')).toHaveLength(1);
     backend.assertNoUnexpectedRequests();
   });
 
   test('CASE-ADMIN-027 [P1] rating status filter exposes an explicit filtered-empty state', async ({ page }) => {
     const backend = await gotoRole(page, 'ADMIN', '/admin/ratings', { strict: true });
-    await page.getByRole('button', { name: 'REJECTED', exact: true }).click();
+    await page.getByRole('group', { name: 'Lọc trạng thái đánh giá' }).getByRole('button', { name: 'Từ chối', exact: true }).click();
     await expect(page.getByText('Không tìm thấy đánh giá nào.')).toBeVisible();
     await expect(page.getByText('Rất ngon')).toHaveCount(0);
     backend.assertNoUnexpectedRequests();

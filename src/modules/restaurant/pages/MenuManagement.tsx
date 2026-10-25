@@ -6,9 +6,9 @@ import type { MenuItem } from '@/types/api.types';
 import MenuItemForm from '../components/MenuItemForm';
 import { useMenu } from '../hooks/useMenu';
 import { useRestaurant } from '../hooks/useRestaurant';
+import { formatVnd } from '@/utils/money';
 
-const formatMoney = (amount: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+const formatMoney = formatVnd;
 
 const MenuManagement = () => {
   const { menuItems, loading, error, getMyMenuItems, deleteMenuItem } = useMenu();

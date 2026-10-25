@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { LIVE_STREAMS_DATA } from './liveStreamsData';
 import { catalog, type Item, type Restaurant } from './model';
 import './customerLiveStream.css';
+import { formatVnd } from '@/utils/money';
 
 
 interface LiveComment {
@@ -263,10 +264,10 @@ export default function CustomerLiveStreamViewer({
                 <h3 className="truncate">{selectedStream.dish.name}</h3>
                 <div className="sf-live-pinned-pricing">
                   <strong className="sf-live-price">
-                    {selectedStream.discountPrice.toLocaleString('vi-VN')}đ
+                    {formatVnd(selectedStream.discountPrice)}
                   </strong>
                   <span className="sf-live-original-price">
-                    {selectedStream.dish.price.toLocaleString('vi-VN')}đ
+                    {formatVnd(selectedStream.dish.price)}
                   </span>
                 </div>
               </div>
@@ -370,8 +371,8 @@ export default function CustomerLiveStreamViewer({
                       <div className="sf-live-bag-item-info">
                         <h4>{item.name}</h4>
                         <div className="sf-live-bag-prices">
-                          <strong>{dealPrice.toLocaleString('vi-VN')}đ</strong>
-                          <span>{item.price.toLocaleString('vi-VN')}đ</span>
+                          <strong>{formatVnd(dealPrice)}</strong>
+                          <span>{formatVnd(item.price)}</span>
                         </div>
                       </div>
                       <button
