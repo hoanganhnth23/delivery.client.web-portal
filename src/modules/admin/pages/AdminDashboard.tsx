@@ -4,6 +4,7 @@ import AdminLayout from '@/components/layouts/AdminLayout';
 import { useAppDependencies } from '@/app/dependencies';
 import type { AdminDashboard } from '@/services/api/adminService';
 import { ROUTES } from '@/utils/constants';
+import { ORDER_STATUS_LABELS } from '@/utils/orderStatusLabels';
 import { useOptionalPortalPreview } from '@/components/navigation/usePortalPreviewNavigation';
 
 const actions = [
@@ -45,12 +46,10 @@ const number = new Intl.NumberFormat('vi-VN');
 const formatCurrency = (value: number) => currency.format(value);
 const formatNumber = (value: number) => number.format(value);
 
+// PROCESSING is an analytics bucket, not an order status.
 const statusLabel: Record<string, string> = {
-  DELIVERED: 'Đã giao',
-  CANCELLED: 'Đã hủy',
-  PENDING: 'Chờ xử lý',
+  ...ORDER_STATUS_LABELS,
   PROCESSING: 'Đang xử lý',
-  SHIPPER_NOT_FOUND: 'Không tìm thấy shipper',
 };
 
 const metricCards = (dashboard: AdminDashboard) => [

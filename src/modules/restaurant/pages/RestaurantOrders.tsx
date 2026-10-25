@@ -10,6 +10,7 @@ import { useAuth } from '@/modules/auth/hooks/useAuth';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import { useAppDependencies } from '@/app/dependencies';
+import { ORDER_STATUS_LABELS } from '@/utils/orderStatusLabels';
 import { USER_ROLES } from '@/utils/constants';
 
 const RestaurantOrders = () => {
@@ -58,16 +59,16 @@ const RestaurantOrders = () => {
   // Order status options
   const statusOptions = [
     { value: 'ALL', label: 'Tất cả', color: 'gray' },
-    { value: 'PENDING', label: 'Chờ xác nhận', color: 'yellow' },
-    { value: 'CONFIRMED', label: 'Đã xác nhận', color: 'blue' },
-    { value: 'FINDING_SHIPPER', label: 'Đang tìm shipper', color: 'purple' },
-    { value: 'WAIT_SHIPPER_CONFIRM', label: 'Chờ shipper xác nhận', color: 'purple' },
-    { value: 'ASSIGNED', label: 'Đã có shipper', color: 'indigo' },
-    { value: 'PICKED_UP', label: 'Đã lấy hàng', color: 'cyan' },
-    { value: 'DELIVERING', label: 'Đang giao', color: 'orange' },
-    { value: 'DELIVERED', label: 'Đã giao', color: 'green' },
-    { value: 'SHIPPER_NOT_FOUND', label: 'Không tìm thấy shipper', color: 'red' },
-    { value: 'CANCELLED', label: 'Đã hủy', color: 'red' },
+    { value: 'PENDING', label: ORDER_STATUS_LABELS.PENDING, color: 'yellow' },
+    { value: 'CONFIRMED', label: ORDER_STATUS_LABELS.CONFIRMED, color: 'blue' },
+    { value: 'FINDING_SHIPPER', label: ORDER_STATUS_LABELS.FINDING_SHIPPER, color: 'purple' },
+    { value: 'WAIT_SHIPPER_CONFIRM', label: ORDER_STATUS_LABELS.WAIT_SHIPPER_CONFIRM, color: 'purple' },
+    { value: 'ASSIGNED', label: ORDER_STATUS_LABELS.ASSIGNED, color: 'indigo' },
+    { value: 'PICKED_UP', label: ORDER_STATUS_LABELS.PICKED_UP, color: 'cyan' },
+    { value: 'DELIVERING', label: ORDER_STATUS_LABELS.DELIVERING, color: 'orange' },
+    { value: 'DELIVERED', label: ORDER_STATUS_LABELS.DELIVERED, color: 'green' },
+    { value: 'SHIPPER_NOT_FOUND', label: ORDER_STATUS_LABELS.SHIPPER_NOT_FOUND, color: 'red' },
+    { value: 'CANCELLED', label: ORDER_STATUS_LABELS.CANCELLED, color: 'red' },
   ];
 
   // Get status label
