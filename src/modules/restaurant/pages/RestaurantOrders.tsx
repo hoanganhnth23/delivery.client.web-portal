@@ -10,7 +10,7 @@ import { useAuth } from '@/modules/auth/hooks/useAuth';
 import RestaurantSidebar from '@/components/layout/RestaurantSidebar';
 import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import { useAppDependencies } from '@/app/dependencies';
-import { ORDER_STATUS_LABELS } from '@/utils/orderStatusLabels';
+import { ORDER_STATUS_LABELS, orderStatusBadgeClass } from '@/utils/orderStatusLabels';
 import { USER_ROLES } from '@/utils/constants';
 import { formatVnd } from '@/utils/money';
 
@@ -214,16 +214,7 @@ const RestaurantOrders = () => {
                           <h4 className="text-lg font-bold text-gray-900 dark:text-white">
                             Đơn hàng #{order.id}
                           </h4>
-                          <span className={`
-                            px-3 py-1 rounded-full text-xs font-bold
-                            ${order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : ''}
-                            ${order.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : ''}
-                            ${['FINDING_SHIPPER', 'WAIT_SHIPPER_CONFIRM'].includes(order.status) ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : ''}
-                            ${order.status === 'ASSIGNED' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400' : ''}
-                            ${['PICKED_UP', 'DELIVERING'].includes(order.status) ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : ''}
-                            ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : ''}
-                            ${['SHIPPER_NOT_FOUND', 'CANCELLED'].includes(order.status) ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : ''}
-                          `}>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${orderStatusBadgeClass(order.status)}`}>
                             {getStatusLabel(order.status)}
                           </span>
                         </div>

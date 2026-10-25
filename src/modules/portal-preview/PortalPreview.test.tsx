@@ -69,7 +69,7 @@ describe('production portal preview', () => {
 
     expect(await screen.findByRole('table')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Lọc trạng thái đơn hàng' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'PENDING' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Chờ xác nhận' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('searchbox', { name: 'Tìm kiếm đơn hàng' })).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: /Xác nhận tất cả đơn chờ/ })).toBeInTheDocument();
   });

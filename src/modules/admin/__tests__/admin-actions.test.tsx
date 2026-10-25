@@ -146,7 +146,7 @@ describe('admin read and moderation actions', () => {
     expect(screen.getByText('#402')).toBeInTheDocument();
     await user.clear(search);
 
-    await user.click(screen.getByRole('button', { name: 'DELIVERED' }));
+    await user.click(screen.getByRole('button', { name: 'Đã giao' }));
     await waitFor(() => {
       expect(fetchOrdersByStatus).toHaveBeenCalledWith('DELIVERED', 0, 20);
     });
