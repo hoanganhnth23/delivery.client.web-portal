@@ -5,6 +5,7 @@ import { useAppDependencies } from '@/app/dependencies';
 import { useRestaurant } from '@/modules/restaurant/hooks/useRestaurant';
 import { ROUTES } from '@/utils/constants';
 import { usePortalPreviewNavigate } from '@/components/navigation/usePortalPreviewNavigation';
+import { formatVnd } from '@/utils/money';
 
 const AdminOrdersPage = () => {
   const { admin: adminService, notifications } = useAppDependencies();
@@ -75,9 +76,7 @@ const AdminOrdersPage = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
-  };
+  const formatCurrency = formatVnd;
 
   const filteredOrders = orders.filter(order => 
     order.id.toString().includes(searchTerm) || 

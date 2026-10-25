@@ -22,9 +22,10 @@ import CustomerLiveStreamViewer from "./CustomerLiveStreamViewer";
 import { LIVE_STREAMS_DATA } from "./liveStreamsData";
 import SupportChatPage from "./SupportChatPage";
 import { resetPreviewSupportChat } from "../support-preview/previewSupportChat";
+import { formatVnd } from '@/utils/money';
 
 const base = "/preview/shopeefood";
-const money = (v: number) => `${v.toLocaleString("vi-VN")}đ`;
+const money = formatVnd;
 const screens = [
   ["home", "Trang chủ"],
   ["live", "ShopeeFood Live"],

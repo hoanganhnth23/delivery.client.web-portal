@@ -7,6 +7,7 @@ import { formatCurrency, getErrorMessage } from '../utils';
 import { ROUTES } from '@/utils/constants';
 import { ORDER_STATUS_LABELS } from '@/utils/orderStatusLabels';
 import { statusLabels } from '../orderStatus';
+import { formatDateTime } from '@/utils/dateTime';
 
 const cancelableStatuses: Order['status'][] = ['PENDING', 'CONFIRMED', 'FINDING_SHIPPER', 'WAIT_SHIPPER_CONFIRM', 'ASSIGNED'];
 const terminalStatuses: Order['status'][] = ['DELIVERED', 'CANCELLED', 'SHIPPER_NOT_FOUND'];
@@ -129,7 +130,7 @@ const getTimelineSteps = (order: Order): TimelineStep[] => {
     return [
       {
         label: 'Đã đặt đơn',
-        description: new Date(order.createdAt).toLocaleString('vi-VN'),
+        description: formatDateTime(order.createdAt),
         isDone: true,
         isCurrent: false,
       },
@@ -257,7 +258,7 @@ const CustomerOrderDetailPage = () => {
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-[#777777]">
                 <span className="rounded bg-white/80 px-2.5 py-1 font-semibold border border-black/5">Đơn #{order.id}</span>
-                <span className="rounded bg-white/80 px-2.5 py-1 font-semibold border border-black/5">{new Date(order.createdAt).toLocaleString('vi-VN')}</span>
+                <span className="rounded bg-white/80 px-2.5 py-1 font-semibold border border-black/5">{formatDateTime(order.createdAt)}</span>
                 <span className="rounded bg-white/80 px-2.5 py-1 font-semibold border border-black/5">{order.restaurantName}</span>
               </div>
             </div>

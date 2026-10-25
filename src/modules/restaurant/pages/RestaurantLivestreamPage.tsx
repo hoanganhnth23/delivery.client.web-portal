@@ -7,6 +7,7 @@ import type { Livestream, LivestreamProduct, StartLivestreamResponse } from '@/s
 import type { MenuItem } from '@/types/api.types';
 import { useLivestreamPublisher } from '../hooks/useLivestreamPublisher';
 import './restaurantLivestream.css';
+import { formatVnd } from '@/utils/money';
 
 interface PinnedItem {
   id: number;
@@ -637,10 +638,10 @@ export default function RestaurantLivestreamPage() {
                               <p className="mt-0.5 truncate text-sm font-bold text-white">{featuredPinnedItem.name}</p>
                               <div className="mt-0.5 flex items-baseline gap-2">
                                 <span className="text-sm font-black text-primary">
-                                  {featuredPinnedProduct.priceAtLive.toLocaleString('vi-VN')}đ
+                                  {formatVnd(featuredPinnedProduct.priceAtLive)}
                                 </span>
                                 <span className="text-xs text-neutral-400 line-through">
-                                  {featuredPinnedItem.originalPrice.toLocaleString('vi-VN')}đ
+                                  {formatVnd(featuredPinnedItem.originalPrice)}
                                 </span>
                               </div>
                             </div>
@@ -793,7 +794,7 @@ export default function RestaurantLivestreamPage() {
                                 )}
                                 <div className="min-w-0 flex-1">
                                   <p className="truncate text-xs font-bold text-gray-900 dark:text-white">{item.name}</p>
-                                  <p className="text-[11px] text-gray-500">Giá menu: {item.originalPrice.toLocaleString('vi-VN')}đ</p>
+                                  <p className="text-[11px] text-gray-500">Giá menu: {formatVnd(item.originalPrice)}</p>
                                   <label className="mt-1 block text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                                     <span className="sr-only">Giá live cho {item.name}</span>
                                     <input
@@ -989,7 +990,7 @@ export default function RestaurantLivestreamPage() {
               <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-center dark:border-emerald-900 dark:bg-emerald-950/40">
                 <span className="text-xs text-emerald-700 dark:text-emerald-300">Tổng doanh thu chốt trên live</span>
                 <p className="text-xl font-black text-emerald-600 dark:text-emerald-400">
-                  {summaryData.revenue === null ? 'Chưa có dữ liệu' : `${summaryData.revenue.toLocaleString('vi-VN')}đ`}
+                  {summaryData.revenue === null ? 'Chưa có dữ liệu' : `${formatVnd(summaryData.revenue)}`}
                 </p>
               </div>
 

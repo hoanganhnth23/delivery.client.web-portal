@@ -6,6 +6,7 @@ import { CustomerShell } from '../components/CustomerShell';
 import { formatCurrency, getErrorMessage } from '../utils';
 import { ROUTES } from '@/utils/constants';
 import { statusLabels } from '../orderStatus';
+import { formatDateTime } from '@/utils/dateTime';
 
 const CustomerOrdersPage = () => {
   const { order: orderService } = useAppDependencies();
@@ -137,7 +138,7 @@ const CustomerOrdersPage = () => {
             </div>
 
             <div className="mt-2 flex items-center justify-between text-[11px] text-[#999999]">
-              <span>Đơn #{order.id} · {new Date(order.createdAt).toLocaleString('vi-VN')}</span>
+              <span>Đơn #{order.id} · {formatDateTime(order.createdAt)}</span>
               <span className="font-semibold text-[#ee4d2d]">Xem chi tiết ➔</span>
             </div>
           </Link>

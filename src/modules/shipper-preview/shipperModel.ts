@@ -1,4 +1,5 @@
 import { ORDER_STATUS_LABELS } from '@/utils/orderStatusLabels';
+import { formatVnd } from '@/utils/money';
 export const screens = {
   map: 'Bản đồ', offer: 'Đơn mới', active: 'Chuyến đang giao', detail: 'Chi tiết đơn',
   success: 'Giao thành công', history: 'Lịch sử chuyến', earnings: 'Thu nhập',
@@ -27,7 +28,7 @@ export function advance(status: Status, distance: number, validCod: boolean, con
   if (!validCod || !connected || distance >= 200) return status;
   return ({ ASSIGNED: 'PICKED_UP', PICKED_UP: 'DELIVERING', DELIVERING: 'DELIVERED' } as Partial<Record<Status, Status>>)[status] ?? status;
 }
-export const money = (value: number) => value.toLocaleString('vi-VN') + 'đ';
+export const money = formatVnd;
 export const reasons = ['Khoảng cách quá xa', 'Xe gặp sự cố', 'Quán quá đông, phải chờ lâu', 'Khách không nghe máy', 'Lý do cá nhân khác'];
 export const stops = [
   { name: 'Nguyễn Minh Anh', address: '35 Lê Văn Lương, Thanh Xuân, Hà Nội', cod: 95000, earnings: 24000 },

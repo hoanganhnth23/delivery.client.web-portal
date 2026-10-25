@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import type { AdminRating } from '@/services/api/adminService';
 import { useAppDependencies } from '@/app/dependencies';
+import { formatDateTime } from '@/utils/dateTime';
 
 const AdminRatingsPage = () => {
   const { admin: adminService, notifications } = useAppDependencies();
@@ -58,7 +59,7 @@ const AdminRatingsPage = () => {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleString('vi-VN');
+    return formatDateTime(dateString);
   };
 
   const filteredRatings = ratings.filter(rating => {

@@ -7,8 +7,9 @@ import type {
 } from "@/services/api/livestreamService";
 import type { MenuItem, Restaurant } from "@/types/api.types";
 import { useLivestreamPublisher } from "@/services/media/useLivestreamPublisher";
+import { formatVnd } from '@/utils/money';
 
-const money = (value: number) => `${value.toLocaleString("vi-VN")}đ`;
+const money = formatVnd;
 
 export default function AdminLivestreamStudio() {
   const {

@@ -6,6 +6,7 @@ import type { Livestream } from '@/services/api/livestreamService';
 import { CustomerShell } from '../components/CustomerShell';
 import type { LivestreamViewer } from '@/services/media/agoraViewer';
 import { useCustomerCart } from '../cart/useCustomerCart';
+import { formatVnd } from '@/utils/money';
 
 export default function CustomerLivestreamPage() {
   const { livestreamId } = useParams();
@@ -101,7 +102,7 @@ export default function CustomerLivestreamPage() {
       <ul className="divide-y rounded-lg border bg-white">
         {room.pinnedProducts.map((product) => <li key={product.productId} className="flex flex-wrap items-center justify-between gap-3 p-4">
           <span>{product.productName ?? `Món #${product.productId}`}</span>
-          <strong>{product.priceAtLive.toLocaleString('vi-VN')}đ</strong>
+          <strong>{formatVnd(product.priceAtLive)}</strong>
           <button className="min-h-11 rounded bg-primary px-4 font-semibold text-white" onClick={() => {
             const result = addFromLivestream(
               { id: room.restaurantId, name: product.restaurantName ?? `Nhà hàng #${room.restaurantId}` },

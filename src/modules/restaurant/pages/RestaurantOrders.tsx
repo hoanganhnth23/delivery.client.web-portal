@@ -12,6 +12,7 @@ import RestaurantHeader from '@/components/layout/RestaurantHeader';
 import { useAppDependencies } from '@/app/dependencies';
 import { ORDER_STATUS_LABELS } from '@/utils/orderStatusLabels';
 import { USER_ROLES } from '@/utils/constants';
+import { formatVnd } from '@/utils/money';
 
 const RestaurantOrders = () => {
   const { delay } = useAppDependencies();
@@ -106,12 +107,7 @@ const RestaurantOrders = () => {
   };
 
   // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(amount);
-  };
+  const formatCurrency = formatVnd;
 
   // Format date
   const formatDate = (dateString: string) => {
