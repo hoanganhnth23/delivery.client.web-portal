@@ -1,3 +1,4 @@
+import { ORDER_STATUS_LABELS } from '@/utils/orderStatusLabels';
 export const screens = {
   map: 'Bản đồ', offer: 'Đơn mới', active: 'Chuyến đang giao', detail: 'Chi tiết đơn',
   success: 'Giao thành công', history: 'Lịch sử chuyến', earnings: 'Thu nhập',
@@ -14,7 +15,13 @@ export const cases = { normal: 'Bình thường', loading: 'Đang tải', empty:
   batch: 'Đơn ghép 2 điểm giao', busy: 'Đang có chuyến khác' } as const;
 export type Scenario = keyof typeof cases;
 export type Status = 'ASSIGNED' | 'PICKED_UP' | 'DELIVERING' | 'DELIVERED' | 'CANCELLED';
-export const labels: Record<Status, string> = { ASSIGNED: 'Đến lấy món', PICKED_UP: 'Đã lấy hàng', DELIVERING: 'Đang giao', DELIVERED: 'Đã giao', CANCELLED: 'Đã hủy' };
+export const labels: Record<Status, string> = {
+  ASSIGNED: ORDER_STATUS_LABELS.ASSIGNED,
+  PICKED_UP: ORDER_STATUS_LABELS.PICKED_UP,
+  DELIVERING: ORDER_STATUS_LABELS.DELIVERING,
+  DELIVERED: ORDER_STATUS_LABELS.DELIVERED,
+  CANCELLED: ORDER_STATUS_LABELS.CANCELLED,
+};
 export const actions: Partial<Record<Status, string>> = { ASSIGNED: 'Xác nhận đã lấy hàng', PICKED_UP: 'Bắt đầu giao hàng', DELIVERING: 'Giao hàng thành công' };
 export function advance(status: Status, distance: number, validCod: boolean, connected: boolean): Status {
   if (!validCod || !connected || distance >= 200) return status;
