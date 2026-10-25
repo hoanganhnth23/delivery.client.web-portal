@@ -4,7 +4,7 @@ const webPort = Number(process.env.E2E_WEB_PORT ?? 5173);
 const webURL = `http://127.0.0.1:${webPort}`;
 const isLive = process.env.E2E_LIVE === 'true';
 // Specs that need a real backend; mocked projects never run them.
-const liveSpecs = ['**/live-smoke.spec.ts', '**/live-order-journey.spec.ts'];
+const liveSpecs = ['**/live-smoke.spec.ts', '**/live-order-journey.spec.ts', '**/live-portal-branches.spec.ts'];
 
 export default defineConfig({
   testDir: './e2e',
@@ -15,7 +15,9 @@ export default defineConfig({
   // runners and can make browsers exit or time out mid-suite. Keep the fast
   // single-engine default, but use the same conservative concurrency as CI
   // for coverage and explicit cross-browser jobs.
-  workers: process.env.CI || process.env.E2E_ALL_BROWSERS === 'true' || process.env.E2E_COVERAGE === 'true' ? 2 : undefined,
+  // Live specs share one stack and one seeded restaurant (W3 reprices its
+  // dish), so they run one at a time.
+  workers: isLive ? 1 : process.env.CI || process.env.E2E_ALL_BROWSERS === 'true' || process.env.E2E_COVERAGE === 'true' ? 2 : undefined,
   reporter: [
     ['line'],
     ['json', { outputFile: process.env.E2E_JSON_REPORT ?? 'test-results/e2e.json' }],
