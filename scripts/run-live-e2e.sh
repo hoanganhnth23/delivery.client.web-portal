@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run the live browser specs (live-smoke + live-order-journey) against the local
+# Run the live browser specs (live-smoke, live-order-journey, live-portal-branches) against the local
 # full-stack harness in delivery.devops.gitops/local/e2e. The stack owns all
 # state; it is torn down on exit unless it was already running or E2E_KEEP=true.
 # No shared staging or production URL is accepted by this wrapper.
